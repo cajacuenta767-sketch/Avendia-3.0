@@ -25,7 +25,11 @@ const aliases: Record<keyof Omit<PedagogicalContext, "fingerprint" | "status" | 
   level: ["level", "nivel"],
   grade: ["grade", "grado", "cycle", "ciclo"],
   area: ["curricular_area", "area", "área"],
-  topic: ["topic", "theme", "session_topic", "task_title", "unit_title", "session_title", "tema", "titulo"],
+  // Las herramientas no siempre llaman al foco "topic". Por ejemplo, el
+  // Examen usa "topics" y varias planificaciones usan contenido o asunto.
+  // Mantener estos alias aquí evita que la IA vuelva a una sugerencia genérica
+  // cuando el docente ya escribió el tema real.
+  topic: ["topic", "topics", "theme", "themes", "subject", "content", "content_focus", "learning_topic", "session_topic", "task_title", "unit_title", "session_title", "tema", "temas", "contenido", "asunto", "titulo"],
   competency: ["competenc", "capacity", "performance", "competencia", "capacidad", "desempeño"],
   purpose: ["purpose", "objective", "goal", "propósito", "objetivo", "meta"],
   evidence: ["evidence", "product", "criterion", "evidencia", "producto", "criterio"],
@@ -86,7 +90,17 @@ const areaIdeas: Record<string, string[]> = {
   tutor: ["Situación segura y cercana", "Reflexión sin juicios", "Acuerdo personal", "Ruta de apoyo", "Seguimiento respetuoso"],
 };
 
+const topicIdeas: Array<[RegExp, string[]]> = [
+  [/aritm|matem|fracci|n[uú]mer|operaci[oó]n|c[aá]lcul|medida|proporci[oó]n|geometr/i, ["Problema matemático cotidiano", "Representación concreta o gráfica", "Procedimiento explicado", "Comprobación del resultado", "Reto con dificultad gradual"]],
+  [/comunic|lect|texto|escrit|oral|argument|narraci[oó]n|gram[aá]tic/i, ["Texto cercano al contexto", "Idea principal e inferencias", "Opinión sustentada", "Producción oral o escrita", "Revisión con criterios"]],
+  [/ciencia|experimento|hip[oó]tesis|indaga|ecosistema|materia|energ[ií]a/i, ["Fenómeno observable", "Pregunta e hipótesis", "Experiencia segura", "Registro de evidencias", "Explicación basada en resultados"]],
+  [/historia|geograf[ií]a|ciudadan|convivencia|identidad|personal social/i, ["Situación de la comunidad", "Decisión fundamentada", "Perspectivas diversas", "Evidencia histórica o social", "Compromiso observable"]],
+];
+
 function contextualBase(context: PedagogicalContext) {
+  const topicKey = `${context.topic} ${context.competency}`.toLocaleLowerCase();
+  const topicMatch = topicIdeas.find(([pattern]) => pattern.test(topicKey));
+  if (topicMatch) return topicMatch[1];
   const areaKey = Object.keys(areaIdeas).find((key) => context.area.toLocaleLowerCase().includes(key));
   return areaKey ? areaIdeas[areaKey] : [];
 }

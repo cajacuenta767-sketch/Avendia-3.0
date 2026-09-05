@@ -182,6 +182,34 @@ async def test_field_assist_builds_the_final_prompt_on_the_server(
 
 
 @pytest.mark.asyncio
+async def test_field_assist_keeps_the_declared_exam_topic_as_a_binding_focus(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    copilot_mock = AsyncMock(
+        return_value=CopilotResponse(reply="Propuesta", model="gemini-3.6-flash")
+    )
+    monkeypatch.setattr("app.modules.ai.service.generate_copilot_reply", copilot_mock)
+    payload = FieldAssistRequest(
+        tool_id="examen",
+        tool_title="Examen",
+        module="evaluamos",
+        field_id="topics",
+        field_label="Temas específicos a evaluar",
+        question1="¿Qué contenido debe evaluar?",
+        answer1="Aritmética con fracciones equivalentes",
+        question2="¿Qué aplicación cotidiana tendrá?",
+        answer2="Reparto de alimentos en partes iguales",
+        form_values={"topics": "Aritmética con fracciones equivalentes", "level": "Primaria"},
+    )
+
+    await generate_field_assist_reply(payload)
+
+    sent_payload = copilot_mock.await_args.args[0]
+    assert "FOCO TEMÁTICO VINCULANTE: Aritmética con fracciones equivalentes" in sent_payload.message
+    assert "hábitos saludables" in sent_payload.message
+
+
+@pytest.mark.asyncio
 async def test_field_assist_preferences_and_feedback_are_persistent() -> None:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         token, _ = await _register_and_login(client, "field-preferences@example.edu")

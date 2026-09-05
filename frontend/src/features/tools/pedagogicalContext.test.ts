@@ -28,6 +28,17 @@ describe("pedagogicalContext", () => {
     expect(suggestions).not.toContain("Genérica");
   });
 
+  it("uses the plural exam topics field as the dominant topic", () => {
+    const context = derivePedagogicalContext({
+      curricular_area: "Matemática",
+      topics: "Aritmética: operaciones con fracciones",
+    });
+    const field: WorkflowField = { id: "criteria", label: "Criterios de evaluación", type: "textarea" };
+
+    expect(context.topic).toBe("Aritmética: operaciones con fracciones");
+    expect(contextualSuggestions([], field, context)).toContain("Conducta observable: Aritmética: operaciones con fracciones");
+  });
+
   it("preserves dependent content and reports what requires review", () => {
     const fields: WorkflowField[] = [
       { id: "level", label: "Nivel", type: "select" },

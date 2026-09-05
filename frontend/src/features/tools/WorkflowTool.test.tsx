@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
@@ -6,6 +6,7 @@ import { WorkflowTool } from "./WorkflowTool";
 
 describe("WorkflowTool validation", () => {
   beforeEach(() => {
+    cleanup();
     localStorage.clear();
     sessionStorage.clear();
   });
@@ -27,6 +28,17 @@ describe("WorkflowTool validation", () => {
     await waitFor(() => expect(firstInvalid).toHaveFocus());
     expect(firstInvalid).toHaveAttribute("aria-invalid", "true");
     expect(firstInvalid.getAttribute("aria-describedby")).toContain("workflow-error-dre");
+  });
+
+  it("offers contextual AI help for the qualitative fields of an exam", () => {
+    render(
+      <MemoryRouter initialEntries={["/dashboard/evaluamos/examen"]}>
+        <WorkflowTool />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByText(/Sugerir con IA/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("Temas específicos a evaluar")).toBeInTheDocument();
   });
 
   it("shows the generation contract, quality checks and the next connected tool", () => {

@@ -278,6 +278,28 @@ def test_homework_prompt_preserves_modality_level_and_territory(
     assert "Recursos accesibles en el hogar y la comunidad" in prompt
 
 
+def test_workflow_prompt_makes_exam_topics_binding() -> None:
+    payload = WorkflowGenerationRequest.model_validate(
+        {
+            "tool_id": "examen",
+            "module": "evaluamos",
+            "tool_title": "Examen",
+            "artifact_type": "instrumento",
+            "fields": {
+                "topics": "Aritmética: operaciones con fracciones",
+                "question_count": "5",
+                "total_score": "20",
+            },
+            "requested_sections": ["Preguntas", "Clave de respuestas"],
+        }
+    )
+
+    prompt = _workflow_prompt(payload)
+
+    assert "FOCO TEMÁTICO VINCULANTE DEL DOCENTE: Aritmética: operaciones con fracciones" in prompt
+    assert "No lo sustituyas por ejemplos genéricos" in prompt
+
+
 def _homework_payload() -> WorkflowGenerationRequest:
     payload = _payload()
     payload.update(
