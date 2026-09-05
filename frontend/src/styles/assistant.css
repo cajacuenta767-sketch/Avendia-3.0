@@ -308,17 +308,17 @@
   .generation-guide__progress { grid-template-columns:1fr 1fr; padding-inline:14px; }
   .generation-guide>label,.generation-guide__reply { margin-inline:14px; }
   .generation-guide--field { max-height:calc(100dvh - 16px); }
-  .generation-guide--field>header { min-height:0; padding:14px 16px; gap:10px; }
+  .generation-guide--field>header { flex:0 0 auto; min-height:0; padding:14px 16px; gap:10px; }
   .generation-guide--field>header>span,.generation-guide--field>header>span>span { min-width:0; }
   .generation-guide--field>header>span { gap:9px; }
   .generation-guide--field>header>span>svg { width:34px; height:34px; padding:8px; }
   .generation-guide--field h2 { font-size:17px; line-height:1.18; overflow-wrap:anywhere; }
   .generation-guide--field header small { font-size:7px; }
-  .generation-guide--field>footer { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; flex-direction:initial; gap:8px; padding:11px 14px; }
+  .generation-guide--field>footer { display:grid; flex:0 0 auto; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; flex-direction:initial; gap:8px; padding:11px 14px; }
   .generation-guide--field>footer .workflow-primary { grid-column:1/-1; grid-row:1; }
   .generation-guide--field>footer .secondary-button { min-width:0; }
   .generation-guide__body { padding-inline:14px; }
-  .generation-guide--field .generation-guide__body { gap:11px; padding-top:12px; padding-bottom:14px; }
+  .generation-guide--field .generation-guide__body { flex:1 1 auto; min-height:0; gap:11px; padding-top:12px; padding-bottom:14px; overflow-y:auto; overscroll-behavior:contain; }
   .generation-guide--field .generation-guide__field-context,.generation-guide--field .generation-guide__context,.generation-guide--field .generation-guide__assistance { display:none; }
   .generation-guide--field .generation-guide__body>p { font-size:10px; }
   .generation-guide--field .generation-guide__body>label { gap:5px; }
