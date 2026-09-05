@@ -9,7 +9,7 @@ from app.modules.admin.model import (
     AIUsageEvent,
     PlatformSettings,
 )
-from app.modules.users.model import User
+from app.modules.users.model import User, UserRole
 
 
 class InsufficientAICredits(RuntimeError):
@@ -17,6 +17,8 @@ class InsufficientAICredits(RuntimeError):
 
 
 def ensure_ai_credits(user: User, cost: int) -> None:
+    if user.role == UserRole.ADMIN:
+        return
     if user.ai_credits_balance < cost:
         raise InsufficientAICredits("Insufficient AI credits")
 
@@ -31,7 +33,8 @@ async def record_ai_usage(
     module: str,
     model: str,
 ) -> None:
-    user.ai_credits_balance = max(0, user.ai_credits_balance - credit_cost)
+    charged_credit_cost = 0 if user.role == UserRole.ADMIN else credit_cost
+    user.ai_credits_balance = max(0, user.ai_credits_balance - charged_credit_cost)
     user.ai_tokens_consumed += max(0, estimated_tokens)
     user.ai_generations += 1
     db.add(
@@ -40,7 +43,7 @@ async def record_ai_usage(
             tool_id=tool_id,
             module=module,
             model=model,
-            credit_cost=credit_cost,
+            credit_cost=charged_credit_cost,
             estimated_tokens=max(0, estimated_tokens),
         )
     )

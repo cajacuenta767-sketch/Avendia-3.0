@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.db.session import session_factory
 from app.main import app
-from app.modules.admin.model import AIGenerationQualityEvent
+from app.modules.admin.model import AIGenerationQualityEvent, AIUsageEvent
 from app.modules.ai.schemas import CopilotResponse, FieldAssistRequest
 from app.modules.ai.service import generate_field_assist_reply
 from app.modules.users.model import User, UserRole
@@ -103,6 +103,52 @@ async def test_copilot_rejects_generation_without_enough_credits(
 
     assert response.status_code == 402
     generation_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_admin_can_generate_with_zero_balance_without_spending_credits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reply = "Criterio: plantea y resuelve ecuaciones lineales verificando el resultado."
+    generation_mock = AsyncMock(return_value=CopilotResponse(reply=reply, model="gemini-3.6-flash"))
+    monkeypatch.setattr("app.modules.ai.router.generate_field_assist_reply", generation_mock)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        token, created = await _register_and_login(client, "admin-unlimited@example.edu")
+        user_id = UUID(str(created["id"]))
+        async with session_factory() as db:
+            user = await db.get(User, user_id)
+            assert user is not None
+            user.role = UserRole.ADMIN
+            user.ai_credits_balance = 0
+            await db.commit()
+
+        response = await client.post(
+            "/api/v1/ai/tools/field-assist",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "tool_id": "examen",
+                "tool_title": "Examen",
+                "module": "evaluamos",
+                "field_id": "criteria",
+                "field_label": "Criterios de evaluación",
+                "question1": "¿Qué evidencia será evaluada?",
+                "answer1": "Resolución de ecuaciones lineales",
+                "question2": "¿Qué desempeño debe observarse?",
+                "answer2": "Resuelve y comprueba el resultado",
+                "form_values": {"area": "Matemática", "topics": "Ecuaciones lineales"},
+            },
+        )
+        me = await client.get("/api/v1/users/me", headers={"Authorization": f"Bearer {token}"})
+        async with session_factory() as db:
+            usage = await db.scalar(select(AIUsageEvent).where(AIUsageEvent.user_id == user_id))
+
+    assert response.status_code == 200
+    assert response.json()["reply"] == reply
+    assert me.json()["ai_credits_balance"] == 0
+    assert me.json()["ai_generations"] == 1
+    assert usage is not None
+    assert usage.credit_cost == 0
 
 
 @pytest.mark.asyncio
