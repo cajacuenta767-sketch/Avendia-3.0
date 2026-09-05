@@ -176,6 +176,7 @@ export function WorkflowTool() {
   const [guideCustom, setGuideCustom] = useState("");
   const [guideSuggestions, setGuideSuggestions] = useState<string[]>([]);
   const [guideReply, setGuideReply] = useState("");
+  const [guideError, setGuideError] = useState("");
   const [guideLoading, setGuideLoading] = useState(false);
   const [guideApplyMode, setGuideApplyMode] = useState<"replace" | "append">("replace");
   const [assistanceMode, setAssistanceMode] = useState<AssistanceMode>("complete");
@@ -548,6 +549,7 @@ export function WorkflowTool() {
     setGuideCustom("");
     setGuideSuggestions([]);
     setGuideReply("");
+    setGuideError("");
     setGuideApplyMode(displayValue(draft.values[candidate?.id ?? ""]).trim() ? "append" : "replace");
     setGuideOpen(true);
   };
@@ -564,6 +566,7 @@ export function WorkflowTool() {
     if (!details.length) return;
     setGuideLoading(true);
     setGuideReply("");
+    setGuideError("");
     guideRequest.current?.abort();
     const controller = new AbortController();
     guideRequest.current = controller;
@@ -594,7 +597,7 @@ export function WorkflowTool() {
       });
       if (!controller.signal.aborted) setGuideReply(response.reply);
     } catch (error) {
-      if (!controller.signal.aborted) setGuideReply(error instanceof Error ? error.message : "No se pudo preparar la sugerencia.");
+      if (!controller.signal.aborted) setGuideError(error instanceof Error ? error.message : "No se pudo preparar la sugerencia.");
     } finally {
       if (!controller.signal.aborted) setGuideLoading(false);
     }
@@ -605,11 +608,13 @@ export function WorkflowTool() {
     guideRequest.current = null;
     setGuideLoading(false);
     setGuideReply("");
+    setGuideError("");
   };
 
   const useGuideWithoutAI = () => {
     if (!guideField) return;
     const parts = [...guideSuggestions, guideAnswer1, guideAnswer2, guideCustom].map((value) => value.trim()).filter(Boolean);
+    setGuideError("");
     setGuideReply(parts.join(assistanceMode === "quick" ? ". " : "\n\n"));
   };
 
@@ -1091,6 +1096,7 @@ export function WorkflowTool() {
         customDetail={guideCustom}
         selectedSuggestions={guideSuggestions}
         reply={guideReply}
+        error={guideError}
         loading={guideLoading}
         applyMode={guideApplyMode}
         onAnswer1Change={(value) => { invalidateGuideRequest(); setGuideAnswer1(value); }}

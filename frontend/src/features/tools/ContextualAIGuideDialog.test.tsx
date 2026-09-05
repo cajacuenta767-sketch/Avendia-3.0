@@ -83,4 +83,19 @@ describe("ContextualAIGuideDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Comprensión lectora baja" }));
     expect(onToggleSuggestion).toHaveBeenCalledWith("Comprensión lectora baja");
   });
+
+  it("shows a retryable error instead of an applyable AI proposal", () => {
+    render(<ContextualAIGuideDialog
+      toolTitle="Examen" field={field} guide={guide} hasExistingContent={false}
+      answer1="Ecuaciones" answer2="" customDetail="" selectedSuggestions={[]}
+      reply="" error="No pudimos conectar con Avendia." loading={false} applyMode="replace"
+      onAnswer1Change={vi.fn()} onAnswer2Change={vi.fn()} onCustomDetailChange={vi.fn()}
+      onToggleSuggestion={vi.fn()} onReplyChange={vi.fn()} onApplyModeChange={vi.fn()}
+      onGenerate={vi.fn()} onApply={vi.fn()} onClose={vi.fn()}
+    />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("No pudimos conectar con Avendia.");
+    expect(screen.getByRole("button", { name: "Reintentar generación" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Aplicar a/i })).not.toBeInTheDocument();
+  });
 });

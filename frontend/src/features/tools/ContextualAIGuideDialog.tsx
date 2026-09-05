@@ -22,6 +22,7 @@ type ContextualAIGuideDialogProps = {
   customDetail: string;
   selectedSuggestions: string[];
   reply: string;
+  error?: string;
   loading: boolean;
   applyMode: ApplyMode;
   onAnswer1Change: (value: string) => void;
@@ -55,6 +56,7 @@ export function ContextualAIGuideDialog({
   customDetail,
   selectedSuggestions,
   reply,
+  error = "",
   loading,
   applyMode,
   onAnswer1Change,
@@ -168,6 +170,11 @@ export function ContextualAIGuideDialog({
             <textarea rows={3} value={customDetail} onChange={(event) => onCustomDetailChange(event.target.value)} placeholder={`Añade una condición, ejemplo o instrucción especial para ${field.label.toLowerCase()}.`} />
           </label>
 
+          {error ? <div className="generation-guide__error" role="alert">
+            <CircleAlert />
+            <div><strong>No se pudo preparar la sugerencia</strong><p>{error}</p><small>Revisa tu conexión e inténtalo nuevamente. Tus respuestas se conservarán.</small></div>
+          </div> : null}
+
           {reply ? (
             <div className="generation-guide__reply">
               <strong>Compara antes de aplicar</strong>
@@ -191,7 +198,7 @@ export function ContextualAIGuideDialog({
             <>
               {onUseWithoutAI ? <button className="secondary-button" type="button" disabled={loading || !hasPrompt} onClick={onUseWithoutAI}>Usar sin IA</button> : null}
               <button className="workflow-primary" type="button" disabled={loading || !hasPrompt} onClick={onGenerate}>
-                {loading ? <LoaderCircle className="is-spinning" /> : <Sparkles />}{loading ? "Generando…" : "Generar para este campo"}
+                {loading ? <LoaderCircle className="is-spinning" /> : <Sparkles />}{loading ? "Generando…" : error ? "Reintentar generación" : "Generar para este campo"}
               </button>
             </>
           )}
