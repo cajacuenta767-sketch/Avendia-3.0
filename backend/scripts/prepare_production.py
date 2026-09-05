@@ -35,14 +35,17 @@ async def seed_admin() -> None:
             print(f"Administrator already ready: {current_admin.email}")
             return
 
-        legacy = (
-            await session.execute(
-                text(
-                    "SELECT email, full_name, password_hash FROM public.users "
-                    "WHERE role = 'ADMIN' OR is_admin IS TRUE ORDER BY created_at LIMIT 1"
+        legacy = None
+        legacy_table = await session.scalar(text("SELECT to_regclass('public.users')"))
+        if legacy_table is not None:
+            legacy = (
+                await session.execute(
+                    text(
+                        "SELECT email, full_name, password_hash FROM public.users "
+                        "WHERE role = 'ADMIN' OR is_admin IS TRUE ORDER BY created_at LIMIT 1"
+                    )
                 )
-            )
-        ).mappings().first()
+            ).mappings().first()
         if legacy:
             email = str(legacy["email"]).lower()
             full_name = str(legacy["full_name"] or "Administrador Avendia")
