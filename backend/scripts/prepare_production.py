@@ -17,10 +17,25 @@ def required_env(name: str) -> str:
 
 
 async def ensure_schema(database_url: str, schema: str) -> None:
+    if not schema.replace("_", "").isalnum() or schema[0].isdigit():
+        raise RuntimeError("DATABASE_SCHEMA must be a valid PostgreSQL identifier")
+    quoted_schema = f'"{schema}"'
     connect_args = {"ssl": "require"} if os.getenv("DATABASE_SSL_REQUIRED") == "true" else {}
     engine = create_async_engine(database_url, pool_pre_ping=True, connect_args=connect_args)
     async with engine.begin() as connection:
-        await connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+        await connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {quoted_schema}"))
+        await connection.execute(
+            text(
+                f"CREATE TABLE IF NOT EXISTS {quoted_schema}.alembic_version ("
+                "version_num VARCHAR(128) NOT NULL PRIMARY KEY)"
+            )
+        )
+        await connection.execute(
+            text(
+                f"ALTER TABLE {quoted_schema}.alembic_version "
+                "ALTER COLUMN version_num TYPE VARCHAR(128)"
+            )
+        )
     await engine.dispose()
 
 
