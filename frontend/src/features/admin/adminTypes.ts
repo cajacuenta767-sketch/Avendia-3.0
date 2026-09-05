@@ -28,10 +28,11 @@ export type AdminDashboard = {
 
 export type AdminUser = {
   id: string; full_name: string; email: string; school_name: string; role: "teacher" | "admin"; is_active: boolean;
+  phone: string | null; subscription_start: string | null; subscription_end: string | null; created_by_admin: string | null; updated_by_admin: string | null;
   education_modality: string; education_level: string; grade: string; ai_credits_balance: number; ai_credits_total: number;
   ai_tokens_consumed: number; ai_generations: number; documents_count: number; events_count: number; last_activity_at: string; created_at: string;
 };
-export type AdminUsersResponse = { items: AdminUser[]; total: number; limit: number; offset: number };
+export type AdminUsersResponse = { items: AdminUser[]; total: number; limit: number; offset: number; teachers_count: number; admins_count: number };
 export type AIUsageEntry = { id: string; user_id: string; user_name: string; tool_id: string; module: string; model: string; credit_cost: number; estimated_tokens: number; created_at: string };
 export type AdminUserDetail = AdminUser & {
   dre: string; ugel: string; director_name: string; section: string; curricular_area: string; school_year: number;

@@ -400,6 +400,12 @@ async def list_users(
     }[sort]
     users = list(await db.scalars(query.order_by(order).offset(offset).limit(limit)))
     total = int(await db.scalar(total_query) or 0)
+    teachers_count = int(
+        await db.scalar(select(func.count(User.id)).where(User.role == UserRole.TEACHER)) or 0
+    )
+    admins_count = int(
+        await db.scalar(select(func.count(User.id)).where(User.role == UserRole.ADMIN)) or 0
+    )
     ids = [user.id for user in users]
     doc_stats: dict[UUID, tuple[int, datetime | None]] = {}
     event_stats: dict[UUID, tuple[int, datetime | None]] = {}
@@ -456,9 +462,14 @@ async def list_users(
                 id=user.id,
                 full_name=user.full_name,
                 email=user.email,
+                phone=user.phone,
                 school_name=user.school_name,
                 role=user.role,
                 is_active=user.is_active,
+                subscription_start=user.subscription_start,
+                subscription_end=user.subscription_end,
+                created_by_admin=user.created_by_admin,
+                updated_by_admin=user.updated_by_admin,
                 education_modality=user.education_modality,
                 education_level=user.education_level,
                 grade=user.grade,
@@ -472,7 +483,14 @@ async def list_users(
                 created_at=user.created_at,
             )
         )
-    return AdminUserListResponse(items=items, total=total, limit=limit, offset=offset)
+    return AdminUserListResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        teachers_count=teachers_count,
+        admins_count=admins_count,
+    )
 
 
 @router.get("/users/{user_id}", response_model=AdminUserDetail)
@@ -526,9 +544,14 @@ async def user_detail(
         id=user.id,
         full_name=user.full_name,
         email=user.email,
+        phone=user.phone,
         school_name=user.school_name,
         role=user.role,
         is_active=user.is_active,
+        subscription_start=user.subscription_start,
+        subscription_end=user.subscription_end,
+        created_by_admin=user.created_by_admin,
+        updated_by_admin=user.updated_by_admin,
         education_modality=user.education_modality,
         education_level=user.education_level,
         grade=user.grade,

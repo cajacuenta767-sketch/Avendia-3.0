@@ -92,6 +92,9 @@ async def test_admin_user_controls_are_audited_and_preserve_an_admin() -> None:
         )
         headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
+        users = await client.get("/api/v1/admin/users", headers=headers)
+        detail = await client.get(f"/api/v1/admin/users/{teacher['id']}", headers=headers)
+
         self_deactivate = await client.patch(
             f"/api/v1/admin/users/{admin['id']}",
             headers=headers,
@@ -109,6 +112,17 @@ async def test_admin_user_controls_are_audited_and_preserve_an_admin() -> None:
         )
         audit = await client.get("/api/v1/admin/audit", headers=headers)
 
+    assert users.status_code == 200
+    assert users.json()["total"] == 2
+    assert users.json()["teachers_count"] == 1
+    assert users.json()["admins_count"] == 1
+    assert {item["email"] for item in users.json()["items"]} == {
+        "admin-guard@example.edu",
+        "managed@example.edu",
+    }
+    assert detail.status_code == 200
+    assert detail.json()["email"] == "managed@example.edu"
+    assert "subscription_end" in detail.json()
     assert self_deactivate.status_code == 422
     assert promoted.status_code == 200
     assert credits.status_code == 200
