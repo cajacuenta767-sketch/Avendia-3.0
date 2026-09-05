@@ -1,0 +1,31 @@
+.observation-criteria { display: grid; gap: 11px; }
+.observation-criteria > div { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px; gap: 10px; align-items: center; }
+.observation-criteria > div > span { display: grid; width: 40px; height: 40px; place-items: center; color: #5147dc; border-radius: 10px; background: #efedff; font-size: 12px; font-weight: 850; }
+.observation-criteria input { width: 100%; min-width: 0; min-height: 48px; padding: 0 13px; color: #172741; border: 1px solid #ccd8e8; border-radius: 11px; background: #fbfcff; font: inherit; }
+.observation-criteria > div > button { display: grid; width: 40px; height: 40px; padding: 0; place-items: center; color: #b23845; border: 0; border-radius: 10px; background: #fff1f3; cursor: pointer; }
+.observation-criteria > div > button svg { width: 16px; }
+.observation-individual { display: grid; gap: 14px; min-width: 0; }
+.observation-individual h3 { margin: 0; }
+.observation-individual > p { margin: -8px 0 2px; color: var(--muted, #687792); font-size: 13px; }
+.observation-individual label { display: grid; gap: 7px; min-width: 0; padding: 15px; border: 1px solid #dce4ef; border-radius: 13px; background: #f9fbfe; color: #2b3c58; font-size: 13px; font-weight: 800; }
+.observation-individual textarea { min-height: 90px; padding: 11px 13px; color: #172741; border: 1px solid #ccd8e8; border-radius: 10px; background: #fff; font: inherit; resize: vertical; }
+.observation-preview .evaluation-preview__section .evaluation-chip-list + p { margin-top: 15px; }
+.observation-history { display: grid; gap: 10px; padding: 18px; color: #111827; border: 1px solid #dce4ef; border-radius: 14px; background: #fff; }
+.observation-history h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 3px; font-size: 17px; }
+.observation-history h3 svg { width: 18px; color: #5e54e8; }
+.observation-history article { display: flex; justify-content: space-between; gap: 12px; padding: 11px 12px; border-radius: 10px; background: #f0f5fb; }
+.observation-history article span { color: #5c6c84; font-size: 12px; }
+.observation-history > p { margin: 0; color: #5c6c84; }
+
+[data-theme="dark"] .observation-criteria > div > span { color: #d1c8ff; background: #241e45; }
+[data-theme="dark"] .observation-criteria input,
+[data-theme="dark"] .observation-individual textarea { color: #edf3ff; border-color: #40506a; background: #152136; }
+[data-theme="dark"] .observation-criteria > div > button { color: #f0a1a8; background: #2a171c; }
+[data-theme="dark"] .observation-individual label { color: #dce5f3; border-color: #34445c; background: #0f1a2b; }
+
+@media (max-width: 620px) {
+  .observation-criteria > div { grid-template-columns: 36px minmax(0, 1fr) 36px; gap: 7px; }
+  .observation-criteria > div > span,
+  .observation-criteria > div > button { width: 36px; height: 36px; }
+  .observation-history article { align-items: flex-start; flex-direction: column; }
+}

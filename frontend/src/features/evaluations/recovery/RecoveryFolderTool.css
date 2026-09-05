@@ -1,0 +1,11 @@
+.recovery-individual { display: grid; gap: 13px; }
+.recovery-individual h3 { margin: 0; }
+.recovery-individual > p { margin: -7px 0 2px; color: var(--muted, #687792); font-size: 13px; }
+.recovery-individual label { display: grid; gap: 7px; min-width: 0; padding: 15px; color: #2b3c58; border: 1px solid #dce4ef; border-radius: 13px; background: #f9fbfe; font-size: 13px; font-weight: 800; }
+.recovery-individual textarea { min-height: 86px; padding: 11px 13px; color: #172741; border: 1px solid #ccd8e8; border-radius: 10px; background: #fff; font: inherit; resize: vertical; }
+[data-theme="dark"] .recovery-individual label { color: #dce5f3; border-color: #34445c; background: #0f1a2b; }
+[data-theme="dark"] .recovery-individual textarea { color: #edf3ff; border-color: #40506a; background: #152136; }
+[data-theme="dark"] .source-artifact-editor { color: #edf3ff; }
+[data-theme="dark"] .source-artifact-editor article { color: #dce5f3; border-color: #34445c; background: #0f1a2b; }
+[data-theme="dark"] .source-artifact-editor article h3,
+[data-theme="dark"] .source-artifact-editor h2 { color: #fff; }

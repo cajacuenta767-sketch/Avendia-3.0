@@ -1,0 +1,943 @@
+/* ==========================================================================
+   Word Document Preview Styles (Previsualización de Documentos Tipo Word)
+   Diseñado para emular fielmente el diseño de página institucional A4
+   Soporta los 6 arquetipos pedagógicos del CNEB / MINEDU
+   ========================================================================== */
+
+.word-preview-wrapper {
+  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.word-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.word-preview-toolbar__status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary, #1e293b);
+}
+
+.word-preview-toolbar__status svg {
+  color: #1f4d78;
+}
+
+[data-theme="dark"] .word-preview-toolbar__status svg {
+  color: #60a5fa;
+}
+
+.word-preview-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.word-preview-btn-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, #cbd5e1);
+  background: var(--bg-surface, #ffffff);
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.word-preview-btn-toggle:hover {
+  background: var(--bg-subtle, #f1f5f9);
+  color: var(--text-primary, #0f172a);
+}
+
+.word-preview-btn-toggle.is-active {
+  background: #1f4d78;
+  color: #ffffff;
+  border-color: #1f4d78;
+}
+
+[data-theme="dark"] .word-preview-btn-toggle.is-active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* Lienzo de hoja de papel Word */
+.word-preview-viewport {
+  background: var(--bg-canvas, #e2e8f0);
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+[data-theme="dark"] .word-preview-viewport {
+  background: #0b1120;
+}
+
+.word-document-paper {
+  background: #ffffff;
+  color: #1f2937;
+  width: 100%;
+  max-width: 1060px;
+  min-height: 1100px;
+  padding: 3.5rem 3.25rem;
+  border-radius: 4px;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+[data-theme="dark"] .word-document-paper {
+  background: #1e293b;
+  color: #f1f5f9;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Encabezados oficiales */
+.word-paper-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #bdd7ee;
+}
+
+[data-theme="dark"] .word-paper-header {
+  border-bottom-color: #334155;
+}
+
+.word-paper-motto {
+  font-style: italic;
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+[data-theme="dark"] .word-paper-motto {
+  color: #94a3b8;
+}
+
+.word-paper-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1f4d78;
+  letter-spacing: 0.02em;
+  margin: 0.35rem 0;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .word-paper-title {
+  color: #93c5fd;
+}
+
+.word-paper-subtitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #2e74b5;
+  letter-spacing: 0.01em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .word-paper-subtitle {
+  color: #60a5fa;
+}
+
+/* Encabezado especial para Exámenes y Evaluaciones de Estudiante */
+.word-student-exam-header {
+  border: 1.5px solid #1f4d78;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.75rem;
+  background: #f8fafc;
+}
+
+[data-theme="dark"] .word-student-exam-header {
+  background: #0f172a;
+  border-color: #3b82f6;
+}
+
+.word-student-exam-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.word-student-exam-row:last-child {
+  margin-bottom: 0;
+}
+
+.word-student-score-box {
+  border: 2px solid #1f4d78;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 700;
+  min-width: 110px;
+}
+
+[data-theme="dark"] .word-student-score-box {
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+/* Secciones y subtítulos */
+.word-section {
+  margin-bottom: 2rem;
+}
+
+.word-section-h1 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1f4d78;
+  text-transform: uppercase;
+  margin-top: 1.75rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1.5px solid #bdd7ee;
+}
+
+[data-theme="dark"] .word-section-h1 {
+  color: #93c5fd;
+  border-bottom-color: #334155;
+}
+
+.word-section-h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2e74b5;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+[data-theme="dark"] .word-section-h2 {
+  color: #60a5fa;
+}
+
+.word-paper-p {
+  margin-bottom: 0.75rem;
+  text-align: justify;
+  line-height: 1.6;
+}
+
+/* Tablas oficiales Word */
+.word-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  margin: 0.85rem 0 1.25rem 0;
+  border-radius: 4px;
+}
+
+.word-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84375rem;
+  line-height: 1.4;
+  border: 1px solid #bdd7ee;
+}
+
+[data-theme="dark"] .word-table {
+  border-color: #334155;
+}
+
+.word-table th {
+  background-color: #bdd7ee;
+  color: #1f4d78;
+  font-weight: 700;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #bdd7ee;
+  text-align: left;
+}
+
+[data-theme="dark"] .word-table th {
+  background-color: #1e3a8a;
+  color: #e0f2fe;
+  border-color: #334155;
+}
+
+.word-table td {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #bdd7ee;
+  vertical-align: top;
+}
+
+[data-theme="dark"] .word-table td {
+  border-color: #334155;
+}
+
+.word-table tr:nth-child(even) td {
+  background-color: #f8fafc;
+}
+
+[data-theme="dark"] .word-table tr:nth-child(even) td {
+  background-color: #172554;
+}
+
+.word-table--compact td {
+  padding: 0.4rem 0.55rem;
+}
+
+.word-table-cell-center {
+  text-align: center;
+}
+
+.word-table-cell-bold {
+  font-weight: 700;
+  color: #1f4d78;
+}
+
+[data-theme="dark"] .word-table-cell-bold {
+  color: #93c5fd;
+}
+
+/* Semáforos y Estados para Informes de Analytics y Alertas */
+.word-status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.word-status-badge--danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.word-status-badge--warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.word-status-badge--success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* Cuadrículas lúdicas (Sopas de letras y Crucigramas) */
+.word-letters-grid-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.word-letters-grid {
+  border-collapse: collapse;
+  font-family: monospace, "Courier New", Courier;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 auto;
+}
+
+.word-letters-grid td {
+  width: 32px;
+  height: 32px;
+  text-align: center;
+  vertical-align: middle;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+}
+
+[data-theme="dark"] .word-letters-grid td {
+  background: #0f172a;
+  border-color: #334155;
+  color: #93c5fd;
+}
+
+/* Tarjetas de estudio / Flashcards recortables */
+.word-flashcards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.word-flashcard-item {
+  border: 1.5px dashed #94a3b8;
+  border-radius: 8px;
+  padding: 1.25rem;
+  background: #f8fafc;
+  position: relative;
+}
+
+[data-theme="dark"] .word-flashcard-item {
+  background: #0f172a;
+  border-color: #475569;
+}
+
+.word-flashcard-cut-label {
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  background: #ffffff;
+  padding: 0 6px;
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .word-flashcard-cut-label {
+  background: #1e293b;
+  color: #64748b;
+}
+
+/* Comunicaciones y Talón de Acuse de Recibo */
+.word-communication-envelope {
+  border: 1px solid #bdd7ee;
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  background: #fdfefe;
+}
+
+[data-theme="dark"] .word-communication-envelope {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.word-tear-off-slip {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 2px dashed #94a3b8;
+  position: relative;
+}
+
+.word-tear-off-label {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  padding: 0 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .word-tear-off-label {
+  background: #1e293b;
+  color: #94a3b8;
+}
+
+/* Bloque oficial de firmas */
+.word-signatures-box {
+  margin-top: 3.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  text-align: center;
+}
+
+.word-signature-line {
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  user-select: none;
+}
+
+.word-signature-name {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: #1f4d78;
+}
+
+[data-theme="dark"] .word-signature-name {
+  color: #93c5fd;
+}
+
+.word-signature-role {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+[data-theme="dark"] .word-signature-role {
+  color: #94a3b8;
+}
+
+/* Juego del Ahorcado */
+.word-hangman-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.word-hangman-card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 1.15rem;
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .word-hangman-card {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.word-hangman-card-title {
+  font-weight: 700;
+  color: #1f4d78;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+}
+
+[data-theme="dark"] .word-hangman-card-title {
+  color: #93c5fd;
+}
+
+.word-hangman-prompt {
+  font-weight: 500;
+  font-style: italic;
+  color: #0f172a;
+}
+
+[data-theme="dark"] .word-hangman-prompt {
+  color: #f1f5f9;
+}
+
+.word-hangman-boxes {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.85rem 0;
+  flex-wrap: wrap;
+}
+
+.word-hangman-box {
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 2px solid #1f4d78;
+  border-radius: 4px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1e293b;
+}
+
+[data-theme="dark"] .word-hangman-box {
+  border-color: #60a5fa;
+  background: #1e293b;
+  color: #ffffff;
+}
+
+.word-hangman-abc {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0.4rem 0;
+  letter-spacing: 0.04em;
+}
+
+[data-theme="dark"] .word-hangman-abc {
+  color: #94a3b8;
+}
+
+.word-hangman-lives {
+  font-size: 0.85rem;
+  color: #1f4d78;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+[data-theme="dark"] .word-hangman-lives {
+  color: #93c5fd;
+}
+
+.word-hangman-attempts {
+  color: #64748b;
+  font-weight: 400;
+}
+
+[data-theme="dark"] .word-hangman-attempts {
+  color: #94a3b8;
+}
+
+.word-hangman-secret {
+  font-weight: 700;
+  color: #1f4d78;
+}
+
+[data-theme="dark"] .word-hangman-secret {
+  color: #93c5fd;
+}
+
+/* Completa la Frase */
+.word-completion-bank {
+  background: #f0fdf4;
+  border: 2px dashed #22c55e;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+[data-theme="dark"] .word-completion-bank {
+  background: #062419;
+  border-color: #10b981;
+}
+
+.word-completion-bank-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #15803d;
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.04em;
+}
+
+[data-theme="dark"] .word-completion-bank-title {
+  color: #6ee7b7;
+}
+
+.word-completion-bank-words {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.word-completion-bank-tag {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #1f4d78;
+  background: #ffffff;
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  border: 1px solid #bbf7d0;
+}
+
+[data-theme="dark"] .word-completion-bank-tag {
+  background: #1e293b;
+  color: #93c5fd;
+  border-color: #334155;
+}
+
+.word-completion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.word-completion-item {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.word-completion-number {
+  font-weight: 700;
+  color: #1f4d78;
+}
+
+[data-theme="dark"] .word-completion-number {
+  color: #93c5fd;
+}
+
+.word-completion-sentence {
+  color: inherit;
+}
+
+/* Crucigramas */
+.word-crossword-container {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0 2rem 0;
+}
+
+.word-crossword-grid {
+  display: inline-grid;
+  grid-template-columns: repeat(10, 2.3rem);
+  grid-template-rows: repeat(10, 2.3rem);
+  gap: 2px;
+  background: #cbd5e1;
+  padding: 4px;
+  border: 2px solid #1f4d78;
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .word-crossword-grid {
+  background: #334155;
+  border-color: #60a5fa;
+}
+
+.word-crossword-cell {
+  background: #ffffff;
+  color: #1f4d78;
+  font-weight: 700;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 2px 4px;
+  border-radius: 2px;
+  user-select: none;
+}
+
+[data-theme="dark"] .word-crossword-cell {
+  background: #1e293b;
+  color: #93c5fd;
+}
+
+.word-crossword-cell--blocked {
+  background: #334155;
+}
+
+[data-theme="dark"] .word-crossword-cell--blocked {
+  background: #090e17;
+}
+
+
+.generated-artifact-table + .generated-artifact-table {
+  margin-top: 1.5rem;
+}
+
+.generated-artifact-table__note {
+  margin: 0.65rem 0 0;
+  color: #64748b;
+  font-size: 0.84rem;
+  font-style: italic;
+}
+
+.generated-artifact-table textarea {
+  width: 100%;
+  min-width: 8rem;
+  resize: vertical;
+  border: 1px solid #b9c9de;
+  border-radius: 6px;
+  padding: 0.45rem;
+  background: #fff;
+  color: #17233d;
+  font: inherit;
+}
+
+[data-theme="dark"] .generated-artifact-table textarea {
+  border-color: #46556e;
+  background: #111827;
+  color: #f8fafc;
+}
+.homework-preview__toolbar {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.homework-preview__audience {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.homework-sheet {
+  color: var(--text-primary, #0f172a);
+}
+
+.homework-sheet__header {
+  border-bottom: 3px solid var(--primary, #1463f3);
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  text-align: center;
+}
+
+.homework-sheet__header > span {
+  color: var(--primary, #1463f3);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.homework-sheet__header h1 {
+  color: #0f172a;
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  line-height: 1.12;
+  margin: 0.55rem auto;
+  max-width: 46rem;
+}
+
+.homework-sheet__header p,
+.homework-sheet__intro p,
+.homework-sheet__teacher-guide p,
+.homework-sheet__teacher-guide li {
+  color: #1e293b;
+  line-height: 1.6;
+}
+
+.homework-sheet__identity {
+  background: #f8fbff;
+  border: 1px solid #bfd5f6;
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.75rem 1.25rem;
+  grid-template-columns: 1fr auto;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+}
+
+.homework-sheet__identity span:last-child {
+  grid-column: 1 / -1;
+}
+
+.homework-sheet h2 {
+  color: #0f172a;
+  font-size: 1.05rem;
+  margin: 1.3rem 0 0.45rem;
+}
+
+.homework-task {
+  background: #fff;
+  border: 1px solid #d8e3f2;
+  border-radius: 0.9rem;
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: 2.25rem 1fr;
+  margin: 0.85rem 0;
+  padding: 1rem;
+}
+
+.homework-task__number {
+  align-items: center;
+  background: var(--primary, #1463f3);
+  border-radius: 999px;
+  color: #fff;
+  display: flex;
+  font-weight: 800;
+  height: 2.25rem;
+  justify-content: center;
+  width: 2.25rem;
+}
+
+.homework-task__content h3 {
+  color: #0f172a;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0.2rem 0 0.65rem;
+}
+
+.homework-task__hint {
+  background: #f2f7ff;
+  border-left: 3px solid #60a5fa;
+  color: #334155;
+  margin: 0 0 0.9rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.homework-task__response-label {
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.homework-task__lines {
+  display: grid;
+  gap: 1.05rem;
+  margin-top: 0.75rem;
+}
+
+.homework-task__lines i {
+  border-bottom: 1px solid #94a3b8;
+  display: block;
+}
+
+.homework-response-table {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 8px;
+  border-top: 1px solid #9fb3cc;
+  border-left: 1px solid #9fb3cc;
+}
+.homework-response-table i { min-height: 42px; border-right: 1px solid #9fb3cc; border-bottom: 1px solid #9fb3cc; }
+.homework-response-drawing,
+.homework-response-operation,
+.homework-response-attachment {
+  display: grid;
+  min-height: 132px;
+  margin-top: 8px;
+  padding: 14px;
+  border: 1px dashed #8ea8c8;
+  border-radius: 10px;
+  color: #72829a;
+  background: repeating-linear-gradient(0deg, transparent 0 27px, rgba(142, 168, 200, .18) 28px);
+  font-size: 12px;
+}
+.homework-response-operation { min-height: 170px; align-content: end; background-image: linear-gradient(rgba(142, 168, 200, .12) 1px, transparent 1px), linear-gradient(90deg, rgba(142, 168, 200, .12) 1px, transparent 1px); background-size: 22px 22px; }
+.homework-response-attachment { min-height: auto; gap: 18px; background: #f8fbff; }
+[data-theme="dark"] .homework-response-attachment { background: #172133; }
+
+.homework-sheet__checklist,
+.homework-sheet__notice {
+  background: #effaf7;
+  border: 1px solid #9de1cf;
+  border-radius: 0.85rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+}
+
+.homework-sheet__checklist label {
+  align-items: flex-start;
+  color: #1e293b;
+  display: flex;
+  gap: 0.6rem;
+  line-height: 1.45;
+  margin: 0.65rem 0;
+}
+
+.homework-sheet__teacher-guide article {
+  border-bottom: 1px solid #dbe4f0;
+  padding-bottom: 0.8rem;
+}
+
+@media (max-width: 700px) {
+  .homework-preview__toolbar,
+  .homework-preview__audience,
+  .homework-preview__audience button,
+  .homework-preview__toolbar .word-preview-toolbar__actions,
+  .homework-preview__toolbar .word-preview-toolbar__actions button {
+    width: 100%;
+  }
+
+  .homework-sheet__identity {
+    grid-template-columns: 1fr;
+  }
+
+  .homework-sheet__identity span:last-child {
+    grid-column: auto;
+  }
+
+  .homework-task {
+    grid-template-columns: 1.9rem 1fr;
+    padding: 0.8rem;
+  }
+
+  .homework-task__number {
+    height: 1.9rem;
+    width: 1.9rem;
+  }
+}

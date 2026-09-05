@@ -1,0 +1,28 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.db
+
+# Node / Vite
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Editors and operating system
+.idea/
+.vscode/
+.runtime/
+.vercel/
+backend/data/
+exports-qa-word/
+.DS_Store
+Thumbs.db

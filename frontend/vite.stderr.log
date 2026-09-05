@@ -1,0 +1,963 @@
+12:53:46 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:53:46 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+12:53:46 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:53:46 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/features/tools/ToolWorkspace.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:53:46 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/features/tools/ToolWorkspace.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:53:46 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+12:53:46 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:53:46 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/features/tools/ToolWorkspace.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:53:56 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:53:56 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+12:53:56 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+12:53:56 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:53:56 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:53:56 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:53:56 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:53:56 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:53:56 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:54:23 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/source-documents/SourceDocumentTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:8:45
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+     |                                                     ^
+  12 |  _c6 = SourceDocumentTool;
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:54:23 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/source-documents/SourceDocumentTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:8:45
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+     |                                                     ^
+  12 |  _c6 = SourceDocumentTool;
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:54:23 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/source-documents/SourceDocumentTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:8:45
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+     |                                                     ^
+  12 |  _c6 = SourceDocumentTool;
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+12:54:23 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/source-documents/SourceDocumentTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:8:45
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+     |                                                     ^
+  12 |  _c6 = SourceDocumentTool;
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+12:54:23 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:54:23 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:54:23 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+12:54:23 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/checklist/ChecklistTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:6:40
+  5  |  import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+  6  |  var _s = $RefreshSig$();
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+     |                                               ^
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:54:23 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:55:16 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 8)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:55:16 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 8)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:55:16 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+12:55:16 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+12:55:16 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:55:16 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:55:16 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:55:16 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:55:16 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:55:58 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/source-documents/SourceDocumentTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:8:45
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+     |                                                     ^
+  12 |  _c6 = SourceDocumentTool;
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:55:58 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/source-documents/SourceDocumentTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:8:45
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+     |                                                     ^
+  12 |  _c6 = SourceDocumentTool;
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+12:55:58 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/source-documents/SourceDocumentTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:8:45
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+     |                                                     ^
+  12 |  _c6 = SourceDocumentTool;
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+12:55:58 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:55:58 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:55:58 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:55:58 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:55:58 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:55:58 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:56:51 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 8)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:56:51 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 8)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:56:51 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+12:56:51 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+12:56:51 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:56:51 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:56:51 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:56:51 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:56:51 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:57:08 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 8)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:57:08 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 8)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:57:08 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+12:57:08 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/recovery/RecoveryFolderTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:10:45
+  13 |  const ObservationTool = lazy(_c7 = () => import("../evaluations/observation/ObservationTool").then((module) => ({ def...
+  14 |  _c8 = ObservationTool;
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+     |                                                     ^
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+12:57:08 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:57:08 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:57:08 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:57:08 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:57:08 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:57:13 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 9)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:57:13 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 9)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:57:13 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+12:57:13 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+12:57:13 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:57:13 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:57:13 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:57:13 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:57:13 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:58:21 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:58:21 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:58:21 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:58:21 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:58:21 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:58:21 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:58:21 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:58:21 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:58:21 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:58:28 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:58:28 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:58:28 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:58:28 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:58:28 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:58:28 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:58:28 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:58:28 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:58:28 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:59:17 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:59:17 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:59:17 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:59:17 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:59:17 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:59:17 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:59:17 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+12:59:17 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/rubric/RubricTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:7:37
+  7  |  const ChecklistTool = lazy(_c = () => import("../evaluations/checklist/ChecklistTool").then((module) => ({ default: m...
+  8  |  _c2 = ChecklistTool;
+  9  |  const RubricTool = lazy(_c3 = () => import("../evaluations/rubric/RubricTool").then((module) => ({ default: module.Ru...
+     |                                             ^
+  10 |  _c4 = RubricTool;
+  11 |  const SourceDocumentTool = lazy(_c5 = () => import("../evaluations/source-documents/SourceDocumentTool").then((module...
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:59:17 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:59:56 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 9)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:59:56 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+12:59:56 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 9)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:59:56 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+12:59:56 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:59:56 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+12:59:56 a. m. [vite] (client) Pre-transform error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+12:59:56 a. m. [vite] Internal server error: Failed to resolve import "../evaluations/registers/AuxiliaryRegisterTool" from "src/features/tools/ToolWorkspace.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/PC/Documents/ChatGPT/Avend Escala 3.0/frontend/src/features/tools/ToolWorkspace.tsx:11:48
+  15 |  const RecoveryFolderTool = lazy(_c9 = () => import("../evaluations/recovery/RecoveryFolderTool").then((module) => ({ ...
+  16 |  _c10 = RecoveryFolderTool;
+  17 |  const AuxiliaryRegisterTool = lazy(_c11 = () => import("../evaluations/registers/AuxiliaryRegisterTool").then((module...
+     |                                                         ^
+  18 |  _c12 = AuxiliaryRegisterTool;
+  19 |  function EvaluationLoadingState() {
+      at TransformPluginContext._formatLog (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31147:39)
+      at TransformPluginContext.error (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:31144:14)
+      at normalizeUrl (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28083:18)
+      at async file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28153:30
+      at async Promise.all (index 9)
+      at async TransformPluginContext.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:28119:4)
+      at async EnvironmentPluginContainer.transform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:30932:14)
+      at async loadAndTransform (file:///C:/Users/PC/Documents/ChatGPT/Avend%20Escala%203.0/frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+12:59:56 a. m. [vite] (client) [console.error] [vite] Failed to reload /src/app/App.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)

@@ -1,0 +1,37 @@
+.utilities-page { max-width: 1500px; margin: auto; }
+.utility-hero { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); gap: 28px; align-items: stretch; margin-bottom: 24px; padding: clamp(22px, 3vw, 38px); background: linear-gradient(135deg, var(--soft), color-mix(in srgb, var(--blue) 9%, var(--soft))); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; }
+.utility-hero__copy { min-width: 0; }
+.utility-hero__copy > span { display: block; margin-bottom: 8px; color: var(--violet); font-size: .75rem; font-weight: 800; letter-spacing: .09em; }
+.utility-hero h1 { margin: 0; color: var(--navy); font-size: clamp(1.9rem, 3vw, 2.8rem); line-height: 1.08; }
+.utility-hero p { max-width: 760px; margin: 12px 0 0; color: var(--muted); line-height: 1.65; }
+.utility-hero__hint { font-size: .9rem; }
+.utility-hero__action { margin-top: 18px; }
+.utility-hero__metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-content: center; }
+.utility-hero__metrics article { min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 16px; background: color-mix(in srgb, var(--card) 86%, transparent); }
+.utility-hero__metrics strong { display: block; color: var(--blue); font-size: clamp(1.35rem, 2.25vw, 2rem); line-height: 1.1; overflow-wrap: normal; word-break: normal; hyphens: none; }
+.utility-hero__metrics span { display: block; margin-top: 6px; color: var(--navy); font-size: .77rem; font-weight: 700; line-height: 1.3; }
+.utility-hero__metrics small { display: block; margin-top: 4px; color: var(--muted); font-size: .72rem; }
+.utilities-page .utility-panel { margin-bottom: 24px; min-width: 0; }
+.utilities-form { display: grid; gap: 16px; }
+.utilities-form label, .utilities-filters label { display: grid; gap: 8px; min-width: 0; font-weight: 600; }
+.utilities-page input:not([type=checkbox]), .utilities-page textarea, .utilities-page select { width: 100%; min-width: 0; padding: 12px 14px; background: var(--soft); color: var(--navy); border: 1px solid var(--line); border-radius: 10px; }
+.utilities-page textarea { resize: vertical; }
+.utilities-grid, .utilities-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 18px; align-items: end; }
+.utilities-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-block: 16px; }
+.utilities-card { padding-block: 24px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.utilities-card h2 { font-size: 1.25rem; margin-block: 12px; }
+.utilities-prose { white-space: pre-wrap; line-height: 1.65; overflow-wrap: anywhere; }
+.utilities-page blockquote { margin: 16px 0; padding: 16px; border-left: 3px solid var(--blue); background: var(--soft); }
+.utilities-page .utilities-check { display: flex; align-items: center; gap: 8px; }
+.utilities-page input[type=checkbox] { width: 18px !important; height: 18px; padding: 0; flex: 0 0 18px; }
+.utilities-page button:disabled { cursor: not-allowed; opacity: .55; }
+.utilities-page [role=alert] { padding: 12px; border: 1px solid currentColor; border-radius: 10px; }
+.utilities-video { display: block; width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 14px; background: #101828; }
+.topbar .notification-button { display: inline-grid; }
+.utilities-page details { margin-block: 18px; }
+.utilities-page summary { cursor: pointer; padding-block: 12px; font-weight: 600; }
+[data-theme=dark] .utilities-page .utility-panel { background: #152139; color: #edf2fb; border-color: #34445e; }
+[data-theme=dark] .utilities-page { --navy: #edf2fb; --soft: #1b2b46; --line: #34445e; }
+@media (max-width: 1180px) { .utility-hero { grid-template-columns: 1fr; gap: 18px; padding: clamp(22px, 4vw, 32px); border-radius: 18px; } .utility-hero__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .utilities-page .utility-panel { padding: 16px; } .utilities-actions > button { flex: 1 1 150px; } .utility-hero { padding: 22px 18px; } .utility-hero__metrics article { padding: 14px; } }
+@media (max-width: 350px) { .utility-hero__metrics { grid-template-columns: 1fr; } }

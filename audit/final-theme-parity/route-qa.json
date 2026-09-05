@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-09-01T01:15:58.782Z",
+  "routes": 57,
+  "desktopDark": {
+    "errors": [],
+    "overflow": [],
+    "wrongTheme": [],
+    "presentationRetest": {
+      "heading": "Presentaciones didácticas",
+      "ok": true,
+      "sw": 1425,
+      "theme": "dark",
+      "w": 1440
+    }
+  },
+  "desktopLight": {
+    "errors": [],
+    "presentationRetest": "passed after 300ms",
+    "overflow": [],
+    "wrongTheme": []
+  },
+  "mobileLight": {
+    "errors": [],
+    "overflow": [],
+    "wrongTheme": []
+  },
+  "mobileDark": {
+    "errors": [],
+    "overflow": [],
+    "wrongTheme": [],
+    "whitePanels": []
+  }
+}
