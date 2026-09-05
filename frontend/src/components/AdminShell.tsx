@@ -16,7 +16,8 @@ import {
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
-import { readSessionUser, sessionUserInitials } from "../lib/session";
+import { clearSession, readSessionUser, sessionUserInitials } from "../lib/session";
+import { useWorkspacePreferences } from "../context/WorkspacePreferencesContext";
 import { Brand } from "./Brand";
 
 const adminNavItems = [
@@ -35,15 +36,9 @@ export function AdminShell() {
   const routerLocation = useLocation();
   const currentTab = routerLocation.pathname === "/admin/utilidades" ? "utilities" : searchParams.get("tab") || "summary";
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("avendia.adminSidebar") === "collapsed");
-  const [dark, setDark] = useState(() => localStorage.getItem("avendia.theme") === "dark");
-
-  useEffect(() => {
-    const theme = dark ? "dark" : "light";
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
-    localStorage.setItem("avendia.theme", theme);
-  }, [dark]);
+  const { preferences: workspacePreferences, updatePreferences: updateWorkspacePreferences } = useWorkspacePreferences();
+  const collapsed = workspacePreferences.sidebar_collapsed;
+  const dark = workspacePreferences.theme === "dark";
 
   useEffect(() => {
     const refresh = () => setUser(readSessionUser());
@@ -56,11 +51,7 @@ export function AdminShell() {
   }, []);
 
   const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("avendia.adminSidebar", next ? "collapsed" : "expanded");
-      return next;
-    });
+    void updateWorkspacePreferences({ sidebar_collapsed: !collapsed });
   };
 
   const handleSelectTab = (id: string) => {
@@ -131,7 +122,7 @@ export function AdminShell() {
               className="icon-button"
               aria-label="Cerrar sesión"
               onClick={() => {
-                sessionStorage.removeItem("avendia.accessToken");
+                clearSession();
                 location.assign("/login");
               }}
             >
@@ -161,7 +152,7 @@ export function AdminShell() {
         <div className="topbar__actions">
           <button
             className="icon-button topbar-theme-toggle"
-            onClick={() => setDark((prev) => !prev)}
+            onClick={() => void updateWorkspacePreferences({ theme: dark ? "light" : "dark" })}
             aria-label={dark ? "Activar modo claro" : "Activar modo oscuro"}
           >
             {dark ? <Sun /> : <Moon />}

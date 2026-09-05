@@ -50,6 +50,7 @@ export function AuxiliaryRegisterTool({ instrumentId, onInstrumentIdChange }: { 
     const data = instrument.general_data as Partial<AuxiliaryRegisterState> | undefined;
     if (!data) return;
     setState((current) => ({ ...current, ...data, frame: { ...current.frame, ...(data.frame ?? {}) } }));
+    if (instrument.status === "generated") setCurrentStep(4);
   }, []);
   const draft = useEvaluationInstrument({ instrumentId, onLoaded, onInstrumentIdChange });
   const selectedStudents = useSelectedStudentNames(state.selection);

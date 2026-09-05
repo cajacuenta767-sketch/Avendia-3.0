@@ -161,6 +161,53 @@ async def test_workflow_generation_returns_structured_artifact(
 
 
 @pytest.mark.asyncio
+async def test_workflow_generation_is_idempotent_and_returns_saved_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    generated = WorkflowGenerationResponse(
+        document_title="Evaluación de aritmética",
+        executive_summary="Evaluación contextualizada con criterios y respuestas verificables.",
+        sections=[
+            GeneratedWorkflowSection(
+                title="Preguntas",
+                    narrative=(
+                        "Resuelve problemas de suma y resta con datos "
+                        "de una situación cotidiana."
+                    ),
+                key_points=["Cinco preguntas aplicables"],
+            )
+        ],
+            teacher_recommendations=[
+                "Revisar las respuestas antes de aplicar.",
+                "Adecuar el tiempo al ritmo del grupo.",
+            ],
+        model="gemini-test",
+    )
+    generation_mock = AsyncMock(return_value=generated)
+    monkeypatch.setattr("app.modules.ai.router.generate_workflow_artifact", generation_mock)
+    payload = _payload()
+    payload["request_id"] = "12345678-1234-4234-8234-123456789012"
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        token = await _teacher_token(client)
+        headers = {"Authorization": f"Bearer {token}"}
+        first = await client.post(
+            "/api/v1/ai/tools/workflow/generate", headers=headers, json=payload
+        )
+        second = await client.post(
+            "/api/v1/ai/tools/workflow/generate", headers=headers, json=payload
+        )
+        me = await client.get("/api/v1/users/me", headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["generation_id"] == second.json()["generation_id"]
+    assert first.json()["generation_id"]
+    assert me.json()["ai_credits_balance"] == 9700
+    generation_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_workflow_generation_rejects_duplicate_sections() -> None:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         token = await _teacher_token(client)

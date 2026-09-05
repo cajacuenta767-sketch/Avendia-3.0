@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.admin.model import (
@@ -34,9 +34,23 @@ async def record_ai_usage(
     model: str,
 ) -> None:
     charged_credit_cost = 0 if user.role == UserRole.ADMIN else credit_cost
-    user.ai_credits_balance = max(0, user.ai_credits_balance - charged_credit_cost)
-    user.ai_tokens_consumed += max(0, estimated_tokens)
-    user.ai_generations += 1
+    estimated_tokens = max(0, estimated_tokens)
+    statement = (
+        update(User)
+        .where(User.id == user.id)
+        .values(
+            ai_credits_balance=User.ai_credits_balance - charged_credit_cost,
+            ai_tokens_consumed=User.ai_tokens_consumed + estimated_tokens,
+            ai_generations=User.ai_generations + 1,
+        )
+        .execution_options(synchronize_session=False)
+    )
+    if charged_credit_cost:
+        statement = statement.where(User.ai_credits_balance >= charged_credit_cost)
+    result = await db.execute(statement)
+    if result.rowcount != 1:
+        await db.rollback()
+        raise InsufficientAICredits("Insufficient AI credits")
     db.add(
         AIUsageEvent(
             user_id=user.id,
@@ -44,7 +58,7 @@ async def record_ai_usage(
             module=module,
             model=model,
             credit_cost=charged_credit_cost,
-            estimated_tokens=max(0, estimated_tokens),
+            estimated_tokens=estimated_tokens,
         )
     )
     await db.commit()
@@ -76,7 +90,7 @@ async def record_generation_quality(
             repair_attempted=repair_attempted,
             repair_succeeded=repair_succeeded,
             failed_checks_json=failed_checks[:24],
-            credit_charged=max(0, credit_charged),
+            credit_charged=0 if user.role == UserRole.ADMIN else max(0, credit_charged),
         )
     )
     if commit:

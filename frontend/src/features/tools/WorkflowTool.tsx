@@ -5,9 +5,12 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  CircleHelp,
   Clipboard,
+  Clock3,
   Download,
   FileArchive,
+  ListChecks,
   LoaderCircle,
   Pencil,
   Plus,
@@ -17,12 +20,13 @@ import {
   Trash2,
   WandSparkles,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
 
 import { getWorkflowFieldGuide } from "../../config/aiGuides";
 import { getDynamicEducationOptions } from "../../config/education";
 import { getToolByPath, tools as toolCatalog } from "../../config/tools";
+import { detectCurricularArea } from "../../config/toolDiscovery";
 import { StudentSelector, type StudentSelection } from "../../components/students/StudentSelector";
 import { GenerationProgressOverlay } from "../../components/GenerationProgressOverlay";
 import { listStudents } from "../rosters/rosterApi";
@@ -34,8 +38,9 @@ import {
   type WorkflowStep,
   workflowModalities,
 } from "../../config/workflows";
-import { ApiError, apiRequest } from "../../lib/api";
+import { ApiError, apiBlob, apiRequest } from "../../lib/api";
 import { sessionDraftScope } from "../../lib/session";
+import { useTeacherExperience } from "../../context/TeacherExperienceContext";
 import type { WorkflowArtifact } from "./exportWorkflowDocx";
 import { ContextualAIGuideDialog } from "./ContextualAIGuideDialog";
 import { DocumentReferencePanel, type DocumentReferenceSelection } from "./DocumentReferencePanel";
@@ -61,7 +66,7 @@ type Draft = {
   artifact: WorkflowArtifact | null;
   templateId?: string;
   templateName?: string;
-  fieldSources?: Record<string, "teacher" | "ai" | "reference">;
+  fieldSources?: Record<string, "teacher" | "ai" | "reference" | "profile">;
   reference?: DocumentReferenceSelection;
   updatedAt: string;
 };
@@ -129,7 +134,18 @@ function artifactAsText(artifact: WorkflowArtifact) {
 }
 
 function readDraft(storageKey: string, legacyStorageKey: string, initialValues: Record<string, FieldValue>): Draft {
-  const fallback: Draft = { version: 2, values: initialValues, currentStep: 0, artifact: null, updatedAt: "" };
+  const fallback: Draft = {
+    version: 2,
+    values: initialValues,
+    currentStep: 0,
+    artifact: null,
+    fieldSources: Object.fromEntries(
+      Object.entries(initialValues)
+        .filter(([, value]) => displayValue(value).trim())
+        .map(([id]) => [id, "profile" as const]),
+    ),
+    updatedAt: "",
+  };
   for (const key of [storageKey, legacyStorageKey]) {
     try {
       const saved = JSON.parse(localStorage.getItem(key) ?? "null") as Partial<Draft> | null;
@@ -155,7 +171,8 @@ function readDraft(storageKey: string, legacyStorageKey: string, initialValues: 
 }
 
 export function WorkflowTool() {
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const [searchParams] = useSearchParams();
   const tool = getToolByPath(pathname);
   const workflow = getWorkflow(tool);
@@ -168,6 +185,9 @@ export function WorkflowTool() {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [message, setMessage] = useState("");
   const [showErrors, setShowErrors] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(() => new Set());
+  const { preferences, updatePreferences } = useTeacherExperience();
+  const [orientationOpen, setOrientationOpen] = useState(preferences.always_show_help);
   const [pendingFocusFieldId, setPendingFocusFieldId] = useState("");
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideFieldId, setGuideFieldId] = useState("");
@@ -189,6 +209,8 @@ export function WorkflowTool() {
   const [templates, setTemplates] = useState<InstitutionalTemplate[]>([]);
   const [rosterSelections, setRosterSelections] = useState<Record<string, StudentSelection | null>>({});
   const guideRequest = useRef<AbortController | null>(null);
+  const teacherNeedApplied = useRef(false);
+  const recentContextApplied = useRef(false);
   const documentIdFromUrl = searchParams.get("document");
   const selectedTemplate = templates.find((template) => template.id === draft.templateId);
 
@@ -213,6 +235,86 @@ export function WorkflowTool() {
     .filter(Boolean)
     .slice(0, 6);
   const generationBrief = `Avendia creará ${tool?.title ?? "este recurso"}${generationContext.length ? ` con este contexto: ${generationContext.join(" · ")}` : " con los datos confirmados en los pasos anteriores"}.`;
+  const requiredFields = allFields.filter((field) => field.required);
+  const completedRequired = requiredFields.filter((field) => !fieldError(field, draft.values[field.id], resolvedFieldOptions(field, draft.values))).length;
+  const completionPercent = requiredFields.length ? Math.round((completedRequired / requiredFields.length) * 100) : 100;
+  const remainingRequired = Math.max(0, requiredFields.length - completedRequired);
+  const estimatedMinutes = Math.max(2, Math.ceil(requiredFields.length * 0.32 + (workflow?.steps.length ?? 0) * 0.55));
+  const preparationLabels = requiredFields.slice(0, 4).map((field) => field.label);
+
+  useEffect(() => {
+    const teacherNeed = (location.state as { teacherNeed?: string } | null)?.teacherNeed?.trim();
+    if (!teacherNeed || teacherNeedApplied.current || !workflow) return;
+    teacherNeedApplied.current = true;
+    const workflowFields = workflow.steps.flatMap((item) => item.fields);
+    const topicField = workflowFields.find((field) => [
+      "topic", "session_topic", "task_title", "unit_title", "specific_topics",
+    ].includes(field.id));
+    const areaField = workflowFields.find((field) => field.id === "curricular_area");
+    const detectedArea = detectCurricularArea(teacherNeed);
+    setDraft((current) => {
+      const values = { ...current.values };
+      const fieldSources = { ...current.fieldSources };
+      if (topicField && !displayValue(values[topicField.id]).trim()) {
+        values[topicField.id] = teacherNeed;
+        fieldSources[topicField.id] = "teacher";
+      }
+      if (areaField && detectedArea && !displayValue(values[areaField.id]).trim()) {
+        values[areaField.id] = detectedArea;
+        fieldSources[areaField.id] = "teacher";
+      }
+      return { ...current, values, fieldSources };
+    });
+    setMessage("Usamos tu pedido como punto de partida. Revisa los datos antes de crear.");
+  }, [location.state, workflow]);
+
+  useEffect(() => {
+    if (!workflow || recentContextApplied.current || !preferences.remember_recent_context) return;
+    if (!Object.keys(preferences.last_context).length) return;
+    recentContextApplied.current = true;
+    const compatibleIds = new Set(workflow.steps.flatMap((item) => item.fields).map((field) => field.id));
+    const timeout = window.setTimeout(() => {
+      setDraft((current) => {
+        const values = { ...current.values };
+        const fieldSources = { ...current.fieldSources };
+        for (const [fieldId, value] of Object.entries(preferences.last_context)) {
+          if (!compatibleIds.has(fieldId) || displayValue(values[fieldId]).trim()) continue;
+          values[fieldId] = value;
+          fieldSources[fieldId] = "profile";
+        }
+        return { ...current, values, fieldSources };
+      });
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [preferences.last_context, preferences.remember_recent_context, workflow]);
+
+  useEffect(() => {
+    if (!workflow || !preferences.remember_recent_context) return;
+    const rememberedIds = [
+      "modality", "level", "grade", "section", "curricular_area", "duration_minutes",
+      "school_year", "period",
+    ];
+    const nextContext = Object.fromEntries(
+      rememberedIds
+        .map((fieldId) => [fieldId, displayValue(draft.values[fieldId]).trim()] as const)
+        .filter(([, value]) => value),
+    );
+    if (!Object.keys(nextContext).length) return;
+    if (JSON.stringify(nextContext) === JSON.stringify(preferences.last_context)) return;
+    const timeout = window.setTimeout(() => {
+      void updatePreferences({ last_context: nextContext });
+    }, 1000);
+    return () => window.clearTimeout(timeout);
+  }, [draft.values, preferences.last_context, preferences.remember_recent_context, updatePreferences, workflow]);
+
+  const stepStatus = (stepItem: WorkflowStep, index: number) => {
+    if (stepItem.kind && stepItem.kind !== "form") return draft.artifact ? "Listo" : index === draft.currentStep ? "Ahora" : "Pendiente";
+    const relevant = stepItem.fields.filter((field) => field.required);
+    const invalid = relevant.filter((field) => fieldError(field, draft.values[field.id], resolvedFieldOptions(field, draft.values)));
+    if (!relevant.length || !invalid.length) return "Listo";
+    if (invalid.length === relevant.length) return index === draft.currentStep ? "Ahora" : "Sin comenzar";
+    return "Incompleto";
+  };
 
   useEffect(() => {
     if (!pendingFocusFieldId) return;
@@ -301,6 +403,12 @@ export function WorkflowTool() {
   useEffect(() => () => guideRequest.current?.abort(), []);
 
   useEffect(() => {
+    if (!preferences.always_show_help) return;
+    const timeout = window.setTimeout(() => setOrientationOpen(true), 0);
+    return () => window.clearTimeout(timeout);
+  }, [preferences.always_show_help, workflow?.key]);
+
+  useEffect(() => {
     const token = sessionStorage.getItem("avendia.accessToken");
     if (!token) return;
     type Preferences = { consent: boolean; assistance_mode: AssistanceMode };
@@ -310,6 +418,30 @@ export function WorkflowTool() {
         if (preferences.consent) setAssistanceMode(preferences.assistance_mode);
       }).catch(() => undefined);
   }, []);
+
+  const exactPreviewWorkflowKey = workflow?.key ?? "";
+  const exactPreviewToolTitle = tool?.title ?? "";
+  const prepareExactPreview = useCallback(async () => {
+    if (!draft.artifact || !exactPreviewWorkflowKey || !exactPreviewToolTitle) {
+      throw new Error("No hay documento para previsualizar.");
+    }
+    const { buildWorkflowDocxBlob } = await import("./exportWorkflowDocx");
+    const { blob, fileName } = await buildWorkflowDocxBlob(draft.artifact, {
+      workflowKey: exactPreviewWorkflowKey,
+      values: draft.values,
+      toolTitle: exactPreviewToolTitle,
+    });
+    const form = new FormData();
+    form.set("file", new File([blob], fileName, {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }));
+    const preview = await apiBlob("/documents/preview-pdf", {
+      method: "POST",
+      body: form,
+      timeoutMs: 55_000,
+    });
+    return preview.blob;
+  }, [draft.artifact, draft.values, exactPreviewToolTitle, exactPreviewWorkflowKey]);
 
   if (!tool || !workflow || !currentStep) return <Navigate to="/dashboard" replace />;
 
@@ -330,6 +462,15 @@ export function WorkflowTool() {
       return { ...current, values: nextValues, artifact: null, fieldSources: { ...current.fieldSources, [fieldId]: "teacher" } };
     });
     setStatus("idle");
+  };
+
+  const markTouched = (fieldId: string) => {
+    setTouchedFields((current) => {
+      if (current.has(fieldId)) return current;
+      const next = new Set(current);
+      next.add(fieldId);
+      return next;
+    });
   };
 
   const setRosterStudent = async (fieldId: string, selection: StudentSelection | null) => {
@@ -511,18 +652,29 @@ export function WorkflowTool() {
     setMessage("");
     try {
       const token = sessionStorage.getItem("avendia.accessToken");
-      const artifact = await apiRequest<WorkflowArtifact>("/ai/tools/workflow/generate", {
+      const requestId = crypto.randomUUID();
+      const requestBody = JSON.stringify({
+        request_id: requestId,
+        tool_id: tool.id,
+        module: tool.module,
+        tool_title: tool.title,
+        artifact_type: workflow.artifactType,
+        fields: Object.fromEntries(Object.entries(draft.values).map(([key, value]) => [key, displayValue(value)])),
+        requested_sections: workflow.outputSections,
+      });
+      const requestGeneration = () => apiRequest<WorkflowArtifact>("/ai/tools/workflow/generate", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: JSON.stringify({
-          tool_id: tool.id,
-          module: tool.module,
-          tool_title: tool.title,
-          artifact_type: workflow.artifactType,
-          fields: Object.fromEntries(Object.entries(draft.values).map(([key, value]) => [key, displayValue(value)])),
-          requested_sections: workflow.outputSections,
-        }),
+        body: requestBody,
       });
+      let artifact: WorkflowArtifact;
+      try {
+        artifact = await requestGeneration();
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 0) throw error;
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+        artifact = await requestGeneration();
+      }
       const generated: Draft = {
         ...draft,
         version: 2,
@@ -532,7 +684,7 @@ export function WorkflowTool() {
       };
       setDraft(generated);
       localStorage.setItem(storageKey, JSON.stringify(generated));
-      setStatus("saved");
+      await saveDocument(generated);
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "No se pudo generar el recurso con IA.");
@@ -761,7 +913,12 @@ export function WorkflowTool() {
   const fieldLabel = (field: WorkflowField, value: FieldValue, canGuide: boolean) => (
     <span className="workflow-field__label">
       <span>{field.label}</span>
-      {field.required ? <b>Obligatorio</b> : <em>Opcional</em>}
+      {field.required ? <b>Necesario para crear</b> : <em>Puedes completarlo después</em>}
+      {displayValue(value).trim() && draft.fieldSources?.[field.id] ? (
+        <small className={`workflow-field__source is-${draft.fieldSources[field.id]}`}>
+          {draft.fieldSources[field.id] === "profile" ? "De tu perfil" : draft.fieldSources[field.id] === "reference" ? "Del documento anterior" : draft.fieldSources[field.id] === "ai" ? "Propuesto por Avendia" : "Escrito por ti"}
+        </small>
+      ) : null}
       {canGuide ? (
         <button className="workflow-field__ai" type="button" onClick={(event) => { event.preventDefault(); openGuide(field.id); }}>
           <WandSparkles /> {displayValue(value).trim() ? "Pulir con IA" : "Sugerir con IA"}
@@ -774,7 +931,7 @@ export function WorkflowTool() {
   const renderField = (field: WorkflowField) => {
     const value = draft.values[field.id] ?? (field.type === "multiselect" ? [] : "");
     const options = optionsFor(field);
-    const error = showErrors ? fieldError(field, value, options) : "";
+    const error = showErrors || touchedFields.has(field.id) ? fieldError(field, value, options) : "";
     const dependencyReady = !field.dependsOn || Boolean(displayValue(draft.values[field.dependsOn]).trim());
     const canGuide = field.guide !== false && (field.type === "textarea" || field.type === "text");
     const label = fieldLabel(field, value, canGuide);
@@ -793,7 +950,7 @@ export function WorkflowTool() {
             {items.map((item, index) => (
               <div key={`${field.id}-${index}`}>
                 <span>{index + 1}</span>
-                <input value={item} placeholder={field.itemPlaceholder} aria-label={`${field.label} ${index + 1}`} aria-invalid={Boolean(error)} aria-describedby={describedBy} onChange={(event) => setValue(field.id, items.map((current, itemIndex) => itemIndex === index ? event.target.value : current))} />
+                <input value={item} placeholder={field.itemPlaceholder} aria-label={`${field.label} ${index + 1}`} aria-invalid={Boolean(error)} aria-describedby={describedBy} onBlur={() => markTouched(field.id)} onChange={(event) => setValue(field.id, items.map((current, itemIndex) => itemIndex === index ? event.target.value : current))} />
                 <button type="button" onClick={() => setValue(field.id, items.filter((_, itemIndex) => itemIndex !== index))} disabled={items.length <= minimum} aria-label={`Eliminar fila ${index + 1}`}><Trash2 /></button>
               </div>
             ))}
@@ -817,7 +974,7 @@ export function WorkflowTool() {
           <div>
             {options.map((option) => (
               <label key={option} className={selected.includes(option) ? "is-selected" : ""}>
-                <input type="checkbox" checked={selected.includes(option)} aria-invalid={Boolean(error)} aria-describedby={describedBy} onChange={() => setValue(field.id, selected.includes(option) ? selected.filter((item) => item !== option) : [...selected, option])} />
+                <input type="checkbox" checked={selected.includes(option)} aria-invalid={Boolean(error)} aria-describedby={describedBy} onChange={() => { markTouched(field.id); setValue(field.id, selected.includes(option) ? selected.filter((item) => item !== option) : [...selected, option]); }} />
                 <span>{option}</span><i aria-hidden="true">{selected.includes(option) ? <Check /> : null}</i>
               </label>
             ))}
@@ -834,7 +991,7 @@ export function WorkflowTool() {
           <legend>{label}</legend>
           <div role="radiogroup" aria-label={field.label}>
             {options.map((option) => (
-              <button type="button" role="radio" aria-checked={value === option} aria-describedby={describedBy} className={value === option ? "is-selected" : ""} key={option} onClick={() => setValue(field.id, option)}>
+              <button type="button" role="radio" aria-checked={value === option} aria-describedby={describedBy} className={value === option ? "is-selected" : ""} key={option} onClick={() => { markTouched(field.id); setValue(field.id, option); }}>
                 <span>{option}</span><i>{value === option ? <Check /> : null}</i>
               </button>
             ))}
@@ -852,7 +1009,7 @@ export function WorkflowTool() {
           <div role="radiogroup" aria-label={field.label}>
             {options.map((option) => (
               <label key={option}>
-                <input type="radio" name={field.id} value={option} checked={value === option} aria-invalid={Boolean(error)} aria-describedby={describedBy} onChange={() => setValue(field.id, option)} />
+                <input type="radio" name={field.id} value={option} checked={value === option} aria-invalid={Boolean(error)} aria-describedby={describedBy} onChange={() => { markTouched(field.id); setValue(field.id, option); }} />
                 <span>{option}</span>
               </label>
             ))}
@@ -897,14 +1054,14 @@ export function WorkflowTool() {
       <label className={`workflow-field ${field.wide || field.type === "textarea" ? "workflow-field--wide" : ""} ${error ? "is-invalid" : ""}`} data-workflow-field={field.id} key={field.id}>
         {label}
         {field.type === "textarea" ? (
-          <textarea rows={5} value={String(value)} placeholder={contextualPlaceholder(field, pedagogicalContext)} aria-invalid={Boolean(error)} aria-describedby={describedBy} onChange={(event) => setValue(field.id, event.target.value)} />
+          <textarea rows={5} value={String(value)} placeholder={contextualPlaceholder(field, pedagogicalContext)} aria-invalid={Boolean(error)} aria-describedby={describedBy} onBlur={() => markTouched(field.id)} onChange={(event) => setValue(field.id, event.target.value)} />
         ) : field.type === "select" ? (
-          <select value={String(value)} disabled={!dependencyReady} aria-invalid={Boolean(error)} aria-describedby={describedBy} onChange={(event) => setValue(field.id, event.target.value)}>
+          <select value={String(value)} disabled={!dependencyReady} aria-invalid={Boolean(error)} aria-describedby={describedBy} onChange={(event) => { markTouched(field.id); setValue(field.id, event.target.value); }}>
             <option value="">{dependencyReady ? "Selecciona una opción" : field.disabledPlaceholder ?? "Completa primero el campo anterior"}</option>
             {options.map((option) => <option value={option} key={option}>{option}</option>)}
           </select>
         ) : (
-          <input type={field.type} min={field.min} max={field.max} value={String(value)} placeholder={contextualPlaceholder(field, pedagogicalContext)} aria-invalid={Boolean(error)} aria-describedby={describedBy} onChange={(event) => setValue(field.id, event.target.value)} />
+          <input type={field.type} min={field.min} max={field.max} value={String(value)} placeholder={contextualPlaceholder(field, pedagogicalContext)} aria-invalid={Boolean(error)} aria-describedby={describedBy} onBlur={() => markTouched(field.id)} onChange={(event) => setValue(field.id, event.target.value)} />
         )}
         {field.help ? <small id={helpId}>{field.help}</small> : null}
         {error ? <small className="workflow-field__error" id={errorId}>{error}</small> : null}
@@ -1026,7 +1183,7 @@ export function WorkflowTool() {
       </section> : null}
       {showInteractive && tool.id !== "tarea-extension-hogar" && draft.artifact.activity?.items.length ? <InteractiveArtifact activity={draft.artifact.activity} toolId={tool.id} values={draft.values} /> : null}
       {renderQualityPanel()}
-      <StructuredArtifactPreview artifact={draft.artifact} artifactType={workflow.artifactType} toolId={tool.id} values={draft.values} workflowKey={workflow.key} onDownloadWord={downloadWord} editingResult={editingResult} onUpdateSection={updateArtifactSection} onUpdateTableCell={updateArtifactTableCell} onRegenerateSection={regenerateArtifactSection} regeneratingSection={regeneratingSection} />
+      <StructuredArtifactPreview artifact={draft.artifact} artifactType={workflow.artifactType} toolId={tool.id} values={draft.values} workflowKey={workflow.key} onDownloadWord={downloadWord} editingResult={editingResult} onUpdateSection={updateArtifactSection} onUpdateTableCell={updateArtifactTableCell} onRegenerateSection={regenerateArtifactSection} regeneratingSection={regeneratingSection} onPrepareExactPreview={prepareExactPreview} />
     </div>;
   };
 
@@ -1050,7 +1207,7 @@ export function WorkflowTool() {
         {message ? <div className={`workflow-message ${status === "error" ? "workflow-message--error" : ""}`}>{message}</div> : null}
         {draft.artifact.activity?.items.length ? <InteractiveArtifact activity={draft.artifact.activity} toolId={tool.id} values={draft.values} /> : null}
         {renderQualityPanel()}
-        <StructuredArtifactPreview artifact={draft.artifact} artifactType={workflow.artifactType} toolId={tool.id} values={draft.values} workflowKey={workflow.key} onDownloadWord={downloadWord} editingResult={editingResult} onUpdateSection={updateArtifactSection} onUpdateTableCell={updateArtifactTableCell} onRegenerateSection={regenerateArtifactSection} regeneratingSection={regeneratingSection} />
+        <StructuredArtifactPreview artifact={draft.artifact} artifactType={workflow.artifactType} toolId={tool.id} values={draft.values} workflowKey={workflow.key} onDownloadWord={downloadWord} editingResult={editingResult} onUpdateSection={updateArtifactSection} onUpdateTableCell={updateArtifactTableCell} onRegenerateSection={regenerateArtifactSection} regeneratingSection={regeneratingSection} onPrepareExactPreview={prepareExactPreview} />
         <GenerationProgressOverlay open={status === "generating"} toolTitle={tool.title} family={tool.module} />
       </div></main>
     );
@@ -1059,8 +1216,22 @@ export function WorkflowTool() {
   return (
     <main className="workflow-page"><div className="workflow-shell">
       <header className="workflow-header"><div><span>{tool.module} · complejidad {workflow.complexity}</span><h1>{tool.title}</h1><p>{tool.description}</p></div><div className="workflow-header__actions"><button type="button" className="secondary-button" onClick={() => saveDocument()} disabled={status === "saving"}>{status === "saving" ? <LoaderCircle className="is-spinning" /> : status === "saved" ? <Check /> : <Save />}{status === "saved" ? "Guardado" : "Guardar borrador"}</button></div></header>
+      <section className={`workflow-orientation ${orientationOpen ? "is-open" : ""}`} aria-labelledby="workflow-orientation-title">
+        <button className="workflow-orientation__toggle" type="button" aria-expanded={orientationOpen} onClick={() => setOrientationOpen((value) => !value)}>
+          <span><CircleHelp aria-hidden="true" /><strong id="workflow-orientation-title">Antes de comenzar</strong></span>
+          <small>{orientationOpen ? "Ocultar orientación" : "Ver qué necesitas y qué creará Avendia"}</small>
+        </button>
+        {orientationOpen ? <div className="workflow-orientation__content">
+          <article><ListChecks aria-hidden="true" /><div><strong>Lo que necesitas</strong><p>{preparationLabels.length ? preparationLabels.join(", ") : "Confirmar el encargo"}.</p></div></article>
+          <article><Sparkles aria-hidden="true" /><div><strong>Lo que vas a crear</strong><p>{tool.description}</p></div></article>
+          <article><Clock3 aria-hidden="true" /><div><strong>Tiempo aproximado</strong><p>{estimatedMinutes} minutos en modo guiado.</p></div></article>
+        </div> : null}
+      </section>
       <DocumentReferencePanel targetType={workflow.key.split("/").at(-1) ?? tool.id} fields={allFields} selection={draft.reference} onImport={importReference} onClear={() => setDraft((current) => ({ ...current, reference: undefined }))} />
-      <ol className="workflow-stepper" aria-label="Pasos de la herramienta">{workflow.steps.map((item, index) => <li className={index === draft.currentStep ? "is-active" : index < draft.currentStep ? "is-completed" : ""} key={item.id}><button type="button" aria-current={index === draft.currentStep ? "step" : undefined} onClick={() => setDraft((current) => ({ ...current, currentStep: index }))}><span>{index < draft.currentStep ? <Check /> : index + 1}</span><strong>{item.shortTitle}</strong></button></li>)}</ol>
+      <ol className="workflow-stepper" aria-label="Pasos de la herramienta">{workflow.steps.map((item, index) => {
+        const state = stepStatus(item, index);
+        return <li className={index === draft.currentStep ? "is-active" : state === "Listo" ? "is-completed" : ""} key={item.id}><button type="button" aria-current={index === draft.currentStep ? "step" : undefined} aria-label={`${item.shortTitle}: ${state}`} onClick={() => setDraft((current) => ({ ...current, currentStep: index }))}><span>{state === "Listo" && index !== draft.currentStep ? <Check /> : index + 1}</span><strong>{item.shortTitle}</strong><small>{state}</small></button></li>;
+      })}</ol>
       <form className="workflow-card" onSubmit={(event) => {
         event.preventDefault();
         const kind = currentStep.kind ?? "form";
@@ -1084,7 +1255,7 @@ export function WorkflowTool() {
           return;
         }
         goNext();
-      }}><div className="workflow-card__intro"><small>Paso {draft.currentStep + 1} de {workflow.steps.length}</small><h2>{currentStep.title}</h2><p>{currentStep.description}</p></div>
+      }}><div className="workflow-card__intro"><small>Paso {draft.currentStep + 1} de {workflow.steps.length} · {stepStatus(currentStep, draft.currentStep)}</small><h2>{currentStep.title}</h2><p>{currentStep.description}</p><div className="workflow-completion" aria-label={`${completionPercent}% de información necesaria completada`}><span><strong>{remainingRequired ? `${remainingRequired} ${remainingRequired === 1 ? "dato necesario pendiente" : "datos necesarios pendientes"}` : "Información necesaria completa"}</strong><small>{completionPercent}%</small></span><progress max="100" value={completionPercent}>{completionPercent}%</progress></div></div>
       <section className={`workflow-context-status is-${liveContextStatus.status}`} aria-live="polite">
         <span>{liveContextStatus.status === "coherent" ? <CheckCircle2 /> : <AlertTriangle />}</span>
         <div><strong>{liveContextStatus.label}</strong><small>{liveContextStatus.detail}</small>{pedagogicalContext.summary.length ? <p>{pedagogicalContext.summary.join(" · ")}</p> : null}</div>

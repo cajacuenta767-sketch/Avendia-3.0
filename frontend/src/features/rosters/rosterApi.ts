@@ -12,11 +12,6 @@ import type {
   StudentPayload,
 } from "./rosterTypes";
 
-function authHeaders(): HeadersInit {
-  const token = sessionStorage.getItem("avendia.accessToken");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 function asItems<Item>(response: Item[] | PaginatedResponse<Item>): Item[] {
   return Array.isArray(response) ? response : response.items;
 }
@@ -29,7 +24,6 @@ async function fetchAllPages<Item>(
   let offset = 0;
   while (true) {
     const response = await apiRequest<Item[] | PaginatedResponse<Item>>(path(offset), {
-      headers: authHeaders(),
       signal: options.signal,
     });
     const pageItems = asItems(response);
@@ -61,7 +55,6 @@ function rosterLabel(roster: Roster): string {
 export async function createRoster(payload: RosterPayload): Promise<Roster> {
   return apiRequest<Roster>("/rosters", {
     method: "POST",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
 }
@@ -69,7 +62,6 @@ export async function createRoster(payload: RosterPayload): Promise<Roster> {
 export async function updateRoster(rosterId: string, payload: RosterUpdatePayload): Promise<Roster> {
   return apiRequest<Roster>(`/rosters/${rosterId}`, {
     method: "PATCH",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
 }
@@ -77,7 +69,6 @@ export async function updateRoster(rosterId: string, payload: RosterUpdatePayloa
 export async function archiveRoster(rosterId: string): Promise<void> {
   return apiRequest<void>(`/rosters/${rosterId}`, {
     method: "DELETE",
-    headers: authHeaders(),
   });
 }
 
@@ -104,7 +95,6 @@ export async function listStudents(
 export async function createStudent(rosterId: string, payload: StudentPayload): Promise<Student> {
   return apiRequest<Student>(`/rosters/${rosterId}/students`, {
     method: "POST",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
 }
@@ -112,7 +102,6 @@ export async function createStudent(rosterId: string, payload: StudentPayload): 
 export async function updateStudent(rosterId: string, studentId: string, payload: Partial<StudentPayload>): Promise<Student> {
   return apiRequest<Student>(`/rosters/${rosterId}/students/${studentId}`, {
     method: "PATCH",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
 }
@@ -120,14 +109,12 @@ export async function updateStudent(rosterId: string, studentId: string, payload
 export async function removeStudent(rosterId: string, studentId: string): Promise<void> {
   return apiRequest<void>(`/rosters/${rosterId}/students/${studentId}`, {
     method: "DELETE",
-    headers: authHeaders(),
   });
 }
 
 export async function reorderStudents(rosterId: string, studentIds: string[]): Promise<Student[]> {
   const response = await apiRequest<Student[] | PaginatedResponse<Student>>(`/rosters/${rosterId}/students/reorder`, {
     method: "POST",
-    headers: authHeaders(),
     body: JSON.stringify({ student_ids: studentIds }),
   });
   return [...asItems(response)].sort((left, right) => left.sort_order - right.sort_order);
@@ -158,7 +145,6 @@ export async function previewRosterImport(rosterId: string, file: File): Promise
   formData.append("file", file);
   const response = await apiRequest<RosterImportPreview>(`/rosters/${rosterId}/imports/preview`, {
     method: "POST",
-    headers: authHeaders(),
     body: formData,
   });
   return normalizePreview(response);
@@ -167,12 +153,11 @@ export async function previewRosterImport(rosterId: string, file: File): Promise
 export async function confirmRosterImport(rosterId: string, payload: ConfirmImportPayload): Promise<ImportResult> {
   return apiRequest<ImportResult>(`/rosters/${rosterId}/imports/confirm`, {
     method: "POST",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
 }
 
 export async function downloadRosterTemplate(): Promise<void> {
-  const file = await apiBlob("/rosters/template", { headers: authHeaders() });
+  const file = await apiBlob("/rosters/template");
   downloadApiBlob(file);
 }

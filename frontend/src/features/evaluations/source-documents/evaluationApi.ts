@@ -7,11 +7,6 @@ import type {
   EvaluationSourceDocument,
 } from "./evaluationContracts";
 
-function authHeaders(): HeadersInit {
-  const token = sessionStorage.getItem("avendia.accessToken");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 function asItems(response: EvaluationInstrument[] | EvaluationInstrumentList): EvaluationInstrument[] {
   return Array.isArray(response) ? response : response.items;
 }
@@ -20,7 +15,6 @@ function asItems(response: EvaluationInstrument[] | EvaluationInstrumentList): E
 export function createEvaluationInstrument(payload: EvaluationDraftPayload): Promise<EvaluationInstrument> {
   return apiRequest<EvaluationInstrument>("/evaluation-instruments", {
     method: "POST",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
 }
@@ -28,7 +22,6 @@ export function createEvaluationInstrument(payload: EvaluationDraftPayload): Pro
 /** Loads the complete transactional draft, including participants and observations. */
 export function getEvaluationDraft(instrumentId: string, signal?: AbortSignal): Promise<EvaluationInstrument> {
   return apiRequest<EvaluationInstrument>(`/evaluation-instruments/${instrumentId}/draft`, {
-    headers: authHeaders(),
     signal,
   });
 }
@@ -40,7 +33,6 @@ export function saveEvaluationDraft(
 ): Promise<EvaluationInstrument> {
   return apiRequest<EvaluationInstrument>(`/evaluation-instruments/${instrumentId}/draft`, {
     method: "PUT",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
 }
@@ -56,7 +48,7 @@ export async function listEvaluationInstruments(
   if (options.search?.trim()) query.set("search", options.search.trim());
   const response = await apiRequest<EvaluationInstrument[] | EvaluationInstrumentList>(
     `/evaluation-instruments?${query.toString()}`,
-    { headers: authHeaders(), signal: options.signal },
+    { signal: options.signal },
   );
   return asItems(response);
 }
@@ -65,14 +57,12 @@ export async function listEvaluationInstruments(
 export function archiveEvaluationInstrument(instrumentId: string): Promise<void> {
   return apiRequest<void>(`/evaluation-instruments/${instrumentId}`, {
     method: "DELETE",
-    headers: authHeaders(),
   });
 }
 
 export function restoreEvaluationInstrument(instrumentId: string): Promise<EvaluationInstrument> {
   return apiRequest<EvaluationInstrument>(`/evaluation-instruments/${instrumentId}/restore`, {
     method: "POST",
-    headers: authHeaders(),
   });
 }
 
@@ -85,7 +75,6 @@ export function uploadEvaluationSource(
   body.append("file", file);
   return apiRequest<EvaluationSourceDocument>(`/evaluation-instruments/${instrumentId}/sources`, {
     method: "POST",
-    headers: authHeaders(),
     body,
     signal,
   });
@@ -96,7 +85,6 @@ export function listEvaluationSources(
   signal?: AbortSignal,
 ): Promise<EvaluationSourceDocument[]> {
   return apiRequest<EvaluationSourceDocument[]>(`/evaluation-instruments/${instrumentId}/sources`, {
-    headers: authHeaders(),
     signal,
   });
 }
@@ -104,6 +92,5 @@ export function listEvaluationSources(
 export function deleteEvaluationSource(instrumentId: string, sourceId: string): Promise<void> {
   return apiRequest<void>(`/evaluation-instruments/${instrumentId}/sources/${sourceId}`, {
     method: "DELETE",
-    headers: authHeaders(),
   });
 }

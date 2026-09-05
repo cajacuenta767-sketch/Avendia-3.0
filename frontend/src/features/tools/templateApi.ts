@@ -1,4 +1,5 @@
 import { apiBlob, apiRequest, downloadApiBlob } from "../../lib/api";
+import { readAccessToken } from "../../lib/session";
 
 export type InstitutionalTemplate = {
   revision: number;
@@ -13,50 +14,50 @@ export type InstitutionalTemplate = {
   updated_at: string;
 };
 
-function authenticationHeaders() {
-  const token = sessionStorage.getItem("avendia.accessToken");
-  if (!token) throw new Error("Inicia sesión para usar tus formatos institucionales.");
-  return { Authorization: `Bearer ${token}` };
+function requireAuthentication() {
+  if (!readAccessToken()) throw new Error("Inicia sesión para usar tus formatos institucionales.");
 }
 
 export function listInstitutionalTemplates() {
-  return apiRequest<InstitutionalTemplate[]>("/templates", { headers: authenticationHeaders() });
+  requireAuthentication();
+  return apiRequest<InstitutionalTemplate[]>("/templates");
 }
 
 export function uploadInstitutionalTemplate(file: File, makeDefault = false) {
+  requireAuthentication();
   const form = new FormData();
   form.append("file", file);
   form.append("make_default", String(makeDefault));
   return apiRequest<InstitutionalTemplate>("/templates", {
     method: "POST",
-    headers: authenticationHeaders(),
     body: form,
   });
 }
 
 export function setDefaultInstitutionalTemplate(templateId: string) {
+  requireAuthentication();
   return apiRequest<InstitutionalTemplate>(`/templates/${templateId}/default`, {
     method: "PATCH",
-    headers: authenticationHeaders(),
   });
 }
 
 export function deleteInstitutionalTemplate(templateId: string) {
+  requireAuthentication();
   return apiRequest<void>(`/templates/${templateId}`, {
     method: "DELETE",
-    headers: authenticationHeaders(),
   });
 }
 
 export async function downloadInstitutionalTemplate(template: InstitutionalTemplate) {
-  const file = await apiBlob(`/templates/${template.id}/download`, { headers: authenticationHeaders() });
+  requireAuthentication();
+  const file = await apiBlob(`/templates/${template.id}/download`);
   downloadApiBlob(file);
 }
 
 export async function renderInstitutionalTemplate(templateId: string, artifact: unknown, documentType: string) {
+  requireAuthentication();
   const file = await apiBlob(`/templates/${templateId}/render`, {
     method: "POST",
-    headers: authenticationHeaders(),
     body: JSON.stringify({ artifact, document_type: documentType }),
   });
   downloadApiBlob(file);

@@ -1,12 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
 from app.db.session import get_db
 from app.modules.documents.model import Document, DocumentRelation, DocumentVersion
+from app.modules.documents.pdf_preview import convert_upload_to_pdf
 from app.modules.documents.schemas import (
     CompatibleDocumentRead,
     DocumentCreate,
@@ -33,6 +34,24 @@ COMPATIBLE_ORIGINS: dict[str, set[str]] = {
     "informe-tutoria": {"sesiones-tutoria", "plan-tutoria"},
     "correo-familias": {"informe-tutoria", "reporte-seguimiento", "sesion-aprendizaje"},
 }
+
+
+@router.post("/preview-pdf")
+async def preview_pdf(
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+) -> Response:
+    """Renderiza el DOCX recibido con LibreOffice, sin guardar contenido docente."""
+    del user
+    pdf, filename = await convert_upload_to_pdf(file)
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 def compatibility_for(document: Document, target_type: str) -> tuple[str, list[str]]:

@@ -15,7 +15,8 @@ import { HistoryPage } from "../features/tools/HistoryPage";
 import { ProfilePage } from "../features/tools/ProfilePage";
 import { WordGroupingTool } from "../features/tools/WordGroupingTool";
 import { SequenceOrderingTool } from "../features/tools/SequenceOrderingTool";
-import { readSessionUser } from "../lib/session";
+import { apiRequest } from "../lib/api";
+import { readAccessToken, readStoredSessionUser, updateStoredSessionUser, type SessionUser } from "../lib/session";
 import { IdeasPage } from "../features/utilities/IdeasPage";
 import { TutorialsPage } from "../features/utilities/TutorialsPage";
 import { ReferralsPage } from "../features/utilities/ReferralsPage";
@@ -27,16 +28,37 @@ const PresentationTool = lazy(() => import("../features/tools/PresentationTool")
 const RosterPage = lazy(() => import("../features/rosters/RosterPage").then((module) => ({ default: module.RosterPage })));
 
 function RequireSession({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
-  const [authenticated, setAuthenticated] = useState(() => Boolean(sessionStorage.getItem("avendia.accessToken")));
+  const [session, setSession] = useState<"checking" | "authenticated" | "anonymous">(() => readAccessToken() ? "checking" : "anonymous");
+  const [user, setUser] = useState<SessionUser | null>(() => readStoredSessionUser());
 
   useEffect(() => {
-    const expire = () => setAuthenticated(false);
+    const expire = () => {
+      setUser(null);
+      setSession("anonymous");
+    };
     window.addEventListener("avendia-session-expired", expire);
     return () => window.removeEventListener("avendia-session-expired", expire);
   }, []);
 
-  if (!authenticated) return <Navigate to="/login" replace />;
-  if (admin && readSessionUser().role !== "admin") return <Navigate to="/dashboard" replace />;
+  useEffect(() => {
+    if (session !== "checking") return;
+    const controller = new AbortController();
+    void apiRequest<SessionUser>("/users/me", { signal: controller.signal })
+      .then((verifiedUser) => {
+        updateStoredSessionUser(verifiedUser);
+        setUser(verifiedUser);
+        setSession("authenticated");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setSession("anonymous");
+      });
+    return () => controller.abort();
+  }, [session]);
+
+  if (session === "checking") return <div className="admin-state" role="status">Verificando tu sesión…</div>;
+  if (session === "anonymous") return <Navigate to="/login" replace />;
+  if (admin && user?.role !== "admin") return <Navigate to="/dashboard" replace />;
   return children;
 }
 

@@ -5,6 +5,8 @@ import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./app/App";
 import { FontSizeProvider } from "./context/FontSizeContext";
+import { TeacherExperienceProvider } from "./context/TeacherExperienceContext";
+import { WorkspacePreferencesProvider } from "./context/WorkspacePreferencesContext";
 import "./styles/global.css";
 import "./styles/interactive.css";
 import "./styles/calendar.css";
@@ -32,11 +34,15 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <FontSizeProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </FontSizeProvider>
+      <WorkspacePreferencesProvider>
+        <FontSizeProvider>
+          <TeacherExperienceProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </TeacherExperienceProvider>
+        </FontSizeProvider>
+      </WorkspacePreferencesProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

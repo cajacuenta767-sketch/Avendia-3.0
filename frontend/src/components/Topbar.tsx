@@ -1,4 +1,4 @@
-import { ArrowLeft, Bell, Menu, Moon, PanelRightClose, PanelRightOpen, Search, ShieldCheck, Sun } from "lucide-react";
+import { Accessibility, ArrowLeft, Bell, Menu, Moon, PanelRightClose, PanelRightOpen, Search, ShieldCheck, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -9,6 +9,8 @@ import { useDashboardActivity } from "../features/dashboard/dashboardActivity";
 import { NotificationFeed } from "../features/utilities/NotificationFeed";
 import { useQuery } from "@tanstack/react-query";
 import { utilityApi, utilityKey } from "../features/utilities/api";
+import { useTeacherExperience } from "../context/TeacherExperienceContext";
+import { useWorkspacePreferences } from "../context/WorkspacePreferencesContext";
 
 function pageTitle(path: string) {
   return getToolByPath(path)?.title
@@ -30,17 +32,13 @@ export function Topbar({ onOpenMenu, onOpenSearch, contextAvailable = false, con
   const navigate = useNavigate();
   const [user, setUser] = useState(readSessionUser);
   const { fontScale, setFontScale } = useFontSize();
-  const [dark, setDark] = useState(() => localStorage.getItem("avendia.theme") === "dark");
+  const { preferences, updatePreferences } = useTeacherExperience();
+  const { preferences: workspacePreferences, updatePreferences: updateWorkspacePreferences } = useWorkspacePreferences();
+  const dark = workspacePreferences.theme === "dark";
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { activity } = useDashboardActivity();
   const accountNotifications = useQuery({ queryKey: utilityKey("notifications", 1), queryFn: ({ signal }) => utilityApi<{ unread: number }>("/notifications?page=1", "GET", undefined, signal), refetchInterval: 60000 });
   const notificationCount = activity.notifications.length + (accountNotifications.data?.unread ?? 0);
-  useEffect(() => {
-    const theme = dark ? "dark" : "light";
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme;
-    localStorage.setItem("avendia.theme", theme);
-  }, [dark]);
   useEffect(() => {
     const refresh = () => setUser(readSessionUser());
     window.addEventListener("avendia-user-updated", refresh);
@@ -74,8 +72,15 @@ export function Topbar({ onOpenMenu, onOpenSearch, contextAvailable = false, con
           <button className={fontScale === 100 ? "is-active" : ""} onClick={() => setFontScale(100)} title="Texto normal" aria-pressed={fontScale === 100}>A</button>
           <button className={fontScale === 112.5 ? "is-active" : ""} onClick={() => setFontScale(112.5)} title="Texto más grande" aria-pressed={fontScale === 112.5}>A+</button>
         </div>
+        <button
+          className={`icon-button topbar-comfort-toggle ${preferences.comfortable_spacing ? "is-active" : ""}`}
+          onClick={() => void updatePreferences({ comfortable_spacing: !preferences.comfortable_spacing })}
+          aria-label={preferences.comfortable_spacing ? "Desactivar modo cómodo" : "Activar modo cómodo"}
+          aria-pressed={preferences.comfortable_spacing}
+          title="Modo cómodo: controles y espacios más grandes"
+        ><Accessibility /></button>
         {contextAvailable ? <button className={`icon-button topbar-context-toggle ${contextOpen ? "is-active" : ""}`} onClick={onToggleContext} aria-label={contextOpen ? "Ocultar panel contextual" : "Mostrar panel contextual"} title="Panel de calendario y actividad">{contextOpen ? <PanelRightClose /> : <PanelRightOpen />}</button> : null}
-        <button className="icon-button topbar-theme-toggle" onClick={() => setDark((value) => !value)} aria-label={dark ? "Activar modo claro" : "Activar modo oscuro"}>{dark ? <Sun /> : <Moon />}</button>
+        <button className="icon-button topbar-theme-toggle" onClick={() => void updateWorkspacePreferences({ theme: dark ? "light" : "dark" })} aria-label={dark ? "Activar modo claro" : "Activar modo oscuro"}>{dark ? <Sun /> : <Moon />}</button>
         <button className="icon-button notification-button" aria-label="Notificaciones" onClick={() => setNotificationsOpen((value) => !value)}><Bell />{notificationCount ? <span>{notificationCount}</span> : null}</button>
         <button className="topbar-avatar" onClick={() => navigate("/dashboard/perfil")} title={user.full_name} aria-label="Abrir perfil">{sessionUserInitials(user)}</button>
       </div>

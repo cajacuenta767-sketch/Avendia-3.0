@@ -58,7 +58,7 @@ describe("App session protection", () => {
       { status: 200, headers: { "Content-Type": "application/json" } },
     )));
     renderApp("/dashboard");
-    expect(screen.getByRole("heading", { name: "¡Te damos la bienvenida, Docente!" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "¡Te damos la bienvenida, Docente!" })).toBeInTheDocument();
     window.dispatchEvent(new Event("avendia-session-expired"));
     await waitFor(
       () => expect(screen.getByRole("heading", { name: "¡Hola, profe!" })).toBeInTheDocument(),

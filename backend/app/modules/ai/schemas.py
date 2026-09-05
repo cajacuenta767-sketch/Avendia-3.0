@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -315,6 +316,7 @@ class WorkflowGenerationRequest(BaseModel):
     ]
     fields: dict[str, str]
     requested_sections: list[str] = Field(min_length=1, max_length=16)
+    request_id: UUID | None = None
 
     @field_validator("tool_title")
     @classmethod
@@ -513,6 +515,7 @@ class GenerationQualityCheck(BaseModel):
 
 class WorkflowGenerationResponse(GeneratedWorkflowArtifact):
     model: str
+    generation_id: str = ""
     contract_version: str = "2026.09"
     generation_brief: str = ""
     quality_checks: list[GenerationQualityCheck] = Field(default_factory=list, max_length=24)

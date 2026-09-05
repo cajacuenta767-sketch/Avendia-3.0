@@ -3,14 +3,8 @@ import type { ChecklistInstrumentPayload, EvaluationInstrumentDetail } from "./c
 
 const ENDPOINT = "/evaluation-instruments";
 
-function authHeaders(): HeadersInit {
-  const token = sessionStorage.getItem("avendia.accessToken");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 export async function getChecklistInstrument(instrumentId: string, signal?: AbortSignal): Promise<EvaluationInstrumentDetail> {
   return apiRequest<EvaluationInstrumentDetail>(`${ENDPOINT}/${instrumentId}/draft`, {
-    headers: authHeaders(),
     signal,
   });
 }
@@ -27,21 +21,17 @@ export async function saveChecklistInstrument(
   if (!current) {
     return apiRequest<EvaluationInstrumentDetail>(ENDPOINT, {
       method: "POST",
-      headers: authHeaders(),
       body: JSON.stringify(payload),
     });
   }
   return apiRequest<EvaluationInstrumentDetail>(`${ENDPOINT}/${current.id}/draft`, {
     method: "PUT",
-    headers: authHeaders(),
     body: JSON.stringify({ ...payload, expected_revision: current.revision }),
   });
 }
 
 export async function downloadChecklistWorkbook(instrumentId: string): Promise<void> {
-  const file = await apiBlob(`${ENDPOINT}/${instrumentId}/exports/checklist.xlsx`, {
-    headers: authHeaders(),
-  });
+  const file = await apiBlob(`${ENDPOINT}/${instrumentId}/exports/checklist.xlsx`);
   downloadApiBlob(file);
 }
 
@@ -59,7 +49,6 @@ export type ChecklistCriteriaPrompt = {
 export async function suggestChecklistCriteria(prompt: ChecklistCriteriaPrompt): Promise<string> {
   const response = await apiRequest<{ reply: string }>("/ai/tools/field-assist", {
     method: "POST",
-    headers: authHeaders(),
     body: JSON.stringify({
       tool_id: "lista-cotejo",
       tool_title: "Lista de cotejo",

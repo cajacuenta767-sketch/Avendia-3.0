@@ -3679,24 +3679,16 @@ export function buildDocumentDocx(
 // ==========================================================================
 // FUNCIÓN PRINCIPAL DE EXPORTACIÓN UNIVERSAL
 // ==========================================================================
-export async function exportWorkflowDocx(
+export async function buildWorkflowDocxBlob(
   artifact: WorkflowArtifact,
   options: ExportWorkflowDocxOptions = {}
-) {
+) : Promise<{ blob: Blob; fileName: string }> {
   // 1. Plan Curricular Anual
   if (options.workflowKey === "planificamos/plan-curricular-anual") {
     const doc = await buildPlanAnualDocxDocument(artifact, options);
     const blob = await Packer.toBlob(doc);
     const fileName = `${safeFileName(artifact.document_title || "plan-curricular-anual-2026")}.docx`;
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    return;
+    return { blob, fileName };
   }
 
   // 2. Determinar arquetipo según workflowKey
@@ -3751,6 +3743,14 @@ export async function exportWorkflowDocx(
 
   const blob = await Packer.toBlob(doc);
   const fileName = `${safeFileName(artifact.document_title || "avendia-documento")}.docx`;
+  return { blob, fileName };
+}
+
+export async function exportWorkflowDocx(
+  artifact: WorkflowArtifact,
+  options: ExportWorkflowDocxOptions = {}
+) {
+  const { blob, fileName } = await buildWorkflowDocxBlob(artifact, options);
   if (typeof document !== "undefined" && typeof window !== "undefined") {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

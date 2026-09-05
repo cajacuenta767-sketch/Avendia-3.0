@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -40,6 +40,29 @@ class AIGenerationQualityEvent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     repair_succeeded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     failed_checks_json: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     credit_charged: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    user: Mapped["User"] = relationship()
+
+
+class AIGenerationRecord(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Durable, idempotent record for an expensive workflow generation."""
+
+    __tablename__ = "ai_generation_records"
+    __table_args__ = (UniqueConstraint("user_id", "request_id"),)
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    request_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    tool_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    module: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    model: Mapped[str] = mapped_column(String(120), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), index=True, nullable=False)
+    result_json: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    credit_cost: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    estimated_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     user: Mapped["User"] = relationship()
 

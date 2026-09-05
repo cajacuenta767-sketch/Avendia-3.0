@@ -14,6 +14,7 @@ type Props = {
   onUpdateTableCell?: (tableIndex: number, rowIndex: number, cellIndex: number, value: string) => void;
   onRegenerateSection?: (index: number) => void;
   regeneratingSection?: number | null;
+  onPrepareExactPreview?: () => Promise<Blob>;
 };
 
 export function StructuredArtifactPreview({
@@ -28,6 +29,7 @@ export function StructuredArtifactPreview({
   onUpdateTableCell,
   onRegenerateSection,
   regeneratingSection,
+  onPrepareExactPreview,
 }: Props) {
   // Previsualización enriquecida universal tipo hoja de Word adaptada a las 57 herramientas
   return (
@@ -43,6 +45,7 @@ export function StructuredArtifactPreview({
       onUpdateTableCell={onUpdateTableCell}
       onRegenerateSection={onRegenerateSection}
       regeneratingSection={regeneratingSection}
+      onPrepareExactPreview={onPrepareExactPreview}
     />
   );
 }

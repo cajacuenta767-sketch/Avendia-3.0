@@ -19,6 +19,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { apiRequest } from "../../lib/api";
+import { useWorkspacePreferences } from "../../context/WorkspacePreferencesContext";
 import {
   AcademicBlock,
   CalendarEvent,
@@ -102,8 +103,18 @@ export function CalendarPage() {
   const [view, setView] = useState<"month" | "year">("month");
   const [filter, setFilter] = useState<EventType | "all">("all");
   const [events, setEvents] = useState<CalendarEvent[]>(loadEvents);
-  const [enabledReferences, setEnabledReferences] = useState(loadReferences);
-  const [blocks, setBlocks] = useState(() => loadBlocks(initialYear));
+  const { preferences: workspacePreferences, updatePreferences: updateWorkspacePreferences } = useWorkspacePreferences();
+  const enabledReferences = workspacePreferences.migrated_from_local
+    ? workspacePreferences.calendar_reference_ids
+    : loadReferences();
+  const storedBlocks = workspacePreferences.calendar_blocks[String(cursor.getFullYear())] ?? [];
+  const blocks = storedBlocks.length ? storedBlocks.map((block) => ({
+    id: block.id,
+    name: block.label,
+    kind: block.color === "gestion" ? "gestion" as const : "lectivo" as const,
+    startDate: block.start_date,
+    endDate: block.end_date,
+  })) : loadBlocks(cursor.getFullYear());
   const [sideTab, setSideTab] = useState<"blocks" | "contests">("blocks");
   const [modalDate, setModalDate] = useState<string | null>(searchParams.get("date"));
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -127,9 +138,7 @@ export function CalendarPage() {
   }, [cursor, setSearchParams]);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("avendia.accessToken");
-    if (!token) return;
-    void apiRequest<ApiCalendarEvent[]>("/calendar/events", { headers: { Authorization: `Bearer ${token}` } })
+    void apiRequest<ApiCalendarEvent[]>("/calendar/events")
       .then((items) => {
         const merged = new Map(events.map((event) => [event.id, event]));
         items.map(apiToEvent).forEach((event) => merged.set(event.id, event));
@@ -165,8 +174,6 @@ export function CalendarPage() {
     setSelectedEvent(null);
     setSyncMessage("Fecha guardada correctamente.");
 
-    const token = sessionStorage.getItem("avendia.accessToken");
-    if (!token) return;
     const payload = {
       title: event.title,
       event_date: event.date,
@@ -178,7 +185,6 @@ export function CalendarPage() {
     const path = editing ? `/calendar/events/${event.id}` : "/calendar/events";
     void apiRequest<ApiCalendarEvent>(path, {
       method: editing ? "PATCH" : "POST",
-      headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
     }).then((saved) => {
       const synced = apiToEvent(saved);
@@ -195,11 +201,8 @@ export function CalendarPage() {
     const updated = { ...event, completed: !event.completed };
     persistEvents(events.map((item) => item.id === event.id ? updated : item));
     setSelectedEvent(updated);
-    const token = sessionStorage.getItem("avendia.accessToken");
-    if (!token) return;
     void apiRequest<ApiCalendarEvent>(`/calendar/events/${event.id}`, {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify({ completed: updated.completed }),
     }).catch(() => setSyncMessage("El cambio quedó guardado localmente; la sincronización está pendiente."));
   };
@@ -209,17 +212,14 @@ export function CalendarPage() {
     persistEvents(events.filter((item) => item.id !== event.id));
     setSelectedEvent(null);
     setSyncMessage("Fecha eliminada.");
-    const token = sessionStorage.getItem("avendia.accessToken");
-    if (!token) return;
     void apiRequest<void>(`/calendar/events/${event.id}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
     }).catch(() => setSyncMessage("La fecha se eliminó de este dispositivo; la sincronización está pendiente."));
   };
 
   const saveReferences = (ids: string[]) => {
-    setEnabledReferences(ids);
     localStorage.setItem(REFERENCES_KEY, JSON.stringify(ids));
+    void updateWorkspacePreferences({ calendar_reference_ids: ids });
     setReferenceDialog(false);
     setSyncMessage(`${ids.length} fechas referenciales activas.`);
   };
@@ -228,13 +228,22 @@ export function CalendarPage() {
     const stored = safeJson<Record<string, AcademicBlock[]>>(BLOCKS_KEY, {});
     stored[String(cursor.getFullYear())] = nextBlocks;
     localStorage.setItem(BLOCKS_KEY, JSON.stringify(stored));
-    setBlocks(nextBlocks);
+    const calendarBlocks = {
+      ...workspacePreferences.calendar_blocks,
+      [String(cursor.getFullYear())]: nextBlocks.map((block) => ({
+        id: block.id,
+        label: block.name,
+        start_date: block.startDate,
+        end_date: block.endDate,
+        color: block.kind,
+      })),
+    };
+    void updateWorkspacePreferences({ calendar_blocks: calendarBlocks });
     setBlocksDialog(false);
     setSyncMessage("Bloques del año escolar actualizados.");
   };
 
   const navigateTo = (next: Date) => {
-    if (next.getFullYear() !== cursor.getFullYear()) setBlocks(loadBlocks(next.getFullYear()));
     setCursor(next);
   };
   const moveMonth = (amount: number) => navigateTo(new Date(cursor.getFullYear(), cursor.getMonth() + amount, 1));

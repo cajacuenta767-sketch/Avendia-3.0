@@ -26,6 +26,8 @@
 }
 
 [data-theme="dark"] .sidebar { color: #e8effb; border-color: #2a394f; background: #111c2e; }
+[data-theme="dark"] .tool-entry-guidance { border-color: #2c3a50; background: #111c2e; }
+[data-theme="dark"] .tool-entry-guidance__grid > span { background: #172338; }
 [data-theme="dark"] .sidebar__scroll { scrollbar-color: #52647d transparent; }
 [data-theme="dark"] .sidebar__scroll::-webkit-scrollbar-thumb { border-color: #111c2e; background: #52647d; }
 [data-theme="dark"] .topbar { color: #edf3ff; border-color: #2a394f; background: rgba(13, 23, 39, .98); }
@@ -77,6 +79,8 @@
 [data-theme="dark"] .creation-option:hover,
 [data-theme="dark"] .command-palette__results button:hover,
 [data-theme="dark"] .year-grid button:hover { background: #172942; }
+[data-theme="dark"] .creation-dialog__need > div,
+[data-theme="dark"] .creation-dialog__recommendations > button { color: #edf3ff; border-color: #2c3a50; background: #172338; }
 [data-theme="dark"] .agenda-event { background: transparent; }
 [data-theme="dark"] .home-dashboard { color: #edf3ff; background: #09111f; }
 [data-theme="dark"] .home-profile-strip,
@@ -258,6 +262,16 @@
 [data-theme="dark"] .workflow-context-status strong { color:#edf2fb; }
 [data-theme="dark"] .workflow-context-status.is-coherent { border-color:#245b4b; background:#10271f; }
 [data-theme="dark"] .workflow-context-status.is-review { border-color:#715b2d; background:#2b2414; }
+[data-theme="dark"] .workflow-orientation { border-color:#2d3b54; background:#151f2f; }
+[data-theme="dark"] .workflow-orientation__toggle { color:#edf2fb; }
+[data-theme="dark"] .workflow-orientation__content article { border-color:#314158; background:#111c2e; }
+[data-theme="dark"] .workflow-orientation__content article strong { color:#edf2fb; }
+[data-theme="dark"] .workflow-completion>span { color:#cbd4e3; }
+[data-theme="dark"] .workflow-completion progress,[data-theme="dark"] .workflow-completion progress::-webkit-progress-bar { background:#2d3b54; }
+[data-theme="dark"] .workflow-field__source { color:#d5deeb; background:#28364a; }
+[data-theme="dark"] .workflow-field__source.is-ai { color:#d8d0ff; background:#382c65; }
+[data-theme="dark"] .workflow-field__source.is-reference { color:#b9dfff; background:#183852; }
+[data-theme="dark"] .workflow-field__source.is-profile { color:#b9f0d9; background:#173f33; }
 [data-theme="dark"] .document-reference { border-color:#2d3b54; background:#0f192a; }
 [data-theme="dark"] .document-reference__body { border-color:#2d3b54; background:#111c2e; }
 [data-theme="dark"] .document-reference__mode { color:#bcebd8; border-color:#285b4b; background:#10271f; }
@@ -303,6 +317,7 @@
 [data-theme="dark"] .interactive-artifact > header p,
 [data-theme="dark"] .resource-activity-card p,
 [data-theme="dark"] .crossword-clues,
+[data-theme="dark"] .puzzle-scroll-hint,
 [data-theme="dark"] .matching-board footer { color: #aebbd0; }
 [data-theme="dark"] .study-card,
 [data-theme="dark"] .hangman-board,

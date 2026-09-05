@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { modules, tools, type ModuleId, type ToolDefinition } from "../../config/tools";
+import { useWorkspacePreferences } from "../../context/WorkspacePreferencesContext";
 import type { SessionUser } from "../../lib/session";
 import type { DashboardActivity } from "./dashboardActivity";
 import { HomePedagogicalCalendar } from "./HomePedagogicalCalendar";
@@ -31,15 +32,10 @@ export function HomeDashboardContent({ user, activity, activityLoading, onNewCre
   const [planOpen, setPlanOpen] = useState(false);
   const [preferenceOpen, setPreferenceOpen] = useState(false);
   const [contextOpen, setContextOpen] = useState(true);
-  const [dailyPhrase, setDailyPhrase] = useState(() => localStorage.getItem("avendia.home.dailyPhrase") || "Hoy es un buen día para convertir tus ideas en experiencias de aprendizaje.");
-  const [academicLevel, setAcademicLevel] = useState(() =>
-    sessionStorage.getItem("avendia.home.academicLevel") || user.education_level || "Secundaria",
-  );
-  const favoriteKey = `avendia.home.favorites.${user.id}`;
-  const [favoriteKeys, setFavoriteKeys] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem(favoriteKey) ?? "[]") as string[]; }
-    catch { return []; }
-  });
+  const { preferences: workspacePreferences, updatePreferences: updateWorkspacePreferences } = useWorkspacePreferences();
+  const dailyPhrase = workspacePreferences.daily_phrase;
+  const academicLevel = workspacePreferences.home_academic_level || user.education_level || "Secundaria";
+  const favoriteKeys = workspacePreferences.favorite_tools;
 
   const featuredIds = activity.mostUsedToolIds.length ? activity.mostUsedToolIds : MOST_USED_IDS;
   const mostUsed = useMemo(() => featuredIds.map((id, index) => {
@@ -53,24 +49,19 @@ export function HomeDashboardContent({ user, activity, activityLoading, onNewCre
   const area = user.curricular_area || "Área curricular por completar";
 
   const updateLevel = (value: string) => {
-    setAcademicLevel(value);
-    sessionStorage.setItem("avendia.home.academicLevel", value);
+    void updateWorkspacePreferences({ home_academic_level: value });
   };
 
   const updatePreference = (preference: string) => {
     const message = `Tu prioridad de hoy es ${preference.toLocaleLowerCase("es-PE")}. Avanza a tu ritmo: cada paso cuenta.`;
-    setDailyPhrase(message);
-    localStorage.setItem("avendia.home.dailyPhrase", message);
+    void updateWorkspacePreferences({ daily_phrase: message });
     setPreferenceOpen(false);
   };
 
   const toggleFavorite = (tool: ToolDefinition) => {
     const key = `${tool.module}/${tool.id}`;
-    setFavoriteKeys((current) => {
-      const next = current.includes(key) ? current.filter((item) => item !== key) : [...current, key];
-      localStorage.setItem(favoriteKey, JSON.stringify(next));
-      return next;
-    });
+    const next = favoriteKeys.includes(key) ? favoriteKeys.filter((item) => item !== key) : [...favoriteKeys, key];
+    void updateWorkspacePreferences({ favorite_tools: next });
   };
 
   return (

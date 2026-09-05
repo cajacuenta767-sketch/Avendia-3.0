@@ -4,7 +4,14 @@ import { NavLink } from "react-router-dom";
 
 import { primaryNavigation, utilityNavigation } from "../config/tools";
 import { apiRequest } from "../lib/api";
-import { readSessionUser, sessionUserInitials, type SessionUser } from "../lib/session";
+import {
+  clearSession,
+  readAccessToken,
+  readSessionUser,
+  sessionUserInitials,
+  updateStoredSessionUser,
+  type SessionUser,
+} from "../lib/session";
 import { Brand } from "./Brand";
 
 type SidebarProps = { open: boolean; collapsed: boolean; onClose: () => void; onToggleCollapse: () => void };
@@ -13,14 +20,11 @@ export function Sidebar({ open, collapsed, onClose, onToggleCollapse }: SidebarP
   const [user, setUser] = useState(readSessionUser);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("avendia.accessToken");
-    if (!token) return;
+    if (!readAccessToken()) return;
     const refreshUser = async () => {
       try {
-        const nextUser = await apiRequest<SessionUser>("/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        sessionStorage.setItem("avendia.user", JSON.stringify(nextUser));
+        const nextUser = await apiRequest<SessionUser>("/users/me");
+        updateStoredSessionUser(nextUser);
         setUser(nextUser);
       } catch {
         // Mantiene la última sesión válida si la API está reiniciándose.
@@ -63,7 +67,7 @@ export function Sidebar({ open, collapsed, onClose, onToggleCollapse }: SidebarP
         </NavLink>
         <div className="sidebar__account-actions">
           <NavLink to="/dashboard/configuracion" className="icon-button" aria-label="Configuración"><Settings /></NavLink>
-          <button className="icon-button" aria-label="Cerrar sesión" onClick={() => { sessionStorage.removeItem("avendia.accessToken"); location.assign("/login"); }}><LogOut /></button>
+          <button className="icon-button" aria-label="Cerrar sesión" onClick={() => { clearSession(); location.assign("/login"); }}><LogOut /></button>
         </div>
       </div>
       {!collapsed ? <div className="sidebar-credits"><Coins /><span><small>Créditos IA</small><strong>{(user.ai_credits_balance ?? 0).toLocaleString("es-PE")}</strong></span>{user.role === "admin" ? <NavLink to="/admin" title="Abrir centro de administración"><ShieldCheck /></NavLink> : null}</div> : null}

@@ -16,10 +16,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import learningScene from "../../assets/login-learning-scene-v2.png";
 import { apiRequest } from "../../lib/api";
+import { saveSession, type SessionUser } from "../../lib/session";
 import { AuthThemeToggle } from "./AuthThemeToggle";
 import { PasswordRecoveryDialog } from "./PasswordRecoveryDialog";
 
-type LoginResponse = { access_token: string; user: Record<string, unknown> };
+type LoginResponse = { access_token: string; user: SessionUser };
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -47,8 +48,7 @@ export function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email: form.get("email"), password: form.get("password") }),
       });
-      sessionStorage.setItem("avendia.accessToken", response.access_token);
-      sessionStorage.setItem("avendia.user", JSON.stringify(response.user));
+      saveSession(response.access_token, response.user);
       navigate("/dashboard");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No se pudo iniciar sesión");

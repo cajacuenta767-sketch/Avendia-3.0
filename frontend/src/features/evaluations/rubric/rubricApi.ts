@@ -3,14 +3,8 @@ import type { RubricInstrumentDetail, RubricInstrumentPayload } from "./rubricTy
 
 const ENDPOINT = "/evaluation-instruments";
 
-function authHeaders(): HeadersInit {
-  const token = sessionStorage.getItem("avendia.accessToken");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 export async function getRubricInstrument(instrumentId: string, signal?: AbortSignal): Promise<RubricInstrumentDetail> {
   return apiRequest<RubricInstrumentDetail>(`${ENDPOINT}/${instrumentId}/draft`, {
-    headers: authHeaders(),
     signal,
   });
 }
@@ -22,13 +16,11 @@ export async function saveRubricInstrument(
   if (!current) {
     return apiRequest<RubricInstrumentDetail>(ENDPOINT, {
       method: "POST",
-      headers: authHeaders(),
       body: JSON.stringify(payload),
     });
   }
   return apiRequest<RubricInstrumentDetail>(`${ENDPOINT}/${current.id}/draft`, {
     method: "PUT",
-    headers: authHeaders(),
     body: JSON.stringify({ ...payload, expected_revision: current.revision }),
   });
 }
@@ -51,7 +43,6 @@ export type RubricFeedbackPrompt = {
 export async function suggestRubricFeedback(prompt: RubricFeedbackPrompt): Promise<string> {
   const response = await apiRequest<{ reply: string }>("/ai/tools/field-assist", {
     method: "POST",
-    headers: authHeaders(),
     body: JSON.stringify({
       tool_id: "calificador-rubrica",
       tool_title: "Calificador de rúbrica",

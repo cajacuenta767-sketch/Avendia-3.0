@@ -5,6 +5,7 @@ from app.modules.ai.router import router as ai_router
 from app.modules.auth.router import router as auth_router
 from app.modules.calendar.router import router as calendar_router
 from app.modules.community.router import router as community_router
+from app.modules.dashboard.router import router as dashboard_router
 from app.modules.documents.router import router as documents_router
 from app.modules.evaluation_instruments.router import router as evaluation_instruments_router
 from app.modules.rosters.router import router as rosters_router
@@ -31,6 +32,7 @@ api_router.include_router(ai_router)
 api_router.include_router(auth_router)
 api_router.include_router(calendar_router)
 api_router.include_router(community_router)
+api_router.include_router(dashboard_router)
 api_router.include_router(users_router)
 api_router.include_router(documents_router)
 api_router.include_router(templates_router)

@@ -8,12 +8,16 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:e2e": "node e2e/responsive/run-responsive.cjs --mode=smoke",
+    "test:responsive": "node e2e/responsive/run-responsive.cjs --mode=results",
+    "test:responsive:update-baseline": "node e2e/responsive/run-responsive.cjs --mode=results --update-baseline",
     "preview": "vite preview"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.0",
     "docx": "^9.7.1",
     "lucide-react": "^0.468.0",
+    "pdfjs-dist": "^5.7.284",
     "pptxgenjs": "^4.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

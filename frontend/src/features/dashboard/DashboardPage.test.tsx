@@ -4,6 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DashboardPage } from "./DashboardPage";
 import { invalidateDashboardActivity } from "./dashboardActivity";
+import { WorkspacePreferencesProvider } from "../../context/WorkspacePreferencesContext";
+
+function renderDashboard() {
+  return render(<WorkspacePreferencesProvider><BrowserRouter><DashboardPage /></BrowserRouter></WorkspacePreferencesProvider>);
+}
 
 afterEach(() => {
   cleanup();
@@ -14,7 +19,7 @@ afterEach(() => {
 
 describe("DashboardPage", () => {
   it("recovers the complete home distribution", async () => {
-    render(<BrowserRouter><DashboardPage /></BrowserRouter>);
+    renderDashboard();
 
     expect(screen.getByRole("heading", { name: "¡Te damos la bienvenida, María!" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Recomendadas para empezar" })).toBeInTheDocument();
@@ -38,20 +43,25 @@ describe("DashboardPage", () => {
     sessionStorage.setItem("avendia.accessToken", "token");
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.includes("/documents")) {
-        return new Response(JSON.stringify([{
-          id: "document-1",
-          title: "Mi plan anual real",
-          document_type: "plan-curricular-anual",
-          status: "draft",
-          metadata_json: { source_route: "/dashboard/planificamos/plan-curricular-anual" },
-          updated_at: new Date().toISOString(),
-        }]), { status: 200, headers: { "Content-Type": "application/json" } });
+      if (url.includes("/dashboard/overview")) {
+        return new Response(JSON.stringify({
+          document_count: 1,
+          recent_documents: [{
+            id: "document-1",
+            title: "Mi plan anual real",
+            status: "draft",
+            path: "/dashboard/planificamos/plan-curricular-anual",
+            updated_at: new Date().toISOString(),
+          }],
+          most_used_tool_ids: ["plan-curricular-anual"],
+          notifications: [],
+          generated_at: new Date().toISOString(),
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
       }
       return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
     }));
 
-    render(<BrowserRouter><DashboardPage /></BrowserRouter>);
+    renderDashboard();
 
     expect(await screen.findByText("Mi plan anual real")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Herramientas más utilizadas" })).toBeInTheDocument();
@@ -59,7 +69,7 @@ describe("DashboardPage", () => {
   });
 
   it("updates the daily teaching preference", () => {
-    render(<BrowserRouter><DashboardPage /></BrowserRouter>);
+    renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: "Cambiar preferencia" }));
     expect(screen.getByRole("dialog", { name: "¿En qué quieres enfocarte hoy?" })).toBeInTheDocument();
@@ -68,7 +78,7 @@ describe("DashboardPage", () => {
   });
 
   it("filters tools and keeps the academic level interactive", () => {
-    render(<BrowserRouter><DashboardPage /></BrowserRouter>);
+    renderDashboard();
 
     const level = screen.getByLabelText("Nivel");
     fireEvent.change(level, { target: { value: "Primaria" } });
@@ -83,7 +93,7 @@ describe("DashboardPage", () => {
   });
 
   it("opens the professional plan summary", () => {
-    render(<BrowserRouter><DashboardPage /></BrowserRouter>);
+    renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: "Ver plan profesional" }));
     expect(screen.getByRole("dialog", { name: "Docente profesional" })).toBeInTheDocument();

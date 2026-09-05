@@ -1,9 +1,26 @@
-import React, { useState } from "react";
-import { Download, FileText, LayoutGrid, LoaderCircle, Printer, RefreshCw } from "lucide-react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Expand,
+  FileText,
+  Focus,
+  LayoutGrid,
+  LoaderCircle,
+  Maximize2,
+  Minimize2,
+  Printer,
+  RefreshCw,
+  Rows3,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 
 import type { WorkflowDefinition } from "../../config/workflows";
 import type { WorkflowArtifact } from "./exportWorkflowDocx";
 import { HomeworkDocumentPreview } from "./HomeworkDocumentPreview";
+import { PdfDocumentPreview } from "./PdfDocumentPreview";
 import { PlanAnualDocumentPreview } from "./PlanAnualDocumentPreview";
 import "../../styles/word-preview.css";
 
@@ -19,6 +36,7 @@ type Props = {
   onUpdateTableCell?: (tableIndex: number, rowIndex: number, cellIndex: number, value: string) => void;
   onRegenerateSection?: (index: number) => void;
   regeneratingSection?: number | null;
+  onPrepareExactPreview?: () => Promise<Blob>;
 };
 
 function GeneratedArtifactTables({
@@ -90,11 +108,204 @@ export function WordDocumentPreview({
   onUpdateTableCell,
   onRegenerateSection,
   regeneratingSection = null,
+  onPrepareExactPreview,
 }: Props) {
   const [viewMode, setViewMode] = useState<"word" | "grid">("word");
+  const [documentMode, setDocumentMode] = useState<"fit-width" | "fit-result" | "reading">("fit-width");
+  const [zoom, setZoom] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [documentLayout, setDocumentLayout] = useState({ scale: 1, width: 960, height: 1100 });
+  const [pageBreaks, setPageBreaks] = useState([{ from: 0, to: 1100 }]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [exactPreview, setExactPreview] = useState<Blob | null>(null);
+  const [exactPreviewStatus, setExactPreviewStatus] = useState<"idle" | "loading" | "unavailable">("idle");
+  const [exactPreviewAttempt, setExactPreviewAttempt] = useState(0);
+  const previewWrapperRef = useRef<HTMLDivElement>(null);
+  const previewViewportRef = useRef<HTMLDivElement>(null);
+  const documentPaperRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    if (viewMode !== "word" || documentMode === "reading") return undefined;
+
+    const paper = documentPaperRef.current;
+    if (!paper) return undefined;
+    const pageHeight = 1120;
+    const minimumPageContent = 260;
+
+    const updatePages = () => {
+      const paperRect = paper.getBoundingClientRect();
+      const scale = documentLayout.scale || 1;
+      const documentHeight = Math.ceil(paper.scrollHeight);
+      const candidates = [...paper.querySelectorAll<HTMLElement>([
+        ".word-paper-header",
+        ".word-student-exam-header",
+        ".word-section:not(.generated-artifact-tables)",
+        ".generated-artifact-table",
+        ".word-signatures-box",
+        ".word-tear-off-slip",
+        ".word-table tr",
+      ].join(", "))]
+        .map((element) => Math.round((element.getBoundingClientRect().bottom - paperRect.top) / scale))
+        .filter((bottom) => bottom > 0 && bottom < documentHeight)
+        .sort((a, b) => a - b);
+
+      const nextPages: Array<{ from: number; to: number }> = [];
+      let from = 0;
+      while (from < documentHeight - 1) {
+        const target = Math.min(documentHeight, from + pageHeight);
+        const candidate = candidates.filter((bottom) => bottom > from + minimumPageContent && bottom <= target).at(-1);
+        const to = target >= documentHeight
+          ? documentHeight
+          : Math.max(from + minimumPageContent, candidate ?? target);
+        nextPages.push({ from, to });
+        from = to;
+      }
+
+      /* Evita una última página casi vacía: el cierre y las firmas se unen
+         a la página previa cuando no alcanzan una fracción útil de hoja. */
+      if (nextPages.length > 1) {
+        const lastPage = nextPages.at(-1)!;
+        if (lastPage.to - lastPage.from < pageHeight * 0.45) {
+          const previousPage = nextPages.at(-2)!;
+          previousPage.to = lastPage.to;
+          nextPages.pop();
+        }
+      }
+
+      const normalizedPages = nextPages.length ? nextPages : [{ from: 0, to: pageHeight }];
+      setPageBreaks((current) => (
+        current.length === normalizedPages.length && current.every((page, index) => page.from === normalizedPages[index]?.from && page.to === normalizedPages[index]?.to)
+          ? current
+          : normalizedPages
+      ));
+    };
+
+    updatePages();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const resizeObserver = new ResizeObserver(updatePages);
+    resizeObserver.observe(paper);
+    return () => resizeObserver.disconnect();
+  }, [artifact, documentLayout.scale, documentMode, viewMode]);
+
+  useLayoutEffect(() => {
+    if (viewMode !== "word" || documentMode === "reading") return undefined;
+
+    const viewport = previewViewportRef.current;
+    const paper = documentPaperRef.current;
+    if (!viewport || !paper) return undefined;
+
+    const updateLayout = () => {
+      const viewportStyle = window.getComputedStyle(viewport);
+      const horizontalPadding = Number.parseFloat(viewportStyle.paddingLeft) + Number.parseFloat(viewportStyle.paddingRight);
+      const verticalPadding = Number.parseFloat(viewportStyle.paddingTop) + Number.parseFloat(viewportStyle.paddingBottom);
+      const availableWidth = Math.max(1, viewport.clientWidth - horizontalPadding);
+      const measuredViewportHeight = viewport.clientHeight - verticalPadding;
+      const availableHeight = documentMode === "fit-result"
+        ? Math.max(120, measuredViewportHeight)
+        : Math.max(240, window.innerHeight - verticalPadding - (isFullscreen ? 150 : 210));
+      const paperWidth = paper.offsetWidth || 960;
+      const paperHeight = paper.scrollHeight || 1100;
+      const widthScale = Math.min(1, availableWidth / paperWidth);
+      const resultScale = Math.min(widthScale, availableHeight / paperHeight);
+      const baseScale = documentMode === "fit-result" ? resultScale : widthScale;
+      const scale = Math.max(0.03, Math.min(1.75, baseScale * zoom));
+      const nextLayout = {
+        scale,
+        width: Math.ceil(paperWidth * scale),
+        height: Math.ceil(paperHeight * scale),
+      };
+      setDocumentLayout((current) => (
+        Math.abs(current.scale - nextLayout.scale) < 0.001
+        && current.width === nextLayout.width
+        && current.height === nextLayout.height
+          ? current
+          : nextLayout
+      ));
+    };
+
+    updateLayout();
+    window.addEventListener("resize", updateLayout);
+    if (typeof ResizeObserver === "undefined") {
+      return () => window.removeEventListener("resize", updateLayout);
+    }
+    const resizeObserver = new ResizeObserver(updateLayout);
+    resizeObserver.observe(viewport);
+    resizeObserver.observe(paper);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateLayout);
+    };
+  }, [artifact, documentMode, isFullscreen, viewMode, zoom]);
+
+  useEffect(() => {
+    if (!isFullscreen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (!onPrepareExactPreview || viewMode !== "word") return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setExactPreview(null);
+      setExactPreviewStatus("loading");
+    });
+    void onPrepareExactPreview()
+      .then((file) => { if (!cancelled) setExactPreview(file); })
+      .catch(() => { if (!cancelled) setExactPreviewStatus("unavailable"); })
+      .finally(() => { if (!cancelled) setExactPreviewStatus((current) => current === "unavailable" ? current : "idle"); });
+    return () => { cancelled = true; };
+  }, [exactPreviewAttempt, onPrepareExactPreview, toolId, viewMode, workflowKey]);
+
+  const usesPlanAnualPreview = toolId === "plan-curricular-anual"
+    || workflowKey === "planificamos/plan-curricular-anual";
+  const usesHomeworkPreview = toolId === "tarea-extension-hogar"
+    || workflowKey === "planificamos/tarea-extension-hogar";
+  const usesSpecialPreview = usesPlanAnualPreview || usesHomeworkPreview;
+
+  if (usesSpecialPreview && exactPreviewStatus === "loading") {
+    return (
+      <div className="word-preview-wrapper word-preview-wrapper--exact-only">
+        <div className="word-pdf-preview__loading" role="status">
+          <LoaderCircle className="is-spinning" />
+          <span><strong>Preparando todas las páginas…</strong><small>El documento aparecerá hoja por hoja, completo y sin recortes.</small></span>
+        </div>
+      </div>
+    );
+  }
+
+  if (usesSpecialPreview && exactPreview) {
+    return (
+      <div className="word-preview-wrapper word-preview-wrapper--exact-only">
+        <div className="word-preview-toolbar">
+          <div className="word-preview-toolbar__status">
+            <FileText size={18} />
+            <span>Previsualización exacta · {artifact.document_title || "Documento pedagógico"}</span>
+          </div>
+          {onDownloadWord ? (
+            <div className="word-preview-toolbar__actions">
+              <button type="button" className="word-preview-btn-toggle" onClick={onDownloadWord}>
+                <Download size={15} /><span>Descargar Word</span>
+              </button>
+            </div>
+          ) : null}
+        </div>
+        <PdfDocumentPreview file={exactPreview} documentTitle={artifact.document_title || "Documento pedagógico"} />
+      </div>
+    );
+  }
 
   // Plan Curricular Anual usa su vista especializada de 17 tablas
-  if (toolId === "plan-curricular-anual" || workflowKey === "planificamos/plan-curricular-anual") {
+  if (usesPlanAnualPreview) {
     return (
       <PlanAnualDocumentPreview
         artifact={artifact}
@@ -107,7 +318,7 @@ export function WordDocumentPreview({
     );
   }
 
-  if (toolId === "tarea-extension-hogar" || workflowKey === "planificamos/tarea-extension-hogar") {
+  if (usesHomeworkPreview) {
     return (
       <HomeworkDocumentPreview
         artifact={artifact}
@@ -144,9 +355,16 @@ export function WordDocumentPreview({
   const isCommunication = artifactType === "comunicacion";
   const isResource = artifactType === "recurso";
   const isDocument = !isInstrument && !isActivity && !isAnalytics && !isCommunication && !isResource;
+  const safeCurrentPage = Math.min(Math.max(0, currentPage), Math.max(0, pageBreaks.length - 1));
+  const activePage = pageBreaks[safeCurrentPage] ?? pageBreaks[0] ?? { from: 0, to: 1100 };
+  const hasPageNavigation = documentMode === "fit-width" && pageBreaks.length > 1;
+  const stageHeight = documentMode === "fit-width"
+    ? Math.ceil((activePage.to - activePage.from) * documentLayout.scale)
+    : documentLayout.height;
+  const pageOffset = documentMode === "fit-width" ? activePage.from : 0;
 
   return (
-    <div className="word-preview-wrapper">
+    <div ref={previewWrapperRef} className={`word-preview-wrapper ${isFullscreen ? "is-fullscreen" : ""}`}>
       {/* Barra de herramientas */}
       <div className="word-preview-toolbar">
         <div className="word-preview-toolbar__status">
@@ -219,10 +437,65 @@ export function WordDocumentPreview({
         </div>
       ) : null}
 
+      {viewMode === "word" && !exactPreview && exactPreviewStatus !== "loading" ? (
+        <div className="word-preview-display-controls" aria-label="Controles de visualización del documento">
+          <div className="word-preview-display-controls__modes" role="group" aria-label="Modo de visualización">
+            <button type="button" className={documentMode === "fit-width" ? "is-active" : ""} aria-pressed={documentMode === "fit-width"} onClick={() => { setDocumentMode("fit-width"); setZoom(1); }}>
+              <Expand size={16} /> Ajustar al ancho
+            </button>
+            <button type="button" className={documentMode === "fit-result" ? "is-active" : ""} aria-pressed={documentMode === "fit-result"} onClick={() => { setDocumentMode("fit-result"); setZoom(1); }}>
+              <Focus size={16} /> Resultado completo
+            </button>
+            <button type="button" className={documentMode === "reading" ? "is-active" : ""} aria-pressed={documentMode === "reading"} onClick={() => setDocumentMode("reading")}>
+              <Rows3 size={16} /> Lectura cómoda
+            </button>
+          </div>
+          <div className="word-preview-display-controls__zoom" role="group" aria-label="Zoom del documento">
+            {documentMode !== "reading" ? (
+              <>
+                <button type="button" aria-label="Alejar documento" disabled={zoom <= 0.55} onClick={() => setZoom((value) => Math.max(0.5, Number((value - 0.1).toFixed(2))))}><ZoomOut size={17} /></button>
+                <output aria-live="polite">{Math.round(documentLayout.scale * 100)}%</output>
+                <button type="button" aria-label="Acercar documento" disabled={zoom >= 1.55} onClick={() => setZoom((value) => Math.min(1.6, Number((value + 0.1).toFixed(2))))}><ZoomIn size={17} /></button>
+              </>
+            ) : <span>Vista adaptada al dispositivo</span>}
+            <button type="button" aria-label={isFullscreen ? "Salir de pantalla completa" : "Abrir en pantalla completa"} aria-pressed={isFullscreen} onClick={() => setIsFullscreen((value) => !value)}>
+              {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+              <span>{isFullscreen ? "Salir" : "Pantalla completa"}</span>
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {hasPageNavigation && !exactPreview && exactPreviewStatus !== "loading" ? (
+        <nav className="word-preview-pager" aria-label="Páginas del documento">
+          <button type="button" disabled={safeCurrentPage === 0} onClick={() => setCurrentPage((page) => Math.max(0, Math.min(pageBreaks.length - 1, page - 1)))}>
+            <ChevronLeft size={18} /> Anterior
+          </button>
+          <span aria-live="polite">Página {safeCurrentPage + 1} de {pageBreaks.length}</span>
+          <button type="button" disabled={safeCurrentPage === pageBreaks.length - 1} onClick={() => setCurrentPage((page) => Math.min(pageBreaks.length - 1, Math.max(0, page + 1)))}>
+            Siguiente <ChevronRight size={18} />
+          </button>
+        </nav>
+      ) : null}
+
       {/* Contenedor del documento */}
-      {viewMode === "word" ? (
-        <div className="word-preview-viewport">
-          <article className="word-document-paper">
+      {viewMode === "word" ? (exactPreview ? <PdfDocumentPreview file={exactPreview} documentTitle={artifact.document_title || "Documento pedagógico"} /> : <>
+        {exactPreviewStatus === "loading" ? (
+          <div className="word-pdf-preview__loading" role="status">
+            <LoaderCircle className="is-spinning" />
+            <span><strong>Preparando todas las páginas…</strong><small>Puedes seguir revisando la vista rápida mientras termina el documento exacto.</small></span>
+          </div>
+        ) : null}
+        <div ref={previewViewportRef} className={`word-preview-viewport word-preview-viewport--${documentMode}`}>
+          <div
+            className={`word-document-stage word-document-stage--${documentMode}`}
+            style={documentMode === "reading" ? undefined : { width: `${documentLayout.width}px`, height: `${stageHeight}px` }}
+          >
+          <article
+            ref={documentPaperRef}
+            className={`word-document-paper ${documentMode === "reading" ? "word-document-paper--reading" : "word-document-paper--canvas"}`}
+            style={documentMode === "reading" ? undefined : { transform: `translateY(-${pageOffset * documentLayout.scale}px) scale(${documentLayout.scale})` }}
+          >
             {/* ==================== 1. ARQUETIPO: INSTRUMENTOS ==================== */}
             {isInstrument ? (
               <>
@@ -1917,8 +2190,10 @@ export function WordDocumentPreview({
               </>
             ) : null}
           </article>
+          </div>
         </div>
-      ) : (
+        {exactPreviewStatus === "unavailable" ? <div className="word-exact-preview-status"><span>La vista rápida está disponible, pero no se pudieron cargar las páginas reales.</span><button type="button" onClick={() => setExactPreviewAttempt((attempt) => attempt + 1)}>Reintentar páginas reales</button></div> : null}
+        </>) : (
         <div className={`workflow-artifact__grid ${editingResult ? "is-editing" : ""}`}>
           {artifact.sections.map((sectionItem, index) => (
             <article key={`${sectionItem.title}-${index}`}>

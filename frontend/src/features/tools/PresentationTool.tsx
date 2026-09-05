@@ -25,8 +25,8 @@ import {
   Workflow,
   X,
 } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 import {
   areasByLevel,
@@ -36,6 +36,7 @@ import {
   gradesByLevel,
   type EducationLevel,
 } from "../../config/education";
+import { detectCurricularArea } from "../../config/toolDiscovery";
 import { ApiError, apiBlob, apiRequest, downloadApiBlob, resolveApiAssetUrl } from "../../lib/api";
 import { readSessionUser, sessionDraftScope } from "../../lib/session";
 import { GenerationProgressOverlay } from "../../components/GenerationProgressOverlay";
@@ -200,6 +201,7 @@ function resequence(slides: PresentationSlide[]) {
 }
 
 export function PresentationTool() {
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [storageKey] = useState(() => `avendia.draft.presentaciones-didacticas.v1.${sessionDraftScope()}`);
   const [initialDraft] = useState(() => loadDraft(storageKey));
@@ -217,10 +219,11 @@ export function PresentationTool() {
   const [regeneratingSlide, setRegeneratingSlide] = useState(false);
   const [documentId, setDocumentId] = useState(initialDraft.documentId ?? "");
   const [serverVersion, setServerVersion] = useState(initialDraft.serverVersion ?? 0);
+  const [teacherNeedApplied, setTeacherNeedApplied] = useState(false);
   const documentIdFromUrl = searchParams.get("document");
 
   const gradeOptions = form.level ? gradesByLevel[form.level] ?? [] : [];
-  const areaOptions = form.level ? areasByLevel[form.level] ?? [] : [];
+  const areaOptions = useMemo(() => form.level ? areasByLevel[form.level] ?? [] : [], [form.level]);
   const educationLevels = getEducationLevels(form.modality);
   const competencyOptions = form.curricularArea ? competenciesByArea[form.curricularArea] ?? [] : [];
   const activeSlide = result?.slides[selectedSlideIndex] ?? null;
@@ -241,6 +244,23 @@ export function PresentationTool() {
     !form.didacticPurpose ? { id: "presentation-purpose", label: "Propósito didáctico" } : null,
     !form.interactions.length ? { id: "presentation-interactions", label: "Diapositivas e interacciones" } : null,
   ].filter((item): item is FormValidationItem => Boolean(item));
+
+  useEffect(() => {
+    const teacherNeed = (location.state as { teacherNeed?: string } | null)?.teacherNeed?.trim();
+    if (!teacherNeed || teacherNeedApplied) return;
+    const detectedArea = detectCurricularArea(teacherNeed);
+    const timeout = window.setTimeout(() => {
+      setForm((current) => ({
+        ...current,
+        topic: current.topic.trim() ? current.topic : teacherNeed,
+        curricularArea: detectedArea && areaOptions.includes(detectedArea)
+          ? detectedArea
+          : current.curricularArea,
+      }));
+      setTeacherNeedApplied(true);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [areaOptions, location.state, teacherNeedApplied]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {

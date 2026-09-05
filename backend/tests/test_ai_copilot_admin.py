@@ -251,7 +251,10 @@ async def test_field_assist_keeps_the_declared_exam_topic_as_a_binding_focus(
     await generate_field_assist_reply(payload)
 
     sent_payload = copilot_mock.await_args.args[0]
-    assert "FOCO TEMÁTICO VINCULANTE: Aritmética con fracciones equivalentes" in sent_payload.message
+    assert (
+        "FOCO TEMÁTICO VINCULANTE: Aritmética con fracciones equivalentes"
+        in sent_payload.message
+    )
     assert "hábitos saludables" in sent_payload.message
 
 
@@ -275,12 +278,19 @@ async def test_field_assist_accepts_rich_workflow_context_beyond_legacy_limit(
         answer2="Plantea, resuelve y comprueba ecuaciones explicando su procedimiento",
         selected_suggestions=["Un criterio por enunciado", "Nivel de logro progresivo"],
         custom_detail="Usar lenguaje claro, observable y apropiado para secundaria.",
-        form_values={f"context_field_{index}": "Contexto pedagógico completo " * 4 for index in range(12)},
+        form_values={
+            f"context_field_{index}": "Contexto pedagógico completo " * 4
+            for index in range(12)
+        },
         pedagogical_context={
             "subject": "Matemática",
             "topic": "Ecuaciones lineales",
             "grade": "3.º de secundaria",
-            "evidence": "Resoluciones explicadas, verificadas y vinculadas a situaciones cotidianas. " * 18,
+            "evidence": (
+                "Resoluciones explicadas, verificadas y vinculadas "
+                "a situaciones cotidianas. "
+            )
+            * 18,
             "summary": ["Competencia y capacidad seleccionadas", "Evidencia vinculada al problema"],
         },
         context_fingerprint="matematica-secundaria-ecuaciones",

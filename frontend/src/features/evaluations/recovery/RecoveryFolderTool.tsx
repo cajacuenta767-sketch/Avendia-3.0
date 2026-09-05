@@ -56,6 +56,7 @@ export function RecoveryFolderTool({ instrumentId, onInstrumentIdChange }: { ins
     if (!data) return;
     const generated = (instrument.settings as { generated_artifact?: WorkflowArtifact } | undefined)?.generated_artifact ?? null;
     setState((current) => ({ ...current, ...data, artifact: data.artifact ?? generated, frame: { ...current.frame, ...(data.frame ?? {}) } }));
+    if (instrument.status === "generated") setCurrentStep(4);
   }, []);
   const draft = useEvaluationInstrument({ instrumentId, onLoaded, onInstrumentIdChange });
   const selectedStudents = useSelectedStudentNames(state.selection);

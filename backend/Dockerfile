@@ -5,6 +5,9 @@ ENV ENVIRONMENT=production \
     DATABASE_SSL_REQUIRED=true \
     PYTHONUNBUFFERED=1
 RUN pip install --no-cache-dir uv
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libreoffice-writer \
+    && rm -rf /var/lib/apt/lists/*
 COPY pyproject.toml uv.lock* ./
 RUN uv sync --no-dev
 COPY alembic.ini ./
