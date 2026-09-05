@@ -34,7 +34,7 @@ import {
   type WorkflowStep,
   workflowModalities,
 } from "../../config/workflows";
-import { apiRequest } from "../../lib/api";
+import { ApiError, apiRequest } from "../../lib/api";
 import { sessionDraftScope } from "../../lib/session";
 import type { WorkflowArtifact } from "./exportWorkflowDocx";
 import { ContextualAIGuideDialog } from "./ContextualAIGuideDialog";
@@ -572,11 +572,7 @@ export function WorkflowTool() {
     guideRequest.current = controller;
     try {
       const token = sessionStorage.getItem("avendia.accessToken");
-      const response = await apiRequest<{ reply: string }>("/ai/tools/field-assist", {
-        method: "POST",
-        signal: controller.signal,
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: JSON.stringify({
+      const requestPayload = JSON.stringify({
           tool_id: tool.id,
           tool_title: tool.title,
           module: tool.module,
@@ -593,8 +589,22 @@ export function WorkflowTool() {
           pedagogical_context: pedagogicalContext,
           context_fingerprint: pedagogicalContext.fingerprint,
           assistance_mode: assistanceMode,
-        }),
       });
+      const requestSuggestion = () => apiRequest<{ reply: string }>("/ai/tools/field-assist", {
+          method: "POST",
+          signal: controller.signal,
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          body: requestPayload,
+      });
+      let response: { reply: string };
+      try {
+        response = await requestSuggestion();
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 0 || controller.signal.aborted) throw error;
+        await new Promise((resolve) => window.setTimeout(resolve, 650));
+        if (controller.signal.aborted) return;
+        response = await requestSuggestion();
+      }
       if (!controller.signal.aborted) setGuideReply(response.reply);
     } catch (error) {
       if (!controller.signal.aborted) setGuideError(error instanceof Error ? error.message : "No se pudo preparar la sugerencia.");

@@ -210,6 +210,44 @@ async def test_field_assist_keeps_the_declared_exam_topic_as_a_binding_focus(
 
 
 @pytest.mark.asyncio
+async def test_field_assist_accepts_rich_workflow_context_beyond_legacy_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    copilot_mock = AsyncMock(
+        return_value=CopilotResponse(reply="Criterio observable", model="gemini-3.6-flash")
+    )
+    monkeypatch.setattr("app.modules.ai.service.generate_copilot_reply", copilot_mock)
+    payload = FieldAssistRequest(
+        tool_id="examen",
+        tool_title="Examen",
+        module="evaluamos",
+        field_id="criteria",
+        field_label="Criterios de evaluación",
+        question1="¿Qué evidencia o producto será evaluado?",
+        answer1="Resolución de ecuaciones lineales en situaciones cotidianas",
+        question2="¿Qué desempeño debe observarse con claridad?",
+        answer2="Plantea, resuelve y comprueba ecuaciones explicando su procedimiento",
+        selected_suggestions=["Un criterio por enunciado", "Nivel de logro progresivo"],
+        custom_detail="Usar lenguaje claro, observable y apropiado para secundaria.",
+        form_values={f"context_field_{index}": "Contexto pedagógico completo " * 4 for index in range(12)},
+        pedagogical_context={
+            "subject": "Matemática",
+            "topic": "Ecuaciones lineales",
+            "grade": "3.º de secundaria",
+            "evidence": "Resoluciones explicadas, verificadas y vinculadas a situaciones cotidianas. " * 18,
+            "summary": ["Competencia y capacidad seleccionadas", "Evidencia vinculada al problema"],
+        },
+        context_fingerprint="matematica-secundaria-ecuaciones",
+    )
+
+    await generate_field_assist_reply(payload)
+
+    sent_payload = copilot_mock.await_args.args[0]
+    assert len(sent_payload.message) > 2400
+    assert "Ecuaciones lineales" in sent_payload.message
+
+
+@pytest.mark.asyncio
 async def test_field_assist_preferences_and_feedback_are_persistent() -> None:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         token, _ = await _register_and_login(client, "field-preferences@example.edu")

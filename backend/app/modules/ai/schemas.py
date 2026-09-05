@@ -527,7 +527,10 @@ class WorkflowGenerationResponse(GeneratedWorkflowArtifact):
 class CopilotRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    message: str = Field(min_length=2, max_length=2400)
+    # Field assistance composes a trusted contextual instruction on the server.
+    # Rich workflows can legitimately exceed the former 2,400-character limit
+    # before being sent to Gemini.
+    message: str = Field(min_length=2, max_length=12000)
     tool_title: str = Field(min_length=2, max_length=180)
     module: str = Field(min_length=2, max_length=80)
     form_values: dict[str, str] = Field(default_factory=dict)
