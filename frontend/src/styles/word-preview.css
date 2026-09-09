@@ -1606,3 +1606,157 @@
     display: none;
   }
 }
+
+/* ==========================================================================
+   Formato del documento: listas, etiquetas, hoja A4 e impresión
+   ========================================================================== */
+.word-list {
+  margin: 0.35rem 0 0.85rem 1.35rem;
+  padding: 0;
+}
+
+.word-list li {
+  margin-bottom: 0.3rem;
+  line-height: 1.5;
+}
+
+.word-list li::marker {
+  color: #2e74b5;
+}
+
+.word-label {
+  color: #1f4d78;
+  font-weight: 700;
+}
+
+.word-cell-p {
+  margin: 0 0 0.35rem;
+}
+
+.word-table--generated th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.word-table--info td:first-child {
+  white-space: nowrap;
+}
+
+/* Proporción A4 (1:1.414) y márgenes equivalentes a los del Word exportado. */
+.word-document-paper {
+  padding: 4.5rem 5.4rem;
+  font-size: 0.9375rem;
+}
+
+.word-document-paper--canvas {
+  min-height: 1358px;
+}
+
+.word-paper-title {
+  font-size: 1.35rem;
+}
+
+.word-section-h1 {
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+.word-section-h2 {
+  font-size: 0.975rem;
+}
+
+.word-table {
+  font-size: 0.8125rem;
+}
+
+/* El papel sigue siendo blanco en modo oscuro: es lo que se imprime. */
+[data-theme="dark"] .word-document-paper {
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .word-document-paper .word-paper-title,
+[data-theme="dark"] .word-document-paper .word-section-h1,
+[data-theme="dark"] .word-document-paper .word-label {
+  color: #1f4d78;
+}
+
+[data-theme="dark"] .word-document-paper .word-paper-subtitle,
+[data-theme="dark"] .word-document-paper .word-section-h2 {
+  color: #2e74b5;
+}
+
+[data-theme="dark"] .word-document-paper .word-paper-header,
+[data-theme="dark"] .word-document-paper .word-section-h1 {
+  border-bottom-color: #bdd7ee;
+}
+
+[data-theme="dark"] .word-document-paper .word-paper-motto {
+  color: #64748b;
+}
+
+[data-theme="dark"] .word-document-paper .word-table,
+[data-theme="dark"] .word-document-paper .word-table td,
+[data-theme="dark"] .word-document-paper .word-table th {
+  border-color: #bdd7ee;
+}
+
+[data-theme="dark"] .word-document-paper .word-table th {
+  background-color: #bdd7ee;
+  color: #1f4d78;
+}
+
+[data-theme="dark"] .word-document-paper .word-table td {
+  background-color: transparent;
+}
+
+[data-theme="dark"] .word-document-paper .word-table tr:nth-child(even) td {
+  background-color: #f8fafc;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 19mm;
+  }
+
+  .word-preview-toolbar,
+  .word-preview-display-controls,
+  .word-preview-pager,
+  .word-preview-regeneration,
+  .word-exact-preview-status {
+    display: none !important;
+  }
+
+  .word-preview-wrapper,
+  .word-preview-viewport {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  .word-document-paper,
+  .word-document-paper--canvas {
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .word-section,
+  .generated-artifact-table,
+  .word-table tr,
+  .word-signatures-box {
+    break-inside: avoid;
+  }
+
+  .word-section-h1,
+  .word-section-h2 {
+    break-after: avoid;
+  }
+}

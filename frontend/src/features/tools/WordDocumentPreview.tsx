@@ -18,7 +18,9 @@ import {
 } from "lucide-react";
 
 import type { WorkflowDefinition } from "../../config/workflows";
-import type { WorkflowArtifact } from "./exportWorkflowDocx";
+import { InfoTable, KeyPointList, KeyPointText, Narrative, PreviewTables, SignatureBox } from "./DocumentText";
+import { attachTablesToSections, isPlaceholder, toRoman } from "./documentFormat";
+import type { WorkflowArtifactTable, WorkflowArtifact } from "./exportWorkflowDocx";
 import { HomeworkDocumentPreview } from "./HomeworkDocumentPreview";
 import { PdfDocumentPreview } from "./PdfDocumentPreview";
 import { PlanAnualDocumentPreview } from "./PlanAnualDocumentPreview";
@@ -50,48 +52,12 @@ function GeneratedArtifactTables({
   editingResult?: boolean;
   onUpdateTableCell?: (tableIndex: number, rowIndex: number, cellIndex: number, value: string) => void;
 }) {
-  const tables = artifact.tables ?? [];
+  const tables = (artifact.tables ?? []).map((table, index) => ({ table, index }));
   if (!tables.length) return null;
-
   return (
     <section className="word-section generated-artifact-tables">
       <h2 className="word-section-h1">{heading}</h2>
-      {tables.map((table, tableIndex) => (
-        <div className="generated-artifact-table" key={`${table.title}-${tableIndex}`}>
-          <h3 className="word-section-h2">{table.title}</h3>
-          <div className="word-table-responsive">
-            <table className="word-table">
-              <thead>
-                <tr>{table.columns.map((column) => <th key={column}>{column}</th>)}</tr>
-              </thead>
-              <tbody>
-                {table.rows.map((row, rowIndex) => (
-                  <tr key={`${table.title}-${rowIndex}`}>
-                    {row.map((cell, cellIndex) => (
-                      <td key={`${rowIndex}-${cellIndex}`}>
-                        {editingResult && onUpdateTableCell ? (
-                          <textarea
-                            aria-label={`${table.title}, fila ${rowIndex + 1}, ${table.columns[cellIndex]}`}
-                            rows={3}
-                            value={cell}
-                            onChange={(event) => onUpdateTableCell(
-                              tableIndex,
-                              rowIndex,
-                              cellIndex,
-                              event.target.value,
-                            )}
-                          />
-                        ) : cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {table.note ? <p className="generated-artifact-table__note">{table.note}</p> : null}
-        </div>
-      ))}
+      <PreviewTables tables={tables} editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
     </section>
   );
 }
@@ -114,8 +80,8 @@ export function WordDocumentPreview({
   const [documentMode, setDocumentMode] = useState<"fit-width" | "fit-result" | "reading">("fit-width");
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [documentLayout, setDocumentLayout] = useState({ scale: 1, width: 960, height: 1100 });
-  const [pageBreaks, setPageBreaks] = useState([{ from: 0, to: 1100 }]);
+  const [documentLayout, setDocumentLayout] = useState({ scale: 1, width: 960, height: 1358 });
+  const [pageBreaks, setPageBreaks] = useState([{ from: 0, to: 1358 }]);
   const [currentPage, setCurrentPage] = useState(0);
   const [exactPreview, setExactPreview] = useState<Blob | null>(null);
   const [exactPreviewStatus, setExactPreviewStatus] = useState<"idle" | "loading" | "unavailable">("idle");
@@ -129,7 +95,7 @@ export function WordDocumentPreview({
 
     const paper = documentPaperRef.current;
     if (!paper) return undefined;
-    const pageHeight = 1120;
+    const pageHeight = 1358;
     const minimumPageContent = 260;
 
     const updatePages = () => {
@@ -332,17 +298,17 @@ export function WordDocumentPreview({
   }
 
   const year = String(values.school_year || "2026");
-  const dre = String(values.dre || "SAN MARTÍN");
-  const ugel = String(values.ugel || "LAMAS");
-  const ie = String(values.institution || "MARTÍN DE LA RIVA Y HERRERA");
+  const dre = String(values.dre || "________");
+  const ugel = String(values.ugel || "________");
+  const ie = String(values.institution || "________________");
   const level = String(values.level || "Secundaria");
   const grade = String(values.grade || "3° de Secundaria");
   const section = String(values.section || "A");
   const area = String(values.curricular_area || values.area || "Educación Básica");
-  const teacher = String(values.teacher_name || "Docente Responsable");
-  const director = String(values.director_name || "Director(a) de la I.E.");
+  const teacher = String(values.teacher_name || "________________");
+  const director = String(values.director_name || "________________");
   const student = String(values.student_name || "Estudiante");
-  const guardian = String(values.guardian_name || values.guardian_names || "Familia / Apoderado");
+  const guardian = String(values.guardian_name || values.guardian_names || "");
 
   const handlePrint = () => {
     window.print();
@@ -621,7 +587,7 @@ export function WordDocumentPreview({
                     {artifact.sections.map((sec, idx) => (
                       <div key={idx} style={{ marginBottom: "1.5rem" }}>
                         <h3 className="word-section-h2">{idx + 1}. {sec.title}</h3>
-                        <p className="word-paper-p">{sec.narrative}</p>
+                        <Narrative text={sec.narrative} />
                         {sec.key_points.length > 0 ? (
                           <div style={{ marginLeft: "1rem" }}>
                             {sec.key_points.map((p, pIdx) => (
@@ -1796,7 +1762,7 @@ export function WordDocumentPreview({
                     {artifact.sections.map((sec, idx) => (
                       <div key={idx} style={{ marginBottom: "1.75rem" }}>
                         <h2 className="word-section-h1">{idx + 1}. {sec.title}</h2>
-                        <p className="word-paper-p">{sec.narrative}</p>
+                        <Narrative text={sec.narrative} />
                         {sec.key_points.length > 0 ? (
                           <div className="word-table-responsive">
                             <table className="word-table">
@@ -1916,8 +1882,8 @@ export function WordDocumentPreview({
                                 {idx === 0 ? "Crítico (Alerta)" : idx === 1 ? "En Proceso" : "Monitoreo"}
                               </span>
                             </td>
-                            <td>{sec.narrative}</td>
-                            <td>{sec.key_points[0] || "Acompañamiento personalizado en aula."}</td>
+                            <td><Narrative text={sec.narrative} className="word-cell-p" /></td>
+                            <td>{sec.key_points[0] ? <KeyPointText text={sec.key_points[0]} /> : "Acompañamiento personalizado en aula."}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1925,13 +1891,13 @@ export function WordDocumentPreview({
                   </div>
                 </section>
 
+                {(artifact.tables?.length ?? 0) > 0 ? (
+                  <GeneratedArtifactTables artifact={artifact} heading="IV. MATRICES DE ANÁLISIS" editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
+                ) : null}
+
                 <section className="word-section">
-                  <h2 className="word-section-h1">IV. PLAN DE ACCIÓN Y COMPROMISOS INSTITUCIONALES</h2>
-                  <ul>
-                    {artifact.teacher_recommendations.map((rec, idx) => (
-                      <li key={idx} style={{ marginBottom: "0.4rem" }}>{rec}</li>
-                    ))}
-                  </ul>
+                  <h2 className="word-section-h1">{(artifact.tables?.length ?? 0) > 0 ? "V." : "IV."} PLAN DE ACCIÓN Y COMPROMISOS INSTITUCIONALES</h2>
+                  <KeyPointList items={artifact.teacher_recommendations} />
                 </section>
 
                 <div className="word-signatures-box">
@@ -1964,7 +1930,7 @@ export function WordDocumentPreview({
 
                 <div className="word-communication-envelope">
                   <div style={{ marginBottom: "0.75rem", fontSize: "0.9375rem" }}>
-                    <strong>Para:</strong> {guardian} (Padre, madre o tutor legal)
+                    <strong>Para:</strong> {guardian || "________________________"} (Padre, madre o tutor legal)
                   </div>
                   <div style={{ marginBottom: "0.75rem", fontSize: "0.9375rem" }}>
                     <strong>Estudiante:</strong> {student} · {grade} "{section}"
@@ -1979,29 +1945,26 @@ export function WordDocumentPreview({
 
                 <section className="word-section">
                   <p className="word-paper-p">
-                    Estimada familia {guardian}:
+                    <strong>{guardian ? `Estimada familia ${guardian}:` : "Estimada familia:"}</strong>
                   </p>
                   <p className="word-paper-p">
-                    Reciban un cordial saludo institucional de parte del equipo directivo y docente de la I.E. "{ie}". Por medio de la presente nos dirigimos a ustedes para informarles lo siguiente:
+                    Reciban un cordial saludo institucional de parte del equipo directivo y docente {/^_+$/.test(ie) ? "de nuestra institución educativa" : `de la I.E. "${ie}"`}. Por medio de la presente nos dirigimos a ustedes para informarles lo siguiente:
                   </p>
-                  <p className="word-paper-p" style={{ fontWeight: 600 }}>
-                    {artifact.executive_summary}
-                  </p>
+                  <Narrative text={artifact.executive_summary} />
 
                   {artifact.sections.map((sec, idx) => (
                     <div key={idx} style={{ margin: "1.25rem 0" }}>
                       <h3 className="word-section-h2" style={{ textDecoration: "underline" }}>{sec.title}</h3>
-                      <p className="word-paper-p">{sec.narrative}</p>
-                      {sec.key_points.length > 0 ? (
-                        <ul>
-                          {sec.key_points.map((p, pIdx) => (
-                            <li key={pIdx} style={{ marginBottom: "0.35rem" }}>{p}</li>
-                          ))}
-                        </ul>
-                      ) : null}
+                      <Narrative text={sec.narrative} />
+                      <KeyPointList items={sec.key_points} />
                     </div>
                   ))}
 
+                  <PreviewTables
+                    tables={(artifact.tables ?? []).map((table, index) => ({ table, index }))}
+                    editingResult={editingResult}
+                    onUpdateTableCell={onUpdateTableCell}
+                  />
                   <p className="word-paper-p" style={{ marginTop: "1.5rem" }}>
                     Agradecemos de antemano su constante compromiso con la formación integral de su menor hijo(a).
                   </p>
@@ -2037,106 +2000,95 @@ export function WordDocumentPreview({
             ) : null}
 
             {/* ==================== 5. ARQUETIPO: DOCUMENTOS Y RECURSOS ==================== */}
-            {isDocument || isResource ? (
+            {isDocument || isResource ? (() => {
+              const placement = attachTablesToSections(artifact);
+              const tableIndexOf = (table: WorkflowArtifactTable) => (artifact.tables ?? []).indexOf(table);
+              const isSession = toolId.includes("sesion");
+              const showGenericSequence = isSession && (artifact.tables?.length ?? 0) === 0;
+              let part = 3;
+              const matricesPart = placement.remaining.length ? part++ : 0;
+              const sequencePart = showGenericSequence ? part++ : 0;
+              const sectionsStart = part;
+              const orientationsPart = sectionsStart + artifact.sections.length;
+              const subtitle = [
+                isPlaceholder(area) || /^_+$/.test(area) ? "" : area.toUpperCase(),
+                /^_+$/.test(level) ? "" : `NIVEL: ${level.toUpperCase()}`,
+                /^_+$/.test(grade) ? "" : `GRADO: ${grade.toUpperCase()}${/^_+$/.test(section) ? "" : ` "${section}"`}`,
+              ].filter(Boolean).join(" · ") || "DOCUMENTO DE PLANIFICACIÓN CURRICULAR";
+              const signatures = [
+                "unidad-aprendizaje", "sesion-aprendizaje", "proyectos-integrados", "adaptacion-nee-dua", "carpeta-pedagogica",
+                "plan-atencion", "plan-refuerzo", "plan-tutoria", "informe-tutoria", "informe-padres", "fichas-acompanamiento",
+              ].some((key) => (workflowKey || toolId).includes(key));
+              return (
               <>
                 <header className="word-paper-header">
                   <div className="word-paper-motto">
                     DOCUMENTO PEDAGÓGICO EDITABLE
                   </div>
                   <h1 className="word-paper-title">{artifact.document_title}</h1>
-                  <div className="word-paper-subtitle">
-                    {area.toUpperCase()} · NIVEL: {level.toUpperCase()} · GRADO: {grade.toUpperCase()} "{section}"
-                  </div>
+                  <div className="word-paper-subtitle">{subtitle}</div>
                 </header>
 
                 <section className="word-section">
-                  <h2 className="word-section-h1">I. DATOS INFORMATIVOS</h2>
-                  <div className="word-table-responsive">
-                    <table className="word-table">
-                      <tbody>
-                        <tr>
-                          <td className="word-table-cell-bold" style={{ width: "35%" }}>DRE</td>
-                          <td>{dre}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">UGEL</td>
-                          <td>{ugel}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">INSTITUCIÓN EDUCATIVA</td>
-                          <td>{ie}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">NIVEL / GRADO / SECCIÓN</td>
-                          <td>{level} / {grade} "{section}"</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">ÁREA CURRICULAR</td>
-                          <td>{area}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">DOCENTE RESPONSABLE</td>
-                          <td>{teacher}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">DIRECTOR(A)</td>
-                          <td>{director}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">AÑO LECTIVO</td>
-                          <td>{year}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  <h2 className="word-section-h1">I. INFORMACIÓN GENERAL</h2>
+                  <InfoTable
+                    rows={[
+                      ["DRE", dre],
+                      ["UGEL", ugel],
+                      ["INSTITUCIÓN EDUCATIVA", ie],
+                      ["NIVEL / GRADO / SECCIÓN", /^_+$/.test(grade) ? "" : `${level} / ${grade} "${section}"`],
+                      ["ÁREA CURRICULAR", area],
+                      ["DOCENTE RESPONSABLE", teacher],
+                      ["DIRECTOR(A)", director],
+                      ["AÑO LECTIVO", year],
+                    ]}
+                    fallback={[["INSTITUCIÓN EDUCATIVA", "________________________"], ["DOCENTE RESPONSABLE", "________________________"], ["AÑO LECTIVO", "________"]]}
+                  />
                 </section>
 
                 <section className="word-section">
                   <h2 className="word-section-h1">II. PROPÓSITO GENERAL Y FUNDAMENTACIÓN</h2>
-                  <p className="word-paper-p">{artifact.executive_summary}</p>
+                  <Narrative text={artifact.executive_summary} />
                 </section>
 
-                {/* Si es Sesión de Aprendizaje, desplegamos la tabla de los 3 momentos didácticos */}
-                {(artifact.tables?.length ?? 0) > 0 ? (
-                  <GeneratedArtifactTables artifact={artifact} heading="III. MATRICES DE PLANIFICACIÓN" editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
-                ) : toolId.includes("sesion") ? (
+                {matricesPart ? (
+                  <section className="word-section generated-artifact-tables">
+                    <h2 className="word-section-h1">{toRoman(matricesPart)}. MATRICES DE PLANIFICACIÓN</h2>
+                    <PreviewTables
+                      tables={placement.remaining.map((table) => ({ table, index: tableIndexOf(table) }))}
+                      editingResult={editingResult}
+                      onUpdateTableCell={onUpdateTableCell}
+                    />
+                  </section>
+                ) : null}
+
+                {sequencePart ? (
                   <section className="word-section">
-                    <h2 className="word-section-h1">III. SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS</h2>
+                    <h2 className="word-section-h1">{toRoman(sequencePart)}. SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS</h2>
                     <div className="word-table-responsive">
                       <table className="word-table">
                         <thead>
                           <tr>
-                            <th style={{ width: "20%" }}>Momento Didáctico</th>
+                            <th style={{ width: "20%" }}>Momento didáctico</th>
                             <th style={{ width: "12%" }} className="word-table-cell-center">Tiempo</th>
-                            <th style={{ width: "68%" }}>Actividades, Mediación y Procesos Pedagógicos</th>
+                            <th style={{ width: "68%" }}>Actividades, mediación y procesos pedagógicos</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr>
                             <td className="word-table-cell-bold">INICIO</td>
                             <td className="word-table-cell-center">15 - 20 min</td>
-                            <td>
-                              • Motivación y problematización inicial.<br />
-                              • Recuperación de saberes previos y conflicto cognitivo.<br />
-                              • Comunicación del propósito de aprendizaje y acuerdos de convivencia.
-                            </td>
+                            <td><KeyPointList items={["Motivación y problematización inicial.", "Recuperación de saberes previos y conflicto cognitivo.", "Comunicación del propósito de aprendizaje y acuerdos de convivencia."]} /></td>
                           </tr>
                           <tr>
                             <td className="word-table-cell-bold">DESARROLLO</td>
                             <td className="word-table-cell-center">55 - 60 min</td>
-                            <td>
-                              • Gestión y acompañamiento del desarrollo de las competencias.<br />
-                              • Trabajo individual y colaborativo con material concreto o textos.<br />
-                              • Retroalimentación por descubrimiento reflexivo ante errores constructivos.
-                            </td>
+                            <td><KeyPointList items={["Gestión y acompañamiento del desarrollo de las competencias.", "Trabajo individual y colaborativo con material concreto o textos.", "Retroalimentación por descubrimiento reflexivo ante errores constructivos."]} /></td>
                           </tr>
                           <tr>
                             <td className="word-table-cell-bold">CIERRE</td>
                             <td className="word-table-cell-center">10 - 15 min</td>
-                            <td>
-                              • Metacognición: ¿Qué aprendimos hoy? ¿Qué dificultades tuvimos y cómo las superamos?<br />
-                              • Evaluación del cumplimiento de acuerdos y compromisos para el hogar.
-                            </td>
+                            <td><KeyPointList items={["Metacognición: ¿Qué aprendimos hoy? ¿Qué dificultades tuvimos y cómo las superamos?", "Evaluación del cumplimiento de acuerdos y compromisos para el hogar."]} /></td>
                           </tr>
                         </tbody>
                       </table>
@@ -2144,51 +2096,38 @@ export function WordDocumentPreview({
                   </section>
                 ) : null}
 
-                {/* Secciones pedagógicas desarrolladas */}
-                <section className="word-section">
-                  <h2 className="word-section-h1">
-                    {toolId.includes("sesion") ? "IV. DESARROLLO DE CONTENIDOS Y EVIDENCIAS" : "III. PLANIFICACIÓN Y CONTENIDOS"}
-                  </h2>
-                  {artifact.sections.map((sec, idx) => (
-                    <div key={idx} style={{ marginBottom: "1.5rem" }}>
-                      <h3 className="word-section-h2">{idx + 1}. {sec.title}</h3>
-                      <p className="word-paper-p">{sec.narrative}</p>
-                      {sec.key_points.length > 0 ? (
-                        <ul>
-                          {sec.key_points.map((p, pIdx) => (
-                            <li key={pIdx} style={{ marginBottom: "0.35rem" }}>{p}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  ))}
-                </section>
+                {artifact.sections.map((sec, idx) => (
+                  <section className="word-section" key={`${sec.title}-${idx}`}>
+                    <h2 className="word-section-h1">{toRoman(sectionsStart + idx)}. {sec.title}</h2>
+                    <Narrative text={sec.narrative} />
+                    <KeyPointList items={sec.key_points} />
+                    <PreviewTables
+                      tables={(placement.bySection.get(idx) ?? []).map((table) => ({ table, index: tableIndexOf(table) }))}
+                      sectionTitle={sec.title}
+                      editingResult={editingResult}
+                      onUpdateTableCell={onUpdateTableCell}
+                    />
+                  </section>
+                ))}
 
                 {artifact.teacher_recommendations.length > 0 ? (
                   <section className="word-section">
-                    <h2 className="word-section-h1">ORIENTACIONES PARA LA REVISIÓN DOCENTE</h2>
-                    <ul>
-                      {artifact.teacher_recommendations.map((rec, idx) => (
-                        <li key={idx} style={{ marginBottom: "0.4rem" }}>{rec}</li>
-                      ))}
-                    </ul>
+                    <h2 className="word-section-h1">{toRoman(orientationsPart)}. ORIENTACIONES PARA LA REVISIÓN DOCENTE</h2>
+                    <KeyPointList items={artifact.teacher_recommendations} />
                   </section>
                 ) : null}
 
-                <div className="word-signatures-box">
-                  <div>
-                    <div className="word-signature-line">____________________________________________</div>
-                    <div className="word-signature-name">{teacher}</div>
-                    <div className="word-signature-role">Docente Responsable de {area}</div>
-                  </div>
-                  <div>
-                    <div className="word-signature-line">____________________________________________</div>
-                    <div className="word-signature-name">{director}</div>
-                    <div className="word-signature-role">Director(a) / Equipo Directivo</div>
-                  </div>
-                </div>
+                {signatures ? (
+                  <SignatureBox
+                    people={[
+                      { name: teacher, role: isPlaceholder(area) || /^_+$/.test(area) ? "Docente responsable" : `Docente responsable de ${area}` },
+                      { name: director, role: "Director(a) / Equipo Directivo" },
+                    ]}
+                  />
+                ) : null}
               </>
-            ) : null}
+              );
+            })() : null}
           </article>
           </div>
         </div>

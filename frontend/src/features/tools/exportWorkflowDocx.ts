@@ -20,6 +20,7 @@ import {
 } from "docx";
 
 import type { WorkflowActivity } from "./InteractiveArtifact";
+import { attachTablesToSections, isPlaceholder, sameTitle, splitLabel, splitNarrative, toRoman } from "./documentFormat";
 import {
   buildPlanAnualDocxDocument,
   type ExportPlanAnualContext,
@@ -227,6 +228,216 @@ function cellBorders() {
   return { top: border, bottom: border, left: border, right: border };
 }
 
+// ==========================================================================
+// FORMATO COMPARTIDO: estilos, página, cabecera/pie, párrafos y tablas
+// ==========================================================================
+
+export { attachTablesToSections, isPlaceholder, toRoman };
+
+function displayValue(value: unknown, fallback = "________________"): string {
+  return isPlaceholder(value) ? fallback : String(value).trim();
+}
+
+/** Hoja de estilos Word: fuente base y jerarquía de títulos reutilizable por el docente. */
+const documentStyles = {
+  default: {
+    document: { run: { font: "Calibri", size: 21, color: COLOR_TEXT } },
+  },
+  paragraphStyles: [
+    {
+      id: "Heading1",
+      name: "Heading 1",
+      basedOn: "Normal",
+      next: "Normal",
+      quickFormat: true,
+      run: { font: "Calibri", size: 24, bold: true, color: COLOR_PRIMARY },
+      paragraph: {
+        spacing: { before: 260, after: 100 },
+        keepNext: true,
+        outlineLevel: 0,
+        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: COLOR_BORDER, space: 2 } },
+      },
+    },
+    {
+      id: "Heading2",
+      name: "Heading 2",
+      basedOn: "Normal",
+      next: "Normal",
+      quickFormat: true,
+      run: { font: "Calibri", size: 22, bold: true, color: COLOR_SECONDARY },
+      paragraph: { spacing: { before: 180, after: 80 }, keepNext: true, outlineLevel: 1 },
+    },
+    {
+      id: "Heading3",
+      name: "Heading 3",
+      basedOn: "Normal",
+      next: "Normal",
+      quickFormat: true,
+      run: { font: "Calibri", size: 21, bold: true, color: COLOR_PRIMARY },
+      paragraph: { spacing: { before: 140, after: 60 }, keepNext: true, outlineLevel: 2 },
+    },
+  ],
+};
+
+type PageMode = "portrait" | "landscape";
+
+/** Tamaño A4 y márgenes homogéneos para todas las familias de documentos. */
+function pageProperties(mode: PageMode = "portrait") {
+  const landscape = mode === "landscape";
+  return {
+    page: {
+      size: {
+        orientation: landscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
+        width: landscape ? 16838 : 11906,
+        height: landscape ? 11906 : 16838,
+      },
+      margin: landscape
+        ? { top: 720, bottom: 720, left: 1080, right: 1080 }
+        : { top: 900, bottom: 900, left: 1080, right: 1080 },
+    },
+  };
+}
+
+function headerText(values: ReturnType<typeof extractCommonValues>, label: string): string {
+  return [values.ie, label, values.year].filter((part) => !isPlaceholder(part)).join(" · ");
+}
+
+function documentHeader(text: string) {
+  return {
+    default: new Header({
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BORDER, space: 4 } },
+          children: [new TextRun({ text: cleanText(text), size: 16, color: COLOR_MUTED, font: "Calibri" })],
+        }),
+      ],
+    }),
+  };
+}
+
+function documentFooter() {
+  const muted = { size: 16, color: COLOR_MUTED, font: "Calibri" };
+  return {
+    default: new Footer({
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          children: [
+            new TextRun({ text: "Elaborado con Avendia · Página ", ...muted }),
+            new TextRun({ children: [PageNumber.CURRENT], ...muted }),
+            new TextRun({ text: " de ", ...muted }),
+            new TextRun({ children: [PageNumber.TOTAL_PAGES], ...muted }),
+          ],
+        }),
+      ],
+    }),
+  };
+}
+
+/** Texto en negrita para "Etiqueta: contenido" (etiqueta de una a cuatro palabras). */
+function labelRuns(text: string, size: number, color = COLOR_TEXT): TextRun[] {
+  const parts = splitLabel(cleanText(text));
+  if (parts.label) {
+    return [
+      new TextRun({ text: `${parts.label}: `, bold: true, size, color: COLOR_PRIMARY, font: "Calibri" }),
+      new TextRun({ text: parts.body, size, color, font: "Calibri" }),
+    ];
+  }
+  return [new TextRun({ text: cleanText(text), size, color, font: "Calibri" })];
+}
+
+function createKeyPoint(text: string, options: { size?: number; after?: number } = {}): Paragraph {
+  return new Paragraph({
+    bullet: { level: 0 },
+    children: labelRuns(text, options.size ?? 20),
+    spacing: { after: options.after ?? 50, line: 264 },
+  });
+}
+
+/** Párrafos de cuerpo: respeta saltos de párrafo y convierte viñetas incrustadas en lista. */
+function createBodyParagraphs(
+  text: string,
+  options: { bold?: boolean; italic?: boolean; after?: number; size?: number } = {}
+): Paragraph[] {
+  const blocks = splitNarrative(text);
+  if (!blocks.length) return [];
+  return blocks.map((block) =>
+    block.bullet
+      ? createKeyPoint(block.text, { size: options.size ?? 20 })
+      : new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          children: [
+            new TextRun({
+              text: block.text,
+              bold: options.bold,
+              italics: options.italic,
+              color: COLOR_TEXT,
+              size: options.size ?? 20,
+              font: "Calibri",
+            }),
+          ],
+          spacing: { after: options.after ?? 100, line: 276 },
+        })
+  );
+}
+
+/** Anchos de columna proporcionales al contenido, con mínimo legible. */
+function columnWidths(table: WorkflowArtifactTable): number[] {
+  const count = table.columns.length;
+  const weights = table.columns.map((column, index) => {
+    const cells = table.rows.map((row) => String(row[index] ?? ""));
+    const average = cells.reduce((sum, cell) => sum + cell.length, 0) / Math.max(1, cells.length);
+    return Math.max(column.length * 0.8, average, 6);
+  });
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  const minimum = Math.min(12, Math.floor(60 / count));
+  const raw = weights.map((weight) => Math.max(minimum, (weight / total) * 100));
+  const rawTotal = raw.reduce((sum, weight) => sum + weight, 0);
+  const widths = raw.map((weight) => Math.round((weight / rawTotal) * 100));
+  widths[widths.length - 1] += 100 - widths.reduce((sum, weight) => sum + weight, 0);
+  return widths;
+}
+
+function createTableBlocks(tables: WorkflowArtifactTable[], options: { sectionTitle?: string } = {}): (Paragraph | Table)[] {
+  return tables.flatMap((table) => {
+    const repeatsSectionTitle = options.sectionTitle ? sameTitle(table.title, options.sectionTitle) : false;
+    const widths = columnWidths(table);
+    const rows = [
+      new TableRow({
+        tableHeader: true,
+        cantSplit: true,
+        children: table.columns.map((column, index) =>
+          createStyledCell(column, { isHeader: true, widthPercent: widths[index] }),
+        ),
+      }),
+      ...table.rows.map((row, rowIndex) =>
+        new TableRow({
+          cantSplit: true,
+          children: row.map((cell, index) =>
+            createStyledCell(cell, {
+              widthPercent: widths[index],
+              bold: index === 0 && String(cell).length <= 40 ? true : undefined,
+              fillColor: rowIndex % 2 ? COLOR_ZEBRA_BG : undefined,
+            }),
+          ),
+        }),
+      ),
+    ];
+    const blocks: (Paragraph | Table)[] = [
+      ...(repeatsSectionTitle ? [] : [createHeading(table.title, HeadingLevel.HEADING_2)]),
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        columnWidths: widths.map((width) => Math.round((width / 100) * 9746)),
+        rows,
+      }),
+    ];
+    if (table.note) blocks.push(createBodyParagraph(table.note, { italic: true, after: 120 }));
+    else blocks.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
+    return blocks;
+  });
+}
+
 function createStyledCell(
   content: string | Paragraph[],
   options: {
@@ -317,49 +528,23 @@ function createHeading(
   const isH1 = level === HeadingLevel.HEADING_1;
   return new Paragraph({
     heading: level,
+    keepNext: true,
     children: [
       new TextRun({
-        text: cleanText(fullText),
+        text: isH1 ? cleanText(fullText).toLocaleUpperCase("es") : cleanText(fullText),
         bold: true,
-        color: COLOR_HEADING,
-        size: isH1 ? 24 : 21,
+        color: isH1 ? COLOR_PRIMARY : COLOR_SECONDARY,
+        size: isH1 ? 24 : 22,
         font: "Calibri",
       }),
     ],
-    spacing: { before: isH1 ? 220 : 140, after: 90 },
+    border: isH1 ? { bottom: { style: BorderStyle.SINGLE, size: 6, color: COLOR_BORDER, space: 2 } } : undefined,
+    spacing: { before: isH1 ? 260 : 180, after: isH1 ? 100 : 80 },
   });
 }
 
 function createGeneratedTableBlocks(artifact: WorkflowArtifact): (Paragraph | Table)[] {
-  return (artifact.tables ?? []).flatMap((table) => {
-    const width = Math.floor(100 / table.columns.length);
-    const rows = [
-      new TableRow({
-        tableHeader: true,
-        cantSplit: true,
-        children: table.columns.map((column) =>
-          createStyledCell(column, { isHeader: true, widthPercent: width }),
-        ),
-      }),
-      ...table.rows.map((row, rowIndex) =>
-        new TableRow({
-          cantSplit: true,
-          children: row.map((cell) =>
-            createStyledCell(cell, {
-              widthPercent: width,
-              fillColor: rowIndex % 2 ? COLOR_ZEBRA_BG : undefined,
-            }),
-          ),
-        }),
-      ),
-    ];
-    const blocks: (Paragraph | Table)[] = [
-      createHeading(table.title, HeadingLevel.HEADING_2),
-      new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }),
-    ];
-    if (table.note) blocks.push(createBodyParagraph(table.note, { italic: true, after: 80 }));
-    return blocks;
-  });
+  return createTableBlocks(artifact.tables ?? []);
 }
 
 function createBodyParagraph(
@@ -873,7 +1058,7 @@ export function buildInstrumentDocx(
       .map(({ section }) => section);
     studentSections.forEach((sec, idx) => {
       children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
-      if (sec.narrative) children.push(createBodyParagraph(sec.narrative));
+      if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       if (/preguntas/i.test(sec.title)) {
         sec.key_points.forEach((point, pointIndex) => children.push(...createExamQuestionBlocks(point, pointIndex)));
         return;
@@ -899,7 +1084,7 @@ export function buildInstrumentDocx(
     }));
     teacherSections.forEach((sec, idx) => {
       children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
-      if (sec.narrative) children.push(createBodyParagraph(sec.narrative));
+      if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       sec.key_points.forEach((point, pointIndex) => children.push(new Paragraph({
         children: [
           new TextRun({ text: `${pointIndex + 1}. `, bold: true, color: COLOR_SECONDARY, size: 20 }),
@@ -921,7 +1106,7 @@ export function buildInstrumentDocx(
     children.push(createHeading("REACTIVOS Y CONSIGNAS DE EVALUACIÓN", HeadingLevel.HEADING_1, "II."));
     artifact.sections.forEach((sec, idx) => {
       children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
-      if (sec.narrative) children.push(createBodyParagraph(sec.narrative));
+      if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       sec.key_points.forEach((point) => children.push(new Paragraph({
         children: [new TextRun({ text: `[  ] ${cleanText(point)}`, size: 20, font: "Calibri", color: COLOR_TEXT })],
         spacing: { before: 40, after: 60 },
@@ -950,6 +1135,7 @@ export function buildInstrumentDocx(
     || (context.workflowKey || "").includes("registros-auxiliares");
 
   return new Document({
+    styles: documentStyles,
     sections: [
       {
         properties: {
@@ -969,7 +1155,7 @@ export function buildInstrumentDocx(
                 alignment: AlignmentType.RIGHT,
                 children: [
                   new TextRun({
-                    text: `${v.ie} · Evaluación Formativa CNEB · ${v.year}`,
+                    text: headerText(v, "Evaluación Formativa CNEB"),
                     size: 16,
                     color: COLOR_MUTED,
                     font: "Calibri",
@@ -1123,7 +1309,7 @@ export function buildActivityDocx(
   );
 
   if ((artifact.tables?.length ?? 0) > 0) {
-    children.push(createHeading("RUTA DE TRABAJO", HeadingLevel.HEADING_1, "I."));
+    children.push(createHeading("RUTA DE TRABAJO", HeadingLevel.HEADING_2));
     children.push(...createGeneratedTableBlocks(artifact));
   }
 
@@ -2108,7 +2294,7 @@ export function buildActivityDocx(
         ];
 
     const bankRuns: TextRun[] = [
-      new TextRun({ text: "★ BANCO DE TÉRMINOS A CLASIFICAR ★\n\n", bold: true, color: "2E7D32", size: 18, font: "Calibri" }),
+      new TextRun({ text: "★ BANCO DE TÉRMINOS A CLASIFICAR ★   ", bold: true, color: "2E7D32", size: 18, font: "Calibri" }),
     ];
     rawBank.forEach((term, idx) => {
       bankRuns.push(
@@ -2798,7 +2984,7 @@ export function buildActivityDocx(
     // Retos y actividades estándar
     artifact.sections.forEach((sec, idx) => {
       children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_1));
-      if (sec.narrative) children.push(createBodyParagraph(sec.narrative));
+      if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       if (sec.key_points.length > 0) {
         const actRows: TableRow[] = [
           new TableRow({
@@ -2841,20 +3027,12 @@ export function buildActivityDocx(
   }
 
   return new Document({
+    styles: documentStyles,
     sections: [
       {
-        properties: {
-          page: {
-            size: {
-              orientation: isWordSearch || isCrossword ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
-              width: 11906,
-              height: 16838,
-            },
-            margin: isWordSearch || isCrossword
-              ? { top: 720, bottom: 720, left: 1080, right: 1080 }
-              : { top: 1440, bottom: 1440, left: 1440, right: 1440 },
-          },
-        },
+        properties: pageProperties(isWordSearch || isCrossword ? "landscape" : "portrait"),
+        headers: documentHeader(headerText(v, isPlaceholder(v.area) ? "Ficha de trabajo" : v.area)),
+        footers: documentFooter(),
         children,
       },
     ],
@@ -2989,8 +3167,16 @@ export function buildAnalyticsDocx(
   });
   children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: analyticsRows }));
 
-  // IV. Plan de acción y firmas
-  children.push(createHeading("PLAN DE ACCIÓN Y COMPROMISOS INSTITUCIONALES", HeadingLevel.HEADING_1, "IV."));
+  // IV. Matrices generadas por la IA (indicadores, alertas, decisiones)
+  let analyticsPart = 4;
+  if ((artifact.tables?.length ?? 0) > 0) {
+    children.push(createHeading("MATRICES DE ANÁLISIS", HeadingLevel.HEADING_1, "IV."));
+    children.push(...createGeneratedTableBlocks(artifact));
+    analyticsPart = 5;
+  }
+
+  // Plan de acción y firmas
+  children.push(createHeading("PLAN DE ACCIÓN Y COMPROMISOS INSTITUCIONALES", HeadingLevel.HEADING_1, `${toRoman(analyticsPart)}.`));
   artifact.teacher_recommendations.forEach((rec) => {
     children.push(
       new Paragraph({
@@ -3001,17 +3187,15 @@ export function buildAnalyticsDocx(
     );
   });
 
-  children.push(createSignaturesTable(v.teacher, "Docente Responsable del Análisis", v.director, "Dirección / Coordinación Pedagógica"));
+  children.push(createSignaturesTable(displayValue(v.teacher, ""), "Docente Responsable del Análisis", displayValue(v.director, ""), "Dirección / Coordinación Pedagógica"));
 
   return new Document({
+    styles: documentStyles,
     sections: [
       {
-        properties: {
-          page: {
-            size: { orientation: PageOrientation.PORTRAIT, width: 11906, height: 16838 },
-            margin: { top: 900, bottom: 900, left: 1080, right: 1080 },
-          },
-        },
+        properties: pageProperties("portrait"),
+        headers: documentHeader(headerText(v, "Informe de seguimiento")),
+        footers: documentFooter(),
         children,
       },
     ],
@@ -3090,27 +3274,22 @@ export function buildCommunicationDocx(
   });
   children.push(commTable);
 
+  const institution = isPlaceholder(v.ie) ? "de nuestra institución educativa" : `de la I.E. "${v.ie}"`;
   children.push(
-    createBodyParagraph(`Estimada familia ${v.guardian}:`, { bold: true }),
+    createBodyParagraph(isPlaceholder(v.guardian) ? "Estimada familia:" : `Estimada familia ${v.guardian}:`, { bold: true }),
     createBodyParagraph(
-      `Reciban un cordial saludo institucional de parte del equipo directivo y docente de la I.E. "${v.ie}". Por medio de la presente nos dirigimos a ustedes para informarles lo siguiente:`
+      `Reciban un cordial saludo institucional de parte del equipo directivo y docente ${institution}. Por medio de la presente nos dirigimos a ustedes para informarles lo siguiente:`
     ),
-    createBodyParagraph(artifact.executive_summary, { bold: true })
+    ...createBodyParagraphs(artifact.executive_summary)
   );
 
   artifact.sections.forEach((sec) => {
     children.push(createHeading(sec.title, HeadingLevel.HEADING_2));
-    if (sec.narrative) children.push(createBodyParagraph(sec.narrative));
-    sec.key_points.forEach((point) => {
-      children.push(
-        new Paragraph({
-          bullet: { level: 0 },
-          children: [new TextRun({ text: cleanText(point), size: 19, font: "Calibri", color: COLOR_TEXT })],
-          spacing: { after: 40 },
-        })
-      );
-    });
+    if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
+    sec.key_points.forEach((point) => children.push(createKeyPoint(point)));
   });
+
+  if ((artifact.tables?.length ?? 0) > 0) children.push(...createGeneratedTableBlocks(artifact));
 
   children.push(
     createBodyParagraph(
@@ -3119,7 +3298,7 @@ export function buildCommunicationDocx(
     createBodyParagraph("Atentamente,")
   );
 
-  children.push(createSignaturesTable(v.teacher, "Docente Tutor(a)", v.director, "Dirección General"));
+  children.push(createSignaturesTable(displayValue(v.teacher, ""), "Docente Tutor(a)", displayValue(v.director, ""), "Dirección General"));
 
   // Talón desglosable
   children.push(
@@ -3151,7 +3330,7 @@ export function buildCommunicationDocx(
     new Paragraph({
       children: [
         new TextRun({
-          text: `Yo, ____________________________________________________, identificado con DNI N.° __________________, padre/madre/tutor de ${v.student} del ${v.grade} "${v.section}", confirmo haber recibido y tomado conocimiento de la comunicación "${cleanText(artifact.document_title)}".\n\nFirma del Padre / Apoderado: __________________________________        Teléfono: ___________________`,
+          text: `Yo, ____________________________________________________, identificado con DNI N.° __________________, padre/madre/tutor de ${v.student} del ${v.grade} "${v.section}", confirmo haber recibido y tomado conocimiento de la comunicación "${cleanText(artifact.document_title)}". Firma del Padre / Apoderado: __________________________________        Teléfono: ___________________`,
           size: 17,
           font: "Calibri",
           color: COLOR_TEXT,
@@ -3162,14 +3341,12 @@ export function buildCommunicationDocx(
   );
 
   return new Document({
+    styles: documentStyles,
     sections: [
       {
-        properties: {
-          page: {
-            size: { orientation: PageOrientation.PORTRAIT, width: 11906, height: 16838 },
-            margin: { top: 900, bottom: 900, left: 1080, right: 1080 },
-          },
-        },
+        properties: pageProperties("portrait"),
+        headers: documentHeader(headerText(v, "Comunicación a la familia")),
+        footers: documentFooter(),
         children,
       },
     ],
@@ -3376,6 +3553,7 @@ export function buildHomeworkDocx(
   );
 
   return new Document({
+    styles: documentStyles,
     sections: [{
       properties: {
         page: {
@@ -3387,7 +3565,7 @@ export function buildHomeworkDocx(
         default: new Header({
           children: [new Paragraph({
             children: [new TextRun({
-              text: `${v.ie} · ${v.area} · ${v.year}`,
+              text: headerText(v, isPlaceholder(v.area) ? "Tarea de extensión" : v.area),
               color: COLOR_MUTED,
               size: 16,
               font: "Calibri",
@@ -3455,7 +3633,11 @@ export function buildDocumentDocx(
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: `ÁREA: ${v.area.toUpperCase()} · NIVEL: ${v.level.toUpperCase()} · GRADO: ${v.grade.toUpperCase()} "${v.section}"`,
+          text: [
+            isPlaceholder(v.area) ? "" : `ÁREA: ${v.area.toUpperCase()}`,
+            isPlaceholder(v.level) ? "" : `NIVEL: ${v.level.toUpperCase()}`,
+            isPlaceholder(v.grade) ? "" : `GRADO: ${v.grade.toUpperCase()}${isPlaceholder(v.section) ? "" : ` "${v.section}"`}`,
+          ].filter(Boolean).join(" · ") || "DOCUMENTO DE PLANIFICACIÓN CURRICULAR",
           bold: true,
           color: COLOR_HEADING,
           size: 20,
@@ -3479,7 +3661,12 @@ export function buildDocumentDocx(
     ["AÑO LECTIVO", v.year],
   ];
 
-  const infoTableRows: TableRow[] = infoRows.map(
+  const providedInfoRows = infoRows.filter(([, value]) => !isPlaceholder(value) && !/no registrado/i.test(value));
+  // Sin datos aportados, el documento deja espacios de llenado en lugar de "No registrado".
+  const visibleInfoRows: [string, string][] = providedInfoRows.length
+    ? providedInfoRows
+    : [["INSTITUCIÓN EDUCATIVA", "________________________"], ["DOCENTE RESPONSABLE", "________________________"], ["AÑO LECTIVO", "________"]];
+  const infoTableRows: TableRow[] = visibleInfoRows.map(
     ([label, val], idx) =>
       new TableRow({
         cantSplit: true,
@@ -3495,11 +3682,15 @@ export function buildDocumentDocx(
   children.push(createHeading("PROPÓSITO GENERAL Y FUNDAMENTACIÓN", HeadingLevel.HEADING_1, "II."));
   children.push(createBodyParagraph(artifact.executive_summary));
 
-  // Si es Sesión de Aprendizaje: Tabla de los 3 Momentos Didácticos
-  if ((artifact.tables?.length ?? 0) > 0) {
-    children.push(createHeading("MATRICES DE PLANIFICACIÓN", HeadingLevel.HEADING_1, "III."));
-    children.push(...createGeneratedTableBlocks(artifact));
-  } else if (isSession) {
+  // Las tablas se imprimen junto a la sección que las describe; el resto forma
+  // un bloque de matrices. Solo sin tablas de la IA se usa la secuencia genérica.
+  const placement = attachTablesToSections(artifact);
+  let partNumber = 3;
+  if (placement.remaining.length > 0) {
+    children.push(createHeading("MATRICES DE PLANIFICACIÓN", HeadingLevel.HEADING_1, `${toRoman(partNumber)}.`));
+    children.push(...createTableBlocks(placement.remaining));
+    partNumber += 1;
+  } else if (isSession && (artifact.tables?.length ?? 0) === 0) {
     children.push(createHeading("SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS", HeadingLevel.HEADING_1, "III."));
     const momentsRows: TableRow[] = [
       new TableRow({
@@ -3546,29 +3737,22 @@ export function buildDocumentDocx(
       }),
     ];
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: momentsRows }));
+    partNumber += 1;
   }
 
-  // Secciones desarrolladas
-  const sectionStartNum = isSession || (artifact.tables?.length ?? 0) > 0 ? 4 : 3;
+  // Secciones desarrolladas, cada una con sus tablas a continuación
   artifact.sections.forEach((sec, idx) => {
-    children.push(createHeading(sec.title, HeadingLevel.HEADING_1, `${sectionStartNum + idx}.`));
-    if (sec.narrative) children.push(createBodyParagraph(sec.narrative));
-    if (sec.key_points.length > 0) {
-      sec.key_points.forEach((p) => {
-        children.push(
-          new Paragraph({
-            bullet: { level: 0 },
-            children: [new TextRun({ text: cleanText(p), size: 19, font: "Calibri", color: COLOR_TEXT })],
-            spacing: { after: 40 },
-          })
-        );
-      });
-    }
+    children.push(createHeading(sec.title, HeadingLevel.HEADING_1, `${toRoman(partNumber + idx)}.`));
+    if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
+    sec.key_points.forEach((point) => children.push(createKeyPoint(point)));
+    const sectionTables = placement.bySection.get(idx);
+    if (sectionTables?.length) children.push(...createTableBlocks(sectionTables, { sectionTitle: sec.title }));
   });
+  partNumber += artifact.sections.length;
 
   // Orientaciones docentes
   if (artifact.teacher_recommendations.length > 0) {
-    children.push(createHeading("ORIENTACIONES PARA LA REVISIÓN DOCENTE", HeadingLevel.HEADING_1));
+    children.push(createHeading("ORIENTACIONES PARA LA REVISIÓN DOCENTE", HeadingLevel.HEADING_1, `${toRoman(partNumber)}.`));
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
@@ -3601,15 +3785,16 @@ export function buildDocumentDocx(
   if (shouldIncludeSignatures) {
     children.push(
       createSignaturesTable(
-        v.teacher,
-        `Docente Responsable de ${v.area}`,
-        v.director,
+        displayValue(v.teacher, ""),
+        isPlaceholder(v.area) ? "Docente responsable" : `Docente responsable de ${v.area}`,
+        displayValue(v.director, ""),
         "Director(a) / Equipo Directivo"
       )
     );
   }
 
   return new Document({
+    styles: documentStyles,
     sections: [
       {
         properties: {
@@ -3625,7 +3810,7 @@ export function buildDocumentDocx(
                 alignment: AlignmentType.RIGHT,
                 children: [
                   new TextRun({
-                    text: `${v.ie} · Planificación Curricular CNEB · ${v.year}`,
+                    text: headerText(v, "Planificación Curricular CNEB"),
                     size: 16,
                     color: COLOR_MUTED,
                     font: "Calibri",
@@ -3732,8 +3917,7 @@ export async function buildWorkflowDocxBlob(
   } else if (
     key.includes("correo-familias") ||
     key.includes("trabajo-familias") ||
-    key.includes("respuesta-correo") ||
-    key.includes("informe-padres")
+    key.includes("respuesta-correo")
   ) {
     doc = buildCommunicationDocx(artifact, options);
   } else {

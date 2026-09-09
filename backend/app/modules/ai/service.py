@@ -9,6 +9,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import get_settings
+from app.modules.ai.formatting import formatting_rules, polish_artifact
 from app.modules.ai.presentation_images import enrich_presentation_slides
 from app.modules.ai.schemas import (
     CopilotRequest,
@@ -1080,6 +1081,8 @@ SECCIONES OBLIGATORIAS, EN ESTE ORDEN EXACTO:
 {_workflow_activity_rules(payload)}
 
 {_workflow_table_rules(payload)}
+
+{formatting_rules(payload, contract)}
 
 Reglas obligatorias:
 1. Devuelve exactamente {len(payload.requested_sections)} secciones y conserva el orden.
@@ -2438,7 +2441,7 @@ async def _request_workflow_candidate(
         logger.warning("Gemini returned an invalid workflow artifact: %s", exc)
         raise AIGenerationError("La IA devolvió un documento incompleto o inválido") from exc
 
-    generated = _normalize_activity_for_tool(generated, payload)
+    generated = polish_artifact(_normalize_activity_for_tool(generated, payload), payload)
 
     normalized_sections = [
         generated_section.model_copy(
