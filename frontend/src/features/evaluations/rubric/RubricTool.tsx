@@ -15,7 +15,6 @@ import { ApiError } from "../../../lib/api";
 import { listStudents } from "../../rosters/rosterApi";
 import type { Student } from "../../rosters/rosterTypes";
 import { RubricAssessment } from "./RubricAssessment";
-import { exportRubricDocx } from "./exportRubricDocx";
 import { reconcileRubricAssessments } from "./rubricState";
 import { getRubricInstrument, saveRubricInstrument, type RubricFeedbackPrompt } from "./rubricApi";
 import { RubricBuilder } from "./RubricBuilder";
@@ -394,6 +393,7 @@ export function RubricTool({ variant = "builder", instrumentId, onInstrumentIdCh
     const saved = await persistDraft();
     if (!saved) return;
     try {
+      const { exportRubricDocx } = await import("./exportRubricDocx");
       await exportRubricDocx(draft, selectedStudents);
       setMessage("Rúbrica guardada y exportada con su matriz y retroalimentación individual.");
     } catch (error) {

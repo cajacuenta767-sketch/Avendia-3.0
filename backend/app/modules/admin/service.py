@@ -23,6 +23,42 @@ def ensure_ai_credits(user: User, cost: int) -> None:
         raise InsufficientAICredits("Insufficient AI credits")
 
 
+async def reserve_ai_credits(db: AsyncSession, user: User, cost: int) -> int:
+    """Descuenta el costo de forma atómica antes de llamar a la IA.
+
+    Devuelve lo cobrado (0 para administradores). Varias peticiones simultáneas
+    del mismo usuario compiten por el saldo real, no por una lectura previa.
+    """
+    if user.role == UserRole.ADMIN or cost <= 0:
+        return 0
+    result = await db.execute(
+        update(User)
+        .where(User.id == user.id, User.ai_credits_balance >= cost)
+        .values(ai_credits_balance=User.ai_credits_balance - cost)
+        .execution_options(synchronize_session=False)
+    )
+    if result.rowcount != 1:
+        await db.rollback()
+        raise InsufficientAICredits("Insufficient AI credits")
+    await db.commit()
+    await db.refresh(user)
+    return cost
+
+
+async def refund_ai_credits(db: AsyncSession, user: User, amount: int) -> None:
+    """Devuelve una reserva cuando la generación falla o queda bloqueada."""
+    if amount <= 0:
+        return
+    await db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(ai_credits_balance=User.ai_credits_balance + amount)
+        .execution_options(synchronize_session=False)
+    )
+    await db.commit()
+    await db.refresh(user)
+
+
 async def record_ai_usage(
     db: AsyncSession,
     user: User,
@@ -32,20 +68,26 @@ async def record_ai_usage(
     tool_id: str,
     module: str,
     model: str,
+    reserved: int | None = None,
 ) -> None:
-    charged_credit_cost = 0 if user.role == UserRole.ADMIN else credit_cost
+    """Registra el consumo. Si ``reserved`` viene informado, el saldo ya fue descontado."""
+    charged_credit_cost = (
+        reserved if reserved is not None else (0 if user.role == UserRole.ADMIN else credit_cost)
+    )
     estimated_tokens = max(0, estimated_tokens)
+    values: dict[str, object] = {
+        "ai_tokens_consumed": User.ai_tokens_consumed + estimated_tokens,
+        "ai_generations": User.ai_generations + 1,
+    }
+    if reserved is None and charged_credit_cost:
+        values["ai_credits_balance"] = User.ai_credits_balance - charged_credit_cost
     statement = (
         update(User)
         .where(User.id == user.id)
-        .values(
-            ai_credits_balance=User.ai_credits_balance - charged_credit_cost,
-            ai_tokens_consumed=User.ai_tokens_consumed + estimated_tokens,
-            ai_generations=User.ai_generations + 1,
-        )
+        .values(**values)
         .execution_options(synchronize_session=False)
     )
-    if charged_credit_cost:
+    if reserved is None and charged_credit_cost:
         statement = statement.where(User.ai_credits_balance >= charged_credit_cost)
     result = await db.execute(statement)
     if result.rowcount != 1:

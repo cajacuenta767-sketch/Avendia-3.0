@@ -5,6 +5,8 @@ import pytest_asyncio
 os.environ["ENVIRONMENT"] = "test"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 os.environ["JWT_SECRET_KEY"] = "test-secret-with-at-least-thirty-two-characters"
+os.environ["RATE_LIMIT_ENABLED"] = "false"
+os.environ["EXPOSE_PASSWORD_RESET_CODE"] = "true"
 
 from app.db.base import Base  # noqa: E402
 from app.db.session import engine  # noqa: E402

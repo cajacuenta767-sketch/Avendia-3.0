@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: avendia
       POSTGRES_USER: avendia
-      POSTGRES_PASSWORD: change_me
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
     ports:
       - "5432:5432"
     healthcheck:
@@ -18,11 +18,20 @@ services:
   api:
     build: ./backend
     env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://avendia:${POSTGRES_PASSWORD:-change_me}@db:5432/avendia
+      DATABASE_SSL_REQUIRED: "false"
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/v1/ready"]
+      interval: 15s
+      timeout: 5s
+      start_period: 40s
+      retries: 5
 
   web:
     build:
@@ -32,8 +41,8 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   avendia_postgres:
-

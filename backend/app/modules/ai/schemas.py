@@ -503,6 +503,38 @@ class GeneratedWorkflowArtifact(BaseModel):
     tables: list[WorkflowArtifactTable] = Field(default_factory=list, max_length=20)
 
 
+class WorkflowQuestion(BaseModel):
+    """Reactivo tipado derivado en el servidor a partir del texto generado.
+
+    Permite que la vista previa y el Word impriman el examen sin volver a
+    interpretar prefijos ni separadores dentro de los puntos clave.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    number: int = Field(ge=1, le=60)
+    format: Literal[
+        "opcion_multiple",
+        "respuesta_corta",
+        "relacionar",
+        "verdadero_falso",
+        "desarrollo",
+        "texto_breve",
+        "tabla",
+        "dibujo",
+        "operacion",
+        "generica",
+    ] = "generica"
+    prompt: str = Field(min_length=1, max_length=1200)
+    options: list[str] = Field(default_factory=list, max_length=8)
+    left_column: list[str] = Field(default_factory=list, max_length=12)
+    right_column: list[str] = Field(default_factory=list, max_length=12)
+    answer: str = Field(default="", max_length=1200)
+    justification: str = Field(default="", max_length=1200)
+    cognitive_level: str = Field(default="", max_length=80)
+    points: float | None = Field(default=None, ge=0, le=100)
+
+
 class GenerationQualityCheck(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -522,6 +554,7 @@ class WorkflowGenerationResponse(GeneratedWorkflowArtifact):
     warnings: list[str] = Field(default_factory=list, max_length=12)
     quality_status: Literal["ready", "review", "blocked"] = "ready"
     suggested_next_tools: list[str] = Field(default_factory=list, max_length=12)
+    questions: list[WorkflowQuestion] = Field(default_factory=list, max_length=60)
     repair_attempted: bool = False
     repair_succeeded: bool = False
     repair_notes: list[str] = Field(default_factory=list, max_length=12)

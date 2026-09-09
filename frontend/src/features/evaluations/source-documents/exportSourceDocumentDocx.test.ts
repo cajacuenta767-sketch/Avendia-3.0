@@ -1,4 +1,5 @@
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 import { Packer } from "docx";
@@ -51,7 +52,7 @@ describe("buildSourceDocumentDocx", () => {
     expect(xml.slice(teacherGuideIndex)).toContain("No cambiaría de estado");
     expect(xml).toContain("w:pageBreakBefore");
 
-    const targetDirectory = path.resolve("..", "exports-qa-word");
+    const targetDirectory = process.env.QA_EXPORT_DIR ?? path.join(os.tmpdir(), "avendia-qa-export");
     fs.mkdirSync(targetDirectory, { recursive: true });
     fs.writeFileSync(path.join(targetDirectory, "28-preguntas-texto-semantica.docx"), buffer);
   });

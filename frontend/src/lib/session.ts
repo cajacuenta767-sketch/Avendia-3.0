@@ -19,10 +19,11 @@ export type SessionUser = {
   ai_generations?: number;
 };
 
+// Solo se usa mientras no hay sesión verificada; nunca representa una cuenta real.
 const fallbackUser: SessionUser = {
-  full_name: "María Gómez",
+  full_name: "Docente",
   role: "teacher",
-  ai_credits_balance: 10_000,
+  ai_credits_balance: 0,
 };
 
 const ACCESS_TOKEN_KEY = "avendia.accessToken";

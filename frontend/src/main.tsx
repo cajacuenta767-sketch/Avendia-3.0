@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./app/App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { FontSizeProvider } from "./context/FontSizeContext";
 import { TeacherExperienceProvider } from "./context/TeacherExperienceContext";
 import { WorkspacePreferencesProvider } from "./context/WorkspacePreferencesContext";
@@ -33,6 +34,7 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <WorkspacePreferencesProvider>
         <FontSizeProvider>
@@ -44,5 +46,6 @@ createRoot(document.getElementById("root")!).render(
         </FontSizeProvider>
       </WorkspacePreferencesProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

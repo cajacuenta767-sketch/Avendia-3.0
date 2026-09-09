@@ -1,4 +1,5 @@
 import hashlib
+from datetime import UTC, datetime, timedelta
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,13 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
 from app.core.config import get_settings
+from app.core.ratelimit import AI_GENERATION_PER_USER, enforce_rate_limit
 from app.db.session import get_db
 from app.modules.admin.model import AIGenerationRecord, AISuggestionFeedback
 from app.modules.admin.service import (
     InsufficientAICredits,
-    ensure_ai_credits,
     record_ai_usage,
     record_generation_quality,
+    refund_ai_credits,
+    reserve_ai_credits,
 )
 from app.modules.ai.presentation_export import build_presentation_pptx
 from app.modules.ai.presentation_images import find_presentation_image
@@ -48,6 +51,19 @@ from app.modules.users.model import User
 
 router = APIRouter(prefix="/ai/tools", tags=["ai"])
 
+PENDING_GENERATION_TTL = timedelta(minutes=10)
+
+
+async def limit_ai_generation(user: User = Depends(get_current_user)) -> None:
+    enforce_rate_limit("ai.generate", str(user.id), AI_GENERATION_PER_USER)
+
+
+def _generation_is_stale(record: AIGenerationRecord) -> bool:
+    updated = record.updated_at
+    if updated.tzinfo is None:
+        updated = updated.replace(tzinfo=UTC)
+    return datetime.now(UTC) - updated > PENDING_GENERATION_TTL
+
 
 @router.get("/field-assist/preferences", response_model=AssistancePreferences)
 async def read_assistance_preferences(
@@ -57,9 +73,7 @@ async def read_assistance_preferences(
     assistance_keys = ("consent", "assistance_mode", "preferred_length")
     assistance = {key: stored[key] for key in assistance_keys if key in stored}
     return (
-        AssistancePreferences.model_validate(assistance)
-        if assistance
-        else AssistancePreferences()
+        AssistancePreferences.model_validate(assistance) if assistance else AssistancePreferences()
     )
 
 
@@ -117,19 +131,28 @@ async def export_presentation_pptx(
     )
 
 
-@router.post("/copilot", response_model=CopilotResponse)
+@router.post(
+    "/copilot",
+    response_model=CopilotResponse,
+    dependencies=[Depends(limit_ai_generation)],
+)
 async def create_copilot_reply(
     payload: CopilotRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> CopilotResponse:
     try:
-        ensure_ai_credits(user, 40)
-        result = await generate_copilot_reply(payload)
+        reserved = await reserve_ai_credits(db, user, 40)
+        try:
+            result = await generate_copilot_reply(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=40,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.reply) // 4),
             tool_id="copilot",
             module=payload.module,
@@ -153,19 +176,28 @@ async def create_copilot_reply(
         ) from exc
 
 
-@router.post("/field-assist", response_model=CopilotResponse)
+@router.post(
+    "/field-assist",
+    response_model=CopilotResponse,
+    dependencies=[Depends(limit_ai_generation)],
+)
 async def create_field_assist_reply(
     payload: FieldAssistRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> CopilotResponse:
     try:
-        ensure_ai_credits(user, 40)
-        result = await generate_field_assist_reply(payload)
+        reserved = await reserve_ai_credits(db, user, 40)
+        try:
+            result = await generate_field_assist_reply(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=40,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.reply) // 4),
             tool_id=payload.tool_id,
             module=payload.module,
@@ -189,19 +221,28 @@ async def create_field_assist_reply(
         ) from exc
 
 
-@router.post("/agrupar-palabras/generate", response_model=WordGroupingResponse)
+@router.post(
+    "/agrupar-palabras/generate",
+    response_model=WordGroupingResponse,
+    dependencies=[Depends(limit_ai_generation)],
+)
 async def create_word_grouping_activity(
     payload: WordGroupingRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> WordGroupingResponse:
     try:
-        ensure_ai_credits(user, 120)
-        result = await generate_word_grouping(payload)
+        reserved = await reserve_ai_credits(db, user, 120)
+        try:
+            result = await generate_word_grouping(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=120,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.model_dump_json()) // 4),
             tool_id="agrupar-palabras",
             module="recursos",
@@ -225,19 +266,28 @@ async def create_word_grouping_activity(
         ) from exc
 
 
-@router.post("/ordenar-bloques/generate", response_model=SequenceOrderingResponse)
+@router.post(
+    "/ordenar-bloques/generate",
+    response_model=SequenceOrderingResponse,
+    dependencies=[Depends(limit_ai_generation)],
+)
 async def create_sequence_ordering_activity(
     payload: SequenceOrderingRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SequenceOrderingResponse:
     try:
-        ensure_ai_credits(user, 120)
-        result = await generate_sequence_ordering(payload)
+        reserved = await reserve_ai_credits(db, user, 120)
+        try:
+            result = await generate_sequence_ordering(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=120,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.model_dump_json()) // 4),
             tool_id="ordenar-bloques",
             module="recursos",
@@ -261,7 +311,11 @@ async def create_sequence_ordering_activity(
         ) from exc
 
 
-@router.post("/workflow/generate", response_model=WorkflowGenerationResponse)
+@router.post(
+    "/workflow/generate",
+    response_model=WorkflowGenerationResponse,
+    dependencies=[Depends(limit_ai_generation)],
+)
 async def create_workflow_artifact(
     payload: WorkflowGenerationRequest,
     user: User = Depends(get_current_user),
@@ -287,10 +341,10 @@ async def create_workflow_artifact(
                         detail="La solicitud ya fue utilizada con información diferente.",
                     )
                 if generation_record.status == "completed" and generation_record.result_json:
-                    return WorkflowGenerationResponse.model_validate(
-                        generation_record.result_json
-                    )
-                if generation_record.status == "pending":
+                    return WorkflowGenerationResponse.model_validate(generation_record.result_json)
+                if generation_record.status == "pending" and not _generation_is_stale(
+                    generation_record
+                ):
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT,
                         detail=(
@@ -315,8 +369,12 @@ async def create_workflow_artifact(
                 db.add(generation_record)
             await db.commit()
 
-        ensure_ai_credits(user, 300)
-        result = await generate_workflow_artifact(payload)
+        reserved = await reserve_ai_credits(db, user, 300)
+        try:
+            result = await generate_workflow_artifact(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         if generation_record is not None:
             result = result.model_copy(update={"generation_id": str(generation_record.id)})
             generation_record.status = "completed"
@@ -324,9 +382,7 @@ async def create_workflow_artifact(
             generation_record.result_json = result.model_dump(mode="json")
             generation_record.credit_cost = 0 if user.role == "admin" else 300
             generation_record.estimated_tokens = max(1, len(result.model_dump_json()) // 4)
-        failed_checks = [
-            check.code for check in result.quality_checks if not check.passed
-        ]
+        failed_checks = [check.code for check in result.quality_checks if not check.passed]
         await record_generation_quality(
             db,
             user,
@@ -345,6 +401,7 @@ async def create_workflow_artifact(
             db,
             user,
             credit_cost=300,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.model_dump_json()) // 4),
             tool_id=payload.tool_id,
             module=payload.module,
@@ -395,6 +452,7 @@ async def create_workflow_artifact(
 @router.post(
     "/presentaciones-didacticas/generate",
     response_model=PresentationGenerationResponse,
+    dependencies=[Depends(limit_ai_generation)],
 )
 async def create_presentation(
     payload: PresentationGenerationRequest,
@@ -402,12 +460,17 @@ async def create_presentation(
     db: AsyncSession = Depends(get_db),
 ) -> PresentationGenerationResponse:
     try:
-        ensure_ai_credits(user, 220)
-        result = await generate_presentation(payload)
+        reserved = await reserve_ai_credits(db, user, 220)
+        try:
+            result = await generate_presentation(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=220,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.model_dump_json()) // 4),
             tool_id="presentaciones-didacticas",
             module="recursos",

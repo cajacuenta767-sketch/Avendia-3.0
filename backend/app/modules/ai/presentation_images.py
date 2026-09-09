@@ -17,6 +17,7 @@ import httpx
 from vercel.blob import AsyncBlobClient
 
 from app.core.config import Settings, get_settings
+from app.core.safe_http import UnsafeUrlError, fetch_public_https_async
 from app.modules.ai.schemas import GeneratedPresentationSlide, PresentationGenerationRequest
 
 logger = logging.getLogger(__name__)
@@ -109,8 +110,8 @@ async def _search_google(
         return []
     response = await client.get(
         "https://customsearch.googleapis.com/customsearch/v1",
+        headers={"x-goog-api-key": api_key.get_secret_value()},
         params={
-            "key": api_key.get_secret_value(),
             "cx": engine_id,
             "q": query,
             "searchType": "image",
@@ -216,8 +217,10 @@ async def _download_candidate(
         existing = _MEDIA_DIRECTORY / f"{asset_id}{suffix}"
         if existing.is_file():
             return f"/api/v1/ai/tools/presentation-images/{asset_id}"
-    response = await client.get(candidate.image_url, follow_redirects=True)
-    response.raise_for_status()
+    try:
+        response = await fetch_public_https_async(client, candidate.image_url)
+    except UnsafeUrlError:
+        return None
     content_type = response.headers.get("content-type", "").split(";", 1)[0].lower()
     suffix = _ALLOWED_SUFFIXES.get(content_type)
     if suffix is None or not response.content or len(response.content) > 10_000_000:

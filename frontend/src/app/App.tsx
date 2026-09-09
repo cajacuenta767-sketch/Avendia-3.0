@@ -4,25 +4,25 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AdminShell } from "../components/AdminShell";
 import { AppShell } from "../components/AppShell";
 import { RouteScrollManager } from "../components/RouteScrollManager";
-import { CalendarPage } from "../features/calendar/CalendarPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { LoginPage } from "../features/auth/LoginPage";
-import { RegisterPage } from "../features/auth/RegisterPage";
 import { ModulePage } from "../features/tools/ModulePage";
-import { ToolWorkspace } from "../features/tools/ToolWorkspace";
-import { UtilityPage } from "../features/tools/UtilityPage";
-import { HistoryPage } from "../features/tools/HistoryPage";
-import { ProfilePage } from "../features/tools/ProfilePage";
-import { WordGroupingTool } from "../features/tools/WordGroupingTool";
-import { SequenceOrderingTool } from "../features/tools/SequenceOrderingTool";
 import { apiRequest } from "../lib/api";
 import { readAccessToken, readStoredSessionUser, updateStoredSessionUser, type SessionUser } from "../lib/session";
-import { IdeasPage } from "../features/utilities/IdeasPage";
-import { TutorialsPage } from "../features/utilities/TutorialsPage";
-import { ReferralsPage } from "../features/utilities/ReferralsPage";
-import { CommunityPage } from "../features/utilities/CommunityPage";
-import { UtilitiesAdminPage } from "../features/utilities/UtilitiesAdminPage";
 
+const CalendarPage = lazy(() => import("../features/calendar/CalendarPage").then((module) => ({ default: module.CalendarPage })));
+const RegisterPage = lazy(() => import("../features/auth/RegisterPage").then((module) => ({ default: module.RegisterPage })));
+const ToolWorkspace = lazy(() => import("../features/tools/ToolWorkspace").then((module) => ({ default: module.ToolWorkspace })));
+const UtilityPage = lazy(() => import("../features/tools/UtilityPage").then((module) => ({ default: module.UtilityPage })));
+const HistoryPage = lazy(() => import("../features/tools/HistoryPage").then((module) => ({ default: module.HistoryPage })));
+const ProfilePage = lazy(() => import("../features/tools/ProfilePage").then((module) => ({ default: module.ProfilePage })));
+const WordGroupingTool = lazy(() => import("../features/tools/WordGroupingTool").then((module) => ({ default: module.WordGroupingTool })));
+const SequenceOrderingTool = lazy(() => import("../features/tools/SequenceOrderingTool").then((module) => ({ default: module.SequenceOrderingTool })));
+const IdeasPage = lazy(() => import("../features/utilities/IdeasPage").then((module) => ({ default: module.IdeasPage })));
+const TutorialsPage = lazy(() => import("../features/utilities/TutorialsPage").then((module) => ({ default: module.TutorialsPage })));
+const ReferralsPage = lazy(() => import("../features/utilities/ReferralsPage").then((module) => ({ default: module.ReferralsPage })));
+const CommunityPage = lazy(() => import("../features/utilities/CommunityPage").then((module) => ({ default: module.CommunityPage })));
+const UtilitiesAdminPage = lazy(() => import("../features/utilities/UtilitiesAdminPage").then((module) => ({ default: module.UtilitiesAdminPage })));
 const AdminControlCenterPage = lazy(() => import("../features/admin/AdminControlCenterPage").then((module) => ({ default: module.AdminControlCenterPage })));
 const PresentationTool = lazy(() => import("../features/tools/PresentationTool").then((module) => ({ default: module.PresentationTool })));
 const RosterPage = lazy(() => import("../features/rosters/RosterPage").then((module) => ({ default: module.RosterPage })));
@@ -64,7 +64,7 @@ function RequireSession({ children, admin = false }: { children: ReactNode; admi
 
 export function App() {
   return (
-    <><RouteScrollManager /><Routes>
+    <><RouteScrollManager /><Suspense fallback={<div className="admin-state" role="status">Cargando…</div>}><Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/registro" element={<RegisterPage />} />
@@ -92,6 +92,6 @@ export function App() {
         <Route path="tokens" element={<Navigate to="/admin" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes></>
+    </Routes></Suspense></>
   );
 }

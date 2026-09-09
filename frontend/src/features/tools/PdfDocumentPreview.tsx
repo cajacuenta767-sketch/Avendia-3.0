@@ -51,8 +51,8 @@ export function PdfDocumentPreview({ file, documentTitle }: Props) {
 
     return () => {
       cancelled = true;
-      loadingTask?.destroy();
-      documentRef.current?.destroy();
+      // pdf.js 6 libera el documento y el worker al destruir la tarea de carga.
+      void loadingTask?.destroy();
       documentRef.current = null;
     };
   }, [file]);

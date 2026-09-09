@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "env": {
+    "ENVIRONMENT": "production",
+    "EXPOSE_PASSWORD_RESET_CODE": "false"
+  },
   "builds": [
     {
       "src": "index.py",

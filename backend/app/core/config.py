@@ -18,6 +18,11 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
+    production_frontend_origin: str | None = "https://avendia-web.vercel.app"
+    rate_limit_enabled: bool = True
+    expose_password_reset_code: bool = False
+    log_level: str = "INFO"
+    blob_read_write_token: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
     gemini_model: str = "gemini-3.6-flash"
     gemini_timeout_seconds: float = 45.0
@@ -55,6 +60,13 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
 
+    @field_validator("allowed_origins")
+    @classmethod
+    def reject_wildcard_origin(cls, value: list[str]) -> list[str]:
+        if any(origin.strip() == "*" for origin in value):
+            raise ValueError("ALLOWED_ORIGINS no admite '*' porque la API usa credenciales")
+        return value
+
     @field_validator("database_schema")
     @classmethod
     def validate_database_schema(cls, value: str | None) -> str | None:
@@ -74,6 +86,8 @@ class Settings(BaseSettings):
                 raise ValueError("JWT_SECRET_KEY must contain at least 32 characters")
             if self.gemini_api_key is None or not self.gemini_api_key.get_secret_value().strip():
                 raise ValueError("Production AI features require GEMINI_API_KEY")
+            if self.expose_password_reset_code:
+                raise ValueError("EXPOSE_PASSWORD_RESET_CODE must be false in production")
         return self
 
 

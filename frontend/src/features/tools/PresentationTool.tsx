@@ -38,7 +38,7 @@ import {
 } from "../../config/education";
 import { detectCurricularArea } from "../../config/toolDiscovery";
 import { ApiError, apiBlob, apiRequest, downloadApiBlob, resolveApiAssetUrl } from "../../lib/api";
-import { readSessionUser, sessionDraftScope } from "../../lib/session";
+import { readSessionUser, sessionDraftScope, readAccessToken } from "../../lib/session";
 import { GenerationProgressOverlay } from "../../components/GenerationProgressOverlay";
 import { FormValidationSummary, type FormValidationItem } from "./FormValidationSummary";
 
@@ -272,7 +272,7 @@ export function PresentationTool() {
 
   useEffect(() => {
     if (!documentIdFromUrl || documentId === documentIdFromUrl) return;
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     type StoredDocument = { id: string; metadata_json: Record<string, unknown> };
     void apiRequest<StoredDocument>(`/documents/${documentIdFromUrl}`, {
@@ -343,7 +343,7 @@ export function PresentationTool() {
     setLoading(true);
     setError("");
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       const generated = await apiRequest<PresentationResult>("/ai/tools/presentaciones-didacticas/generate", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -430,7 +430,7 @@ export function PresentationTool() {
     setRegeneratingSlide(true);
     setError("");
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       const response = await apiRequest<{ reply: string }>("/ai/tools/copilot", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -458,7 +458,7 @@ export function PresentationTool() {
     const draft: StoredDraft = { version: 1, documentId: documentId || undefined, serverVersion, form, result, activeStep, updatedAt: new Date().toISOString() };
     localStorage.setItem(storageKey, JSON.stringify(draft));
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       if (token) {
         type StoredDocument = { id: string };
         const stored = await apiRequest<StoredDocument>(documentId ? `/documents/${documentId}` : "/documents", {
@@ -484,7 +484,7 @@ export function PresentationTool() {
     setError("");
     try {
       if (type === "pptx") {
-        const token = sessionStorage.getItem("avendia.accessToken");
+        const token = readAccessToken();
         const presentation = {
           presentation_title: result.presentation_title,
           learning_objective: result.learning_objective,

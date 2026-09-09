@@ -7,6 +7,8 @@ import { invalidateDashboardActivity } from "./dashboardActivity";
 import { WorkspacePreferencesProvider } from "../../context/WorkspacePreferencesContext";
 
 function renderDashboard() {
+  sessionStorage.setItem("avendia.accessToken", "test-token");
+  sessionStorage.setItem("avendia.user", JSON.stringify({ full_name: "María Gómez", role: "teacher", ai_credits_balance: 10_000 }));
   return render(<WorkspacePreferencesProvider><BrowserRouter><DashboardPage /></BrowserRouter></WorkspacePreferencesProvider>);
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -18,11 +18,23 @@ import {
 } from "lucide-react";
 
 import type { WorkflowDefinition } from "../../config/workflows";
-import type { WorkflowArtifact } from "./exportWorkflowDocx";
+import { AnswerKeyTable, DocumentCover, DocumentIndex, InfoTable, KeyPointList, KeyPointText, Narrative, PreviewTables, QuestionBlock, RiskBadge, ScoringTable, SignatureBox, type IndexEntry } from "./DocumentText";
+import { attachTablesToSections, isPlaceholder, resolveQuestions, riskLevelFor, rubricScoring, toRoman, stripNumbering } from "./documentFormat";
+import type { WorkflowArtifactTable, WorkflowArtifact } from "./exportWorkflowDocx";
 import { HomeworkDocumentPreview } from "./HomeworkDocumentPreview";
 import { PdfDocumentPreview } from "./PdfDocumentPreview";
 import { PlanAnualDocumentPreview } from "./PlanAnualDocumentPreview";
 import "../../styles/word-preview.css";
+
+/** Herramientas cuyo Word lleva portada e índice (ver LONG_DOCUMENTS en exportWorkflowDocx.ts). */
+const LONG_DOCUMENT_KINDS: Array<[string, string]> = [
+  ["carpeta-pedagogica", "Carpeta pedagógica"],
+  ["unidad-aprendizaje", "Unidad de aprendizaje"],
+  ["proyectos-integrados", "Proyecto de aprendizaje integrado"],
+  ["plan-tutoria", "Plan de tutoría"],
+  ["plan-atencion", "Plan de atención"],
+  ["plan-refuerzo", "Plan de refuerzo"],
+];
 
 type Props = {
   artifact: WorkflowArtifact;
@@ -50,48 +62,12 @@ function GeneratedArtifactTables({
   editingResult?: boolean;
   onUpdateTableCell?: (tableIndex: number, rowIndex: number, cellIndex: number, value: string) => void;
 }) {
-  const tables = artifact.tables ?? [];
+  const tables = (artifact.tables ?? []).map((table, index) => ({ table, index }));
   if (!tables.length) return null;
-
   return (
     <section className="word-section generated-artifact-tables">
       <h2 className="word-section-h1">{heading}</h2>
-      {tables.map((table, tableIndex) => (
-        <div className="generated-artifact-table" key={`${table.title}-${tableIndex}`}>
-          <h3 className="word-section-h2">{table.title}</h3>
-          <div className="word-table-responsive">
-            <table className="word-table">
-              <thead>
-                <tr>{table.columns.map((column) => <th key={column}>{column}</th>)}</tr>
-              </thead>
-              <tbody>
-                {table.rows.map((row, rowIndex) => (
-                  <tr key={`${table.title}-${rowIndex}`}>
-                    {row.map((cell, cellIndex) => (
-                      <td key={`${rowIndex}-${cellIndex}`}>
-                        {editingResult && onUpdateTableCell ? (
-                          <textarea
-                            aria-label={`${table.title}, fila ${rowIndex + 1}, ${table.columns[cellIndex]}`}
-                            rows={3}
-                            value={cell}
-                            onChange={(event) => onUpdateTableCell(
-                              tableIndex,
-                              rowIndex,
-                              cellIndex,
-                              event.target.value,
-                            )}
-                          />
-                        ) : cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {table.note ? <p className="generated-artifact-table__note">{table.note}</p> : null}
-        </div>
-      ))}
+      <PreviewTables tables={tables} editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
     </section>
   );
 }
@@ -114,8 +90,8 @@ export function WordDocumentPreview({
   const [documentMode, setDocumentMode] = useState<"fit-width" | "fit-result" | "reading">("fit-width");
   const [zoom, setZoom] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [documentLayout, setDocumentLayout] = useState({ scale: 1, width: 960, height: 1100 });
-  const [pageBreaks, setPageBreaks] = useState([{ from: 0, to: 1100 }]);
+  const [documentLayout, setDocumentLayout] = useState({ scale: 1, width: 960, height: 1358 });
+  const [pageBreaks, setPageBreaks] = useState([{ from: 0, to: 1358 }]);
   const [currentPage, setCurrentPage] = useState(0);
   const [exactPreview, setExactPreview] = useState<Blob | null>(null);
   const [exactPreviewStatus, setExactPreviewStatus] = useState<"idle" | "loading" | "unavailable">("idle");
@@ -129,7 +105,7 @@ export function WordDocumentPreview({
 
     const paper = documentPaperRef.current;
     if (!paper) return undefined;
-    const pageHeight = 1120;
+    const pageHeight = 1358;
     const minimumPageContent = 260;
 
     const updatePages = () => {
@@ -332,17 +308,17 @@ export function WordDocumentPreview({
   }
 
   const year = String(values.school_year || "2026");
-  const dre = String(values.dre || "SAN MARTÍN");
-  const ugel = String(values.ugel || "LAMAS");
-  const ie = String(values.institution || "MARTÍN DE LA RIVA Y HERRERA");
+  const dre = String(values.dre || "________");
+  const ugel = String(values.ugel || "________");
+  const ie = String(values.institution || "________________");
   const level = String(values.level || "Secundaria");
   const grade = String(values.grade || "3° de Secundaria");
   const section = String(values.section || "A");
   const area = String(values.curricular_area || values.area || "Educación Básica");
-  const teacher = String(values.teacher_name || "Docente Responsable");
-  const director = String(values.director_name || "Director(a) de la I.E.");
+  const teacher = String(values.teacher_name || "________________");
+  const director = String(values.director_name || "________________");
   const student = String(values.student_name || "Estudiante");
-  const guardian = String(values.guardian_name || values.guardian_names || "Familia / Apoderado");
+  const guardian = String(values.guardian_name || values.guardian_names || "");
 
   const handlePrint = () => {
     window.print();
@@ -555,8 +531,13 @@ export function WordDocumentPreview({
                 )}
 
                 {/* Si es Rúbrica: Matriz Analítica CNEB */}
-                {(artifact.tables?.length ?? 0) > 0 ? (
-                  <GeneratedArtifactTables artifact={artifact} heading="II. MATRICES DE APLICACIÓN" editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
+                {(artifact.tables?.length ?? 0) > 0 && !toolId.includes("examen") && !toolId.includes("preguntas") ? (
+                  <>
+                    <GeneratedArtifactTables artifact={artifact} heading="II. MATRICES DE APLICACIÓN" editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
+                    {(toolId.includes("rubrica") || toolId.includes("escala")) && rubricScoring(artifact.tables?.[0]) ? (
+                      <section className="word-section"><ScoringTable scoring={rubricScoring(artifact.tables?.[0])!} /></section>
+                    ) : null}
+                  </>
                 ) : toolId.includes("rubrica") ? (
                   <section className="word-section">
                     <h2 className="word-section-h1">II. MATRIZ ANALÍTICA DE NIVELES DE LOGRO</h2>
@@ -614,19 +595,65 @@ export function WordDocumentPreview({
                       </table>
                     </div>
                   </section>
-                ) : (
-                  /* Exámenes u otros instrumentos */
+                ) : (toolId.includes("examen") || toolId.includes("preguntas")) && resolveQuestions(artifact).length ? (() => {
+                  const questions = resolveQuestions(artifact);
+                  const isTeacher = (title: string) => /(clave|criterios de correcci[oó]n|criterios y retroalimentaci[oó]n|retroalimentaci[oó]n|respuestas esperadas)/i.test(title);
+                  const isQuestions = (title: string) => /^preguntas/i.test(title.trim()) || /^preguntas$/i.test(title.trim());
+                  const before = artifact.sections.filter((sec) => !isTeacher(sec.title) && !isQuestions(sec.title) && !/matriz de especificaciones/i.test(sec.title));
+                  const levels = [...new Set(questions.map((question) => question.cognitive_level || ""))];
+                  const groupByLevel = levels.length > 1 || (levels[0] ?? "") !== "";
+                  return (
+                    <>
+                      {(artifact.tables?.length ?? 0) > 0 ? (
+                        <GeneratedArtifactTables artifact={artifact} heading="I. MATRIZ DE ESPECIFICACIONES" editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
+                      ) : null}
+                      <section className="word-section">
+                        <h2 className="word-section-h1">II. REACTIVOS Y CONSIGNAS DE EVALUACIÓN</h2>
+                        {before.map((sec, idx) => (
+                          <div key={idx} style={{ marginBottom: "1rem" }}>
+                            <h3 className="word-section-h2">{sec.title}</h3>
+                            <Narrative text={sec.narrative} />
+                            <KeyPointList items={sec.key_points} />
+                          </div>
+                        ))}
+                        {groupByLevel ? levels.map((level) => (
+                          <div key={level || "preguntas"}>
+                            <h3 className="word-section-h2">{level ? `Preguntas de nivel ${level.toLocaleLowerCase("es")}` : "Preguntas"}</h3>
+                            {questions.filter((question) => (question.cognitive_level || "") === level).map((question) => <QuestionBlock key={question.number} question={question} />)}
+                          </div>
+                        )) : (
+                          <div>
+                            <h3 className="word-section-h2">Preguntas</h3>
+                            {questions.map((question) => <QuestionBlock key={question.number} question={question} />)}
+                          </div>
+                        )}
+                      </section>
+                      <section className="word-section word-teacher-guide">
+                        <h2 className="word-section-h1">GUÍA DOCENTE · NO ENTREGAR AL ESTUDIANTE</h2>
+                        <AnswerKeyTable questions={questions} />
+                        {artifact.sections.filter((sec) => isTeacher(sec.title) && !(questions.some((q) => q.answer) && /clave/i.test(sec.title))).map((sec, idx) => (
+                          <div key={idx} style={{ marginBottom: "1rem" }}>
+                            <h3 className="word-section-h2">{sec.title}</h3>
+                            <Narrative text={sec.narrative} />
+                            <KeyPointList items={sec.key_points} />
+                          </div>
+                        ))}
+                      </section>
+                    </>
+                  );
+                })() : (
+                  /* Otros instrumentos */
                   <section className="word-section">
                     <h2 className="word-section-h1">II. REACTIVOS Y CONSIGNAS DE EVALUACIÓN</h2>
                     {artifact.sections.map((sec, idx) => (
                       <div key={idx} style={{ marginBottom: "1.5rem" }}>
                         <h3 className="word-section-h2">{idx + 1}. {sec.title}</h3>
-                        <p className="word-paper-p">{sec.narrative}</p>
+                        <Narrative text={sec.narrative} />
                         {sec.key_points.length > 0 ? (
                           <div style={{ marginLeft: "1rem" }}>
                             {sec.key_points.map((p, pIdx) => (
                               <p key={pIdx} className="word-paper-p" style={{ marginBottom: "0.4rem" }}>
-                                [  ] {p}
+                                [  ] <KeyPointText text={p} />
                               </p>
                             ))}
                           </div>
@@ -688,10 +715,12 @@ export function WordDocumentPreview({
                 </div>
 
                 <p className="word-paper-p">
-                  <strong>Instrucciones:</strong> {artifact.executive_summary || "Lee atentamente cada indicación y desarrolla los retos propuestos aplicando tus conocimientos."}
+                  <strong>Instrucciones:</strong> {artifact.activity?.instructions || artifact.executive_summary || "Lee atentamente cada indicación y desarrolla los retos propuestos aplicando tus conocimientos."}
                 </p>
 
-                <GeneratedArtifactTables artifact={artifact} heading="I. RUTA DE TRABAJO" editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
+                {toolId.includes("debate") || toolId.includes("casos-estudio") ? null : (
+                  <GeneratedArtifactTables artifact={artifact} heading="I. RUTA DE TRABAJO" editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
+                )}
 
                 {/* Si es Sopa de Letras */}
                 {toolId.includes("sopa") ? (
@@ -1491,312 +1520,170 @@ export function WordDocumentPreview({
                       </table>
                     </div>
                   </section>
-                ) : toolId.includes("debate") ? (
-                  /* Si es Dinámica de Debate en Aula */
-                  <section className="word-section">
-                    <h2 className="word-section-h1">I. GUÍA Y ESTRUCTURA DE DINÁMICA DE DEBATE EN EL AULA</h2>
-                    <div style={{ background: "rgba(31, 77, 120, 0.08)", borderLeft: "4px solid #1f4d78", padding: "0.85rem 1rem", borderRadius: "4px", marginBottom: "1.25rem" }}>
-                      <strong style={{ color: "var(--word-primary, #1f4d78)", display: "block", marginBottom: "0.25rem", fontSize: "0.95rem" }}>
-                        Moción o Tesis Central:
-                      </strong>
-                      <p style={{ margin: 0, fontWeight: 700, fontSize: "1rem", color: "inherit" }}>
-                        {artifact.document_title || "¿Se debe regular estrictamente el uso de dispositivos móviles en el entorno escolar?"}
-                      </p>
-                    </div>
-
-                    <p className="word-paper-p" style={{ fontSize: "0.9rem", color: "inherit", marginBottom: "1.5rem" }}>
-                      <strong>Instrucciones generales y acuerdos de convivencia:</strong> El debate es un ejercicio de argumentación rigurosa, escucha activa y respeto democrático. Cada equipo defenderá su postura basándose en evidencias, datos contrastables y razonamientos lógicos, sin descalificaciones personales.
-                    </p>
-
-                    {/* Fases y Tiempos */}
-                    <h3 className="word-section-h2" style={{ marginBottom: "0.6rem" }}>ESTRUCTURA DE FASES Y TIEMPOS DEL DEBATE</h3>
-                    <div className="word-table-responsive" style={{ marginBottom: "1.75rem" }}>
-                      <table className="word-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: "25%" }}>Fase del Debate</th>
-                            <th style={{ width: "15%" }} className="word-table-cell-center">Tiempo</th>
-                            <th style={{ width: "25%" }}>Rol Participante</th>
-                            <th style={{ width: "35%" }}>Objetivo Pedagógico CNEB</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="word-table-cell-bold">1. Apertura e Introducción</td>
-                            <td className="word-table-cell-center">3 min / equipo</td>
-                            <td>Primer Orador (A favor / En contra)</td>
-                            <td>Presentar la tesis del equipo y el marco contextual de su postura.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">2. Argumentación Principal</td>
-                            <td className="word-table-cell-center">4 min / equipo</td>
-                            <td>Segundo Orador (Evidencias)</td>
-                            <td>Sustentar argumentos con estudios, estadísticas, leyes y ejemplos reales.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">3. Refutación y Preguntas</td>
-                            <td className="word-table-cell-center">5 min cruzados</td>
-                            <td>Tercer Orador / Preguntas Cruzadas</td>
-                            <td>Detectar falacias, contraargumentar y responder cuestionamientos.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">4. Conclusiones y Cierre</td>
-                            <td className="word-table-cell-center">2 min / equipo</td>
-                            <td>Orador de Cierre</td>
-                            <td>Sintetizar puntos fuertes del equipo y brindar mensaje final reflexivo.</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Matriz de Posturas */}
-                    <h3 className="word-section-h2" style={{ marginBottom: "0.6rem" }}>MATRIZ DE POSTURAS CONTRAPUESTAS Y ARGUMENTOS</h3>
-                    <div className="word-table-responsive" style={{ marginBottom: "1.75rem" }}>
-                      <table className="word-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: "50%", textAlign: "center" }}>EQUIPO A: A FAVOR (Regulación / Restricción)</th>
-                            <th style={{ width: "50%", textAlign: "center" }}>EQUIPO B: EN CONTRA (Integración Digital Activa)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td style={{ verticalAlign: "top", fontSize: "0.85rem", lineHeight: 1.5 }}>
-                              <p><strong>• Concentración y atención sostenida:</strong> Reduce interrupciones y distracciones constantes en horas de clase.</p>
-                              <p><strong>• Salud mental y convivencia:</strong> Disminuye la incidencia de ciberacoso y fomenta la interacción social directa entre pares.</p>
-                              <p><strong>• Equidad en el aula:</strong> Evita brechas visibles entre estudiantes con dispositivos de distinta gama o conectividad.</p>
-                              <p><strong>• Pensamiento profundo:</strong> Estimula la lectura analítica y la escritura reflexiva sin atajos digitales inmediatos.</p>
-                            </td>
-                            <td style={{ verticalAlign: "top", fontSize: "0.85rem", lineHeight: 1.5 }}>
-                              <p><strong>• Competencia Digital CNEB (Comp. 28):</strong> Prepara a los estudiantes para desenvolverse éticamente en entornos virtuales.</p>
-                              <p><strong>• Acceso inmediato a la información:</strong> Permite corroborar fuentes, explorar simuladores y bases de datos en tiempo real.</p>
-                              <p><strong>• Alfabetización crítica:</strong> Enseña a discernir noticias falsas y gestionar el autocontrol bajo guía docente.</p>
-                              <p><strong>• Herramienta versátil:</strong> Facilita evaluaciones formativas interactivas, encuestas de aula y portafolios digitales.</p>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Ficha de Registro del Jurado/Estudiante */}
-                    <h3 className="word-section-h2" style={{ marginBottom: "0.6rem" }}>FICHA DE OBSERVACIÓN Y REGISTRO DEL ESTUDIANTE / JURADO</h3>
-                    <div className="word-table-responsive">
-                      <table className="word-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: "25%" }}>Criterio Evaluado</th>
-                            <th style={{ width: "37%" }}>Equipo A Favor (Anotaciones / Puntaje 1-4)</th>
-                            <th style={{ width: "38%" }}>Equipo En Contra (Anotaciones / Puntaje 1-4)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[
-                            "Solidez y coherencia de los argumentos",
-                            "Uso de datos, evidencias y ejemplos",
-                            "Claridad de expresión, tono y respeto",
-                            "Capacidad de refutación de ideas contrarias",
-                          ].map((crit, cIdx) => (
-                            <tr key={cIdx}>
-                              <td className="word-table-cell-bold">{crit}</td>
-                              <td style={{ color: "#94a3b8" }}>Notas: ________________________________<br />Puntaje: [ &nbsp;&nbsp; ]</td>
-                              <td style={{ color: "#94a3b8" }}>Notas: ________________________________<br />Puntaje: [ &nbsp;&nbsp; ]</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Rúbrica y Solucionario Docente */}
-                    <div style={{ marginTop: "2.5rem", borderTop: "2px dashed #bdd7ee", paddingTop: "1.5rem" }}>
-                      <h3 className="word-section-h2">RÚBRICA DE EVALUACIÓN Y PAUTA DOCENTE: DEBATE EN EL AULA</h3>
-                      <p style={{ fontSize: "0.85rem", color: "#64748b", fontStyle: "italic", marginBottom: "0.75rem" }}>
-                        (USO EXCLUSIVO DEL DOCENTE - EVALUACIÓN FORMATIVA CNEB)
-                      </p>
-                      <table className="word-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: "20%" }}>Criterio CNEB</th>
-                            <th style={{ width: "20%" }} className="word-table-cell-center">AD - Destacado</th>
-                            <th style={{ width: "20%" }} className="word-table-cell-center">A - Esperado</th>
-                            <th style={{ width: "20%" }} className="word-table-cell-center">B - En Proceso</th>
-                            <th style={{ width: "20%" }} className="word-table-cell-center">C - En Inicio</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="word-table-cell-bold">Argumentación y Sustento Ético</td>
-                            <td style={{ fontSize: "0.8rem" }}>Argumenta con profundidad, citando múltiples fuentes y relacionando ética con bienestar social.</td>
-                            <td style={{ fontSize: "0.8rem" }}>Sustenta sus posturas con argumentos lógicos y fuentes verídicas adecuadas al tema.</td>
-                            <td style={{ fontSize: "0.8rem" }}>Presenta argumentos con escasas evidencias o basados en opiniones generales.</td>
-                            <td style={{ fontSize: "0.8rem" }}>Expone afirmaciones sin justificación ni evidencia comprobable.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">Contraargumentación y Escucha</td>
-                            <td style={{ fontSize: "0.8rem" }}>Refuta con agudeza lógica argumentos contrarios, respondiendo con datos y cortesía intachable.</td>
-                            <td style={{ fontSize: "0.8rem" }}>Contraargumenta respondiendo directamente a las objeciones del equipo oponente.</td>
-                            <td style={{ fontSize: "0.8rem" }}>Intenta refutar pero desvía el foco de la discusión o reitera su postura inicial.</td>
-                            <td style={{ fontSize: "0.8rem" }}>No responde a las objeciones o interrumpe sin escuchar a los demás.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">Competencia Comunicativa Oral</td>
-                            <td style={{ fontSize: "0.8rem" }}>Uso sobresaliente de recursos no verbales, modulación vocal y manejo impecable del tiempo.</td>
-                            <td style={{ fontSize: "0.8rem" }}>Vocalización clara, lenguaje formal y empleo correcto del tiempo asignado.</td>
-                            <td style={{ fontSize: "0.8rem" }}>Tono monótono o vacilante, con ligeros excesos o faltas en el uso del tiempo.</td>
-                            <td style={{ fontSize: "0.8rem" }}>Dificultad notoria para expresarse oralmente o abandono antes del tiempo.</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                ) : toolId.includes("casos-estudio") ? (
-                  /* Si es Estudio de Caso ABP */
-                  <section className="word-section">
-                    <h2 className="word-section-h1">I. ESTUDIO DE CASO ABP: INVESTIGACIÓN Y RESOLUCIÓN DE PROBLEMAS</h2>
-                    <div style={{ background: "rgba(31, 77, 120, 0.08)", borderLeft: "4px solid #1f4d78", padding: "0.85rem 1rem", borderRadius: "4px", marginBottom: "1.25rem" }}>
-                      <strong style={{ color: "var(--word-primary, #1f4d78)", display: "block", marginBottom: "0.25rem", fontSize: "0.95rem" }}>
-                        Título del Caso Problemático:
-                      </strong>
-                      <p style={{ margin: 0, fontWeight: 700, fontSize: "1rem", color: "inherit" }}>
-                        {artifact.document_title || "Dilema de la Gestión del Agua y Desarrollo Sostenible"}
-                      </p>
-                    </div>
-
-                    <div style={{ marginBottom: "1.5rem" }}>
-                      <strong style={{ display: "block", marginBottom: "0.4rem", color: "var(--word-primary, #1f4d78)", fontSize: "0.95rem" }}>
-                        Situación Problemática Real:
-                      </strong>
-                      <p className="word-paper-p" style={{ fontSize: "0.92rem", lineHeight: 1.6, color: "inherit", margin: 0 }}>
-                        {artifact.executive_summary || "En una cuenca agrícola costera, la escasez hídrica estacional genera tensiones entre la pequeña agricultura comunal, las empresas agroexportadoras de riego presurizado y la demanda de agua potable de los centros urbanos en crecimiento."}
-                      </p>
-                    </div>
-
-                    {/* Matriz de Actores */}
-                    <h3 className="word-section-h2" style={{ marginBottom: "0.6rem" }}>MATRIZ DE ACTORES Y POSICIONES EN CONFLICTO</h3>
-                    <div className="word-table-responsive" style={{ marginBottom: "1.75rem" }}>
-                      <table className="word-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: "25%" }}>Actor Social / Institución</th>
-                            <th style={{ width: "25%" }}>Interés y Postura Principal</th>
-                            <th style={{ width: "25%" }}>Sustento Legal y Económico</th>
-                            <th style={{ width: "25%" }}>Propuesta de Solución</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="word-table-cell-bold">Comunidad de Pequeños Agricultores</td>
-                            <td>Defensa de derechos de agua tradicionales para cultivos de panllevar y seguridad alimentaria.</td>
-                            <td>Uso consuetudinario ancestral y soberanía alimentaria familiar local.</td>
-                            <td>Respetar turnos tradicionales y subsidio estatal para revestimiento de canales.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">Asociación de Agroexportadores</td>
-                            <td>Garantizar volumen hídrico constante para plantaciones de alta productividad y contratos externos.</td>
-                            <td>Generación de empleo formal, divisas para el país e inversión en riego por goteo.</td>
-                            <td>Construcción de pozos tubulares profundos y ampliación de reservorios privados.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">Población Urbana y Municipio</td>
-                            <td>Acceso ininterrumpido a agua potable de calidad para consumo humano diario.</td>
-                            <td>Artículo 7-A de la Constitución Política: Derecho fundamental irrenunciable al agua.</td>
-                            <td>Prioridad absoluta de la red pública sobre cualquier actividad extractiva o agrícola.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">Autoridad Nacional del Agua (ANA)</td>
-                            <td>Equilibrio hídrico de la cuenca y preservación del caudal ecológico mínimo.</td>
-                            <td>Ley de Recursos Hídricos N° 29338: el agua es patrimonio de la Nación.</td>
-                            <td>Comité de gestión de cuenca con monitoreo digital y medición obligatoria de consumos.</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Preguntas Guía de Análisis ABP */}
-                    <h3 className="word-section-h2" style={{ marginBottom: "0.6rem" }}>PREGUNTAS GUÍA DE ANÁLISIS CRÍTICO Y PROPUESTA ABP</h3>
-                    <div className="word-table-responsive">
-                      <table className="word-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: "8%" }} className="word-table-cell-center">N°</th>
-                            <th style={{ width: "42%" }}>Desafío Cognitivo / Pregunta Investigativa</th>
-                            <th style={{ width: "50%" }}>Análisis Crítico y Propuesta del Equipo Estudiantil</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[
-                            {
-                              num: 1,
-                              q: "¿Cuál es la raíz multidimensional del conflicto? Identifica causas económicas, ambientales y políticas.",
-                            },
-                            {
-                              num: 2,
-                              q: "¿Cómo se jerarquiza el uso del agua según la legislación peruana frente a las demandas del mercado?",
-                            },
-                            {
-                              num: 3,
-                              q: "Diseña una propuesta de solución concertada que equilibre productividad, justicia social y conservación ecológica.",
-                            },
-                            {
-                              num: 4,
-                              q: "¿Qué compromisos éticos debe asumir cada actor social para garantizar la sostenibilidad a 10 años?",
-                            },
-                          ].map((item) => (
-                            <tr key={item.num}>
-                              <td className="word-table-cell-center word-table-cell-bold">{item.num}</td>
-                              <td className="word-table-cell-bold">{item.q}</td>
-                              <td style={{ color: "#94a3b8", fontSize: "0.85rem" }}>
-                                Líneas de análisis y evidencia:<br />
-                                ____________________________________________________<br />
-                                ____________________________________________________<br />
-                                ____________________________________________________
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Guía Metodológica Docente */}
-                    <div style={{ marginTop: "2.5rem", borderTop: "2px dashed #bdd7ee", paddingTop: "1.5rem" }}>
-                      <h3 className="word-section-h2">GUÍA METODOLÓGICA Y CRITERIOS DE EVALUACIÓN ABP</h3>
-                      <p style={{ fontSize: "0.85rem", color: "#64748b", fontStyle: "italic", marginBottom: "0.75rem" }}>
-                        (PAUTA DOCENTE - EVALUACIÓN DE COMPETENCIAS CIUDADANAS Y ECONÓMICAS)
-                      </p>
-                      <table className="word-table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: "25%" }}>Criterio de Evaluación ABP</th>
-                            <th style={{ width: "40%" }}>Nivel Esperado / Evidencia de Aprendizaje</th>
-                            <th style={{ width: "35%" }}>Intervención Docente / Retroalimentación</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="word-table-cell-bold">Comprensión Multicausal</td>
-                            <td style={{ fontSize: "0.82rem" }}>Distingue con claridad entre la sequía climática natural y las presiones antrópicas derivadas del crecimiento agroexportador y urbano.</td>
-                            <td style={{ fontSize: "0.82rem" }}>Formular repreguntas sobre externalidades ambientales y agotamiento del acuífero.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">Ponderación Ética y Legal</td>
-                            <td style={{ fontSize: "0.82rem" }}>Aplica el orden de prioridad de la Ley N° 29338 (1° Primario/Poblacional, 2° Agrícola/Ecológico, 3° Productivo/Industrial).</td>
-                            <td style={{ fontSize: "0.82rem" }}>Verificar que la solución del equipo no vulnere el acceso básico de las poblaciones vulnerables.</td>
-                          </tr>
-                          <tr>
-                            <td className="word-table-cell-bold">Viabilidad de la Propuesta</td>
-                            <td style={{ fontSize: "0.82rem" }}>Propone acuerdos concretos: tecnificación de riego comunal financiada con obras por impuestos y junta de cuenca paritaria.</td>
-                            <td style={{ fontSize: "0.82rem" }}>Evaluar si los costos, plazos y mecanismos de fiscalización propuestos son factibles en la realidad.</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                ) : (
+                ) : toolId.includes("debate") ? (() => {
+                  const items = artifact.activity?.items ?? [];
+                  const teacher = (title: string) => /(pauta|docente|criterio|r[uú]brica|evaluaci[oó]n|solucion)/i.test(title);
+                  const criteria = ["Solidez y coherencia de los argumentos", "Uso de datos, evidencias y ejemplos", "Claridad de expresión, tono y respeto", "Capacidad de refutación de ideas contrarias"];
+                  return (
+                    <>
+                      <section className="word-section">
+                        <h2 className="word-section-h1">I. GUÍA Y ESTRUCTURA DEL DEBATE EN EL AULA</h2>
+                        <p className="word-paper-p"><strong className="word-label">Moción o tesis central:</strong> {artifact.document_title}</p>
+                        <p className="word-paper-p"><strong className="word-label">Instrucciones y acuerdos de convivencia:</strong> {artifact.activity?.instructions || artifact.executive_summary}</p>
+                        {artifact.sections.filter((sec) => !teacher(sec.title)).map((sec, idx) => (
+                          <div key={idx}>
+                            <h3 className="word-section-h2">{sec.title}</h3>
+                            <Narrative text={sec.narrative} />
+                            <KeyPointList items={sec.key_points} />
+                          </div>
+                        ))}
+                        <PreviewTables tables={(artifact.tables ?? []).map((table, index) => ({ table, index }))} editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
+                        {items.length ? (
+                          <>
+                            <h3 className="word-section-h2">Banco de argumentos y preguntas</h3>
+                            <div className="word-table-responsive">
+                              <table className="word-table word-table--generated">
+                                <thead><tr><th>N°</th><th>Argumento o pregunta</th><th>Rol o momento</th><th>Repreguntas para profundizar</th></tr></thead>
+                                <tbody>
+                                  {items.map((item, index) => (
+                                    <tr key={item.id ?? index}>
+                                      <td className="word-table-cell-center word-table-cell-bold">{index + 1}</td>
+                                      <td>{item.prompt}</td>
+                                      <td>{item.hint}</td>
+                                      <td>{item.options?.length ? <KeyPointList items={item.options} /> : null}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </>
+                        ) : null}
+                        <h3 className="word-section-h2">Ficha de observación del jurado</h3>
+                        <div className="word-table-responsive">
+                          <table className="word-table">
+                            <thead><tr><th style={{ width: "30%" }}>Criterio observado</th><th>Equipo a favor (notas / puntaje 1-4)</th><th>Equipo en contra (notas / puntaje 1-4)</th></tr></thead>
+                            <tbody>
+                              {criteria.map((criterion) => (
+                                <tr key={criterion}>
+                                  <td className="word-table-cell-bold">{criterion}</td>
+                                  <td style={{ color: "#94a3b8" }}>Notas: ________________________<br />Puntaje: [ &nbsp;&nbsp; ]</td>
+                                  <td style={{ color: "#94a3b8" }}>Notas: ________________________<br />Puntaje: [ &nbsp;&nbsp; ]</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                      <section className="word-section word-teacher-guide">
+                        <h2 className="word-section-h1">II. PAUTA DOCENTE Y CRITERIOS DE EVALUACIÓN</h2>
+                        <p className="word-paper-p" style={{ color: "#64748b", fontStyle: "italic" }}>(Uso exclusivo del docente. Evaluación formativa CNEB)</p>
+                        {artifact.sections.filter((sec) => teacher(sec.title)).map((sec, idx) => (
+                          <div key={idx}>
+                            <h3 className="word-section-h2">{sec.title}</h3>
+                            <Narrative text={sec.narrative} />
+                            <KeyPointList items={sec.key_points} />
+                          </div>
+                        ))}
+                        {items.some((item) => item.answer) ? (
+                          <>
+                            <h3 className="word-section-h2">Desarrollo esperado de cada argumento</h3>
+                            <div className="word-table-responsive">
+                              <table className="word-table word-table--generated">
+                                <thead><tr><th>N°</th><th>Argumento o pregunta</th><th>Desarrollo esperado con evidencia</th></tr></thead>
+                                <tbody>
+                                  {items.map((item, index) => (
+                                    <tr key={item.id ?? index}>
+                                      <td className="word-table-cell-center word-table-cell-bold">{index + 1}</td>
+                                      <td>{item.prompt}</td>
+                                      <td>{item.answer}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </>
+                        ) : null}
+                      </section>
+                    </>
+                  );
+                })() : toolId.includes("casos-estudio") ? (() => {
+                  const items = artifact.activity?.items ?? [];
+                  const teacher = (title: string) => /(pauta|docente|criterio|r[uú]brica|evaluaci[oó]n|solucion|respuesta)/i.test(title);
+                  return (
+                    <>
+                      <section className="word-section">
+                        <h2 className="word-section-h1">I. ESTUDIO DE CASO: ANÁLISIS Y PROPUESTA</h2>
+                        <p className="word-paper-p"><strong className="word-label">Título del caso:</strong> {artifact.document_title}</p>
+                        <p className="word-paper-p"><strong className="word-label">Situación problemática:</strong> {artifact.executive_summary}</p>
+                        {artifact.activity?.instructions ? <p className="word-paper-p"><strong className="word-label">Consigna de trabajo:</strong> {artifact.activity.instructions}</p> : null}
+                        {artifact.sections.filter((sec) => !teacher(sec.title)).map((sec, idx) => (
+                          <div key={idx}>
+                            <h3 className="word-section-h2">{sec.title}</h3>
+                            <Narrative text={sec.narrative} />
+                            <KeyPointList items={sec.key_points} />
+                          </div>
+                        ))}
+                        <PreviewTables tables={(artifact.tables ?? []).map((table, index) => ({ table, index }))} editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
+                        {items.length ? (
+                          <>
+                            <h3 className="word-section-h2">Preguntas de análisis del equipo</h3>
+                            <div className="word-table-responsive">
+                              <table className="word-table word-table--generated">
+                                <thead><tr><th>N°</th><th style={{ width: "43%" }}>Pregunta y evidencias sugeridas</th><th>Análisis y propuesta del equipo</th></tr></thead>
+                                <tbody>
+                                  {items.map((item, index) => (
+                                    <tr key={item.id ?? index}>
+                                      <td className="word-table-cell-center word-table-cell-bold">{index + 1}</td>
+                                      <td>{item.prompt}{item.options?.length ? <div className="generated-artifact-table__note">Evidencias: {item.options.join("; ")}</div> : null}</td>
+                                      <td style={{ color: "#94a3b8" }}>____________________________<br />____________________________<br />____________________________</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </>
+                        ) : null}
+                      </section>
+                      <section className="word-section word-teacher-guide">
+                        <h2 className="word-section-h1">II. PAUTA DOCENTE Y CRITERIOS DE EVALUACIÓN</h2>
+                        <p className="word-paper-p" style={{ color: "#64748b", fontStyle: "italic" }}>(Uso exclusivo del docente. No entregar al estudiante)</p>
+                        {items.some((item) => item.answer || item.hint) ? (
+                          <>
+                            <h3 className="word-section-h2">Respuestas esperadas y andamiaje</h3>
+                            <div className="word-table-responsive">
+                              <table className="word-table word-table--generated">
+                                <thead><tr><th>N°</th><th>Pregunta</th><th>Respuesta o criterio esperado</th><th>Andamiaje docente</th></tr></thead>
+                                <tbody>
+                                  {items.map((item, index) => (
+                                    <tr key={item.id ?? index}>
+                                      <td className="word-table-cell-center word-table-cell-bold">{index + 1}</td>
+                                      <td>{item.prompt}</td>
+                                      <td>{item.answer}</td>
+                                      <td>{item.hint}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </>
+                        ) : null}
+                        {artifact.sections.filter((sec) => teacher(sec.title)).map((sec, idx) => (
+                          <div key={idx}>
+                            <h3 className="word-section-h2">{sec.title}</h3>
+                            <Narrative text={sec.narrative} />
+                            <KeyPointList items={sec.key_points} />
+                          </div>
+                        ))}
+                      </section>
+                    </>
+                  );
+                })() : (
                   /* Actividades y Retos estándar */
                   <section className="word-section">
                     {artifact.sections.map((sec, idx) => (
                       <div key={idx} style={{ marginBottom: "1.75rem" }}>
                         <h2 className="word-section-h1">{idx + 1}. {sec.title}</h2>
-                        <p className="word-paper-p">{sec.narrative}</p>
+                        <Narrative text={sec.narrative} />
                         {sec.key_points.length > 0 ? (
                           <div className="word-table-responsive">
                             <table className="word-table">
@@ -1903,21 +1790,9 @@ export function WordDocumentPreview({
                         {artifact.sections.map((sec, idx) => (
                           <tr key={idx}>
                             <td className="word-table-cell-bold">{sec.title}</td>
-                            <td className="word-table-cell-center">
-                              <span
-                                className={`word-status-badge ${
-                                  idx === 0
-                                    ? "word-status-badge--danger"
-                                    : idx === 1
-                                    ? "word-status-badge--warning"
-                                    : "word-status-badge--success"
-                                }`}
-                              >
-                                {idx === 0 ? "Crítico (Alerta)" : idx === 1 ? "En Proceso" : "Monitoreo"}
-                              </span>
-                            </td>
-                            <td>{sec.narrative}</td>
-                            <td>{sec.key_points[0] || "Acompañamiento personalizado en aula."}</td>
+                            <td className="word-table-cell-center"><RiskBadge assessment={riskLevelFor(sec, artifact.tables ?? [])} /></td>
+                            <td><Narrative text={sec.narrative} className="word-cell-p" /></td>
+                            <td>{sec.key_points[0] ? <KeyPointText text={sec.key_points[0]} /> : "Acompañamiento personalizado en aula."}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1925,13 +1800,13 @@ export function WordDocumentPreview({
                   </div>
                 </section>
 
+                {(artifact.tables?.length ?? 0) > 0 ? (
+                  <GeneratedArtifactTables artifact={artifact} heading="IV. MATRICES DE ANÁLISIS" editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
+                ) : null}
+
                 <section className="word-section">
-                  <h2 className="word-section-h1">IV. PLAN DE ACCIÓN Y COMPROMISOS INSTITUCIONALES</h2>
-                  <ul>
-                    {artifact.teacher_recommendations.map((rec, idx) => (
-                      <li key={idx} style={{ marginBottom: "0.4rem" }}>{rec}</li>
-                    ))}
-                  </ul>
+                  <h2 className="word-section-h1">{(artifact.tables?.length ?? 0) > 0 ? "V." : "IV."} PLAN DE ACCIÓN Y COMPROMISOS INSTITUCIONALES</h2>
+                  <KeyPointList items={artifact.teacher_recommendations} />
                 </section>
 
                 <div className="word-signatures-box">
@@ -1964,7 +1839,7 @@ export function WordDocumentPreview({
 
                 <div className="word-communication-envelope">
                   <div style={{ marginBottom: "0.75rem", fontSize: "0.9375rem" }}>
-                    <strong>Para:</strong> {guardian} (Padre, madre o tutor legal)
+                    <strong>Para:</strong> {guardian || "________________________"} (Padre, madre o tutor legal)
                   </div>
                   <div style={{ marginBottom: "0.75rem", fontSize: "0.9375rem" }}>
                     <strong>Estudiante:</strong> {student} · {grade} "{section}"
@@ -1979,29 +1854,26 @@ export function WordDocumentPreview({
 
                 <section className="word-section">
                   <p className="word-paper-p">
-                    Estimada familia {guardian}:
+                    <strong>{guardian ? `Estimada familia ${guardian}:` : "Estimada familia:"}</strong>
                   </p>
                   <p className="word-paper-p">
-                    Reciban un cordial saludo institucional de parte del equipo directivo y docente de la I.E. "{ie}". Por medio de la presente nos dirigimos a ustedes para informarles lo siguiente:
+                    Reciban un cordial saludo institucional de parte del equipo directivo y docente {/^_+$/.test(ie) ? "de nuestra institución educativa" : `de la I.E. "${ie}"`}. Por medio de la presente nos dirigimos a ustedes para informarles lo siguiente:
                   </p>
-                  <p className="word-paper-p" style={{ fontWeight: 600 }}>
-                    {artifact.executive_summary}
-                  </p>
+                  <Narrative text={artifact.executive_summary} />
 
                   {artifact.sections.map((sec, idx) => (
                     <div key={idx} style={{ margin: "1.25rem 0" }}>
                       <h3 className="word-section-h2" style={{ textDecoration: "underline" }}>{sec.title}</h3>
-                      <p className="word-paper-p">{sec.narrative}</p>
-                      {sec.key_points.length > 0 ? (
-                        <ul>
-                          {sec.key_points.map((p, pIdx) => (
-                            <li key={pIdx} style={{ marginBottom: "0.35rem" }}>{p}</li>
-                          ))}
-                        </ul>
-                      ) : null}
+                      <Narrative text={sec.narrative} />
+                      <KeyPointList items={sec.key_points} />
                     </div>
                   ))}
 
+                  <PreviewTables
+                    tables={(artifact.tables ?? []).map((table, index) => ({ table, index }))}
+                    editingResult={editingResult}
+                    onUpdateTableCell={onUpdateTableCell}
+                  />
                   <p className="word-paper-p" style={{ marginTop: "1.5rem" }}>
                     Agradecemos de antemano su constante compromiso con la formación integral de su menor hijo(a).
                   </p>
@@ -2037,106 +1909,128 @@ export function WordDocumentPreview({
             ) : null}
 
             {/* ==================== 5. ARQUETIPO: DOCUMENTOS Y RECURSOS ==================== */}
-            {isDocument || isResource ? (
+            {isDocument || isResource ? (() => {
+              const placement = attachTablesToSections(artifact);
+              const tableIndexOf = (table: WorkflowArtifactTable) => (artifact.tables ?? []).indexOf(table);
+              const isSession = toolId.includes("sesion");
+              const showGenericSequence = isSession && (artifact.tables?.length ?? 0) === 0;
+              let part = 3;
+              const matricesPart = placement.remaining.length ? part++ : 0;
+              const sequencePart = showGenericSequence ? part++ : 0;
+              const sectionsStart = part;
+              const orientationsPart = sectionsStart + artifact.sections.length;
+              const subtitle = [
+                isPlaceholder(area) || /^_+$/.test(area) ? "" : area.toUpperCase(),
+                /^_+$/.test(level) ? "" : `NIVEL: ${level.toUpperCase()}`,
+                /^_+$/.test(grade) ? "" : `GRADO: ${grade.toUpperCase()}${/^_+$/.test(section) ? "" : ` "${section}"`}`,
+              ].filter(Boolean).join(" · ") || "DOCUMENTO DE PLANIFICACIÓN CURRICULAR";
+              const signatures = [
+                "unidad-aprendizaje", "sesion-aprendizaje", "proyectos-integrados", "adaptacion-nee-dua", "carpeta-pedagogica",
+                "plan-atencion", "plan-refuerzo", "plan-tutoria", "informe-tutoria", "informe-padres", "fichas-acompanamiento",
+              ].some((key) => (workflowKey || toolId).includes(key));
+              // Documentos extensos: portada e índice, igual que el Word exportado.
+              const longDocumentKind = LONG_DOCUMENT_KINDS.find(([key]) => (workflowKey || toolId).includes(key))?.[1];
+              const indexEntries: IndexEntry[] = [
+                { label: "I. INFORMACIÓN GENERAL" },
+                { label: "II. PROPÓSITO GENERAL Y FUNDAMENTACIÓN" },
+                ...(matricesPart ? [
+                  { label: `${toRoman(matricesPart)}. MATRICES DE PLANIFICACIÓN` },
+                  ...placement.remaining.map((table) => ({ label: table.title, level: 2 as const })),
+                ] : []),
+                ...(sequencePart ? [{ label: `${toRoman(sequencePart)}. SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS` }] : []),
+                ...artifact.sections.map((sec, idx) => ({ label: `${toRoman(sectionsStart + idx)}. ${stripNumbering(sec.title)}` })),
+                ...(artifact.teacher_recommendations.length ? [{ label: `${toRoman(orientationsPart)}. ORIENTACIONES PARA LA REVISIÓN DOCENTE` }] : []),
+              ];
+              return (
               <>
+                {longDocumentKind ? (
+                  <>
+                    <DocumentCover
+                      institution={ie}
+                      kindLabel={longDocumentKind}
+                      title={artifact.document_title}
+                      rows={[
+                        ["Institución educativa", ie],
+                        ["DRE / UGEL", [dre, ugel].filter((part) => !/^_+$/.test(part)).join(" / ")],
+                        ["Nivel / grado / sección", /^_+$/.test(grade) ? "" : `${level} / ${grade} "${section}"`],
+                        ["Área curricular", area],
+                        ["Docente responsable", teacher],
+                        ["Director(a)", director],
+                        ["Año lectivo", year],
+                      ]}
+                      year={year}
+                    />
+                    <DocumentIndex entries={indexEntries} />
+                  </>
+                ) : null}
                 <header className="word-paper-header">
                   <div className="word-paper-motto">
                     DOCUMENTO PEDAGÓGICO EDITABLE
                   </div>
                   <h1 className="word-paper-title">{artifact.document_title}</h1>
-                  <div className="word-paper-subtitle">
-                    {area.toUpperCase()} · NIVEL: {level.toUpperCase()} · GRADO: {grade.toUpperCase()} "{section}"
-                  </div>
+                  <div className="word-paper-subtitle">{subtitle}</div>
                 </header>
 
                 <section className="word-section">
-                  <h2 className="word-section-h1">I. DATOS INFORMATIVOS</h2>
-                  <div className="word-table-responsive">
-                    <table className="word-table">
-                      <tbody>
-                        <tr>
-                          <td className="word-table-cell-bold" style={{ width: "35%" }}>DRE</td>
-                          <td>{dre}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">UGEL</td>
-                          <td>{ugel}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">INSTITUCIÓN EDUCATIVA</td>
-                          <td>{ie}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">NIVEL / GRADO / SECCIÓN</td>
-                          <td>{level} / {grade} "{section}"</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">ÁREA CURRICULAR</td>
-                          <td>{area}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">DOCENTE RESPONSABLE</td>
-                          <td>{teacher}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">DIRECTOR(A)</td>
-                          <td>{director}</td>
-                        </tr>
-                        <tr>
-                          <td className="word-table-cell-bold">AÑO LECTIVO</td>
-                          <td>{year}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  <h2 className="word-section-h1">I. INFORMACIÓN GENERAL</h2>
+                  <InfoTable
+                    rows={[
+                      ["DRE", dre],
+                      ["UGEL", ugel],
+                      ["INSTITUCIÓN EDUCATIVA", ie],
+                      ["NIVEL / GRADO / SECCIÓN", /^_+$/.test(grade) ? "" : `${level} / ${grade} "${section}"`],
+                      ["ÁREA CURRICULAR", area],
+                      ["DOCENTE RESPONSABLE", teacher],
+                      ["DIRECTOR(A)", director],
+                      ["AÑO LECTIVO", year],
+                    ]}
+                    fallback={[["INSTITUCIÓN EDUCATIVA", "________________________"], ["DOCENTE RESPONSABLE", "________________________"], ["AÑO LECTIVO", "________"]]}
+                  />
                 </section>
 
                 <section className="word-section">
                   <h2 className="word-section-h1">II. PROPÓSITO GENERAL Y FUNDAMENTACIÓN</h2>
-                  <p className="word-paper-p">{artifact.executive_summary}</p>
+                  <Narrative text={artifact.executive_summary} />
                 </section>
 
-                {/* Si es Sesión de Aprendizaje, desplegamos la tabla de los 3 momentos didácticos */}
-                {(artifact.tables?.length ?? 0) > 0 ? (
-                  <GeneratedArtifactTables artifact={artifact} heading="III. MATRICES DE PLANIFICACIÓN" editingResult={editingResult} onUpdateTableCell={onUpdateTableCell} />
-                ) : toolId.includes("sesion") ? (
+                {matricesPart ? (
+                  <section className="word-section generated-artifact-tables">
+                    <h2 className="word-section-h1">{toRoman(matricesPart)}. MATRICES DE PLANIFICACIÓN</h2>
+                    <PreviewTables
+                      tables={placement.remaining.map((table) => ({ table, index: tableIndexOf(table) }))}
+                      editingResult={editingResult}
+                      onUpdateTableCell={onUpdateTableCell}
+                    />
+                  </section>
+                ) : null}
+
+                {sequencePart ? (
                   <section className="word-section">
-                    <h2 className="word-section-h1">III. SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS</h2>
+                    <h2 className="word-section-h1">{toRoman(sequencePart)}. SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS</h2>
                     <div className="word-table-responsive">
                       <table className="word-table">
                         <thead>
                           <tr>
-                            <th style={{ width: "20%" }}>Momento Didáctico</th>
+                            <th style={{ width: "20%" }}>Momento didáctico</th>
                             <th style={{ width: "12%" }} className="word-table-cell-center">Tiempo</th>
-                            <th style={{ width: "68%" }}>Actividades, Mediación y Procesos Pedagógicos</th>
+                            <th style={{ width: "68%" }}>Actividades, mediación y procesos pedagógicos</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr>
                             <td className="word-table-cell-bold">INICIO</td>
                             <td className="word-table-cell-center">15 - 20 min</td>
-                            <td>
-                              • Motivación y problematización inicial.<br />
-                              • Recuperación de saberes previos y conflicto cognitivo.<br />
-                              • Comunicación del propósito de aprendizaje y acuerdos de convivencia.
-                            </td>
+                            <td><KeyPointList items={["Motivación y problematización inicial.", "Recuperación de saberes previos y conflicto cognitivo.", "Comunicación del propósito de aprendizaje y acuerdos de convivencia."]} /></td>
                           </tr>
                           <tr>
                             <td className="word-table-cell-bold">DESARROLLO</td>
                             <td className="word-table-cell-center">55 - 60 min</td>
-                            <td>
-                              • Gestión y acompañamiento del desarrollo de las competencias.<br />
-                              • Trabajo individual y colaborativo con material concreto o textos.<br />
-                              • Retroalimentación por descubrimiento reflexivo ante errores constructivos.
-                            </td>
+                            <td><KeyPointList items={["Gestión y acompañamiento del desarrollo de las competencias.", "Trabajo individual y colaborativo con material concreto o textos.", "Retroalimentación por descubrimiento reflexivo ante errores constructivos."]} /></td>
                           </tr>
                           <tr>
                             <td className="word-table-cell-bold">CIERRE</td>
                             <td className="word-table-cell-center">10 - 15 min</td>
-                            <td>
-                              • Metacognición: ¿Qué aprendimos hoy? ¿Qué dificultades tuvimos y cómo las superamos?<br />
-                              • Evaluación del cumplimiento de acuerdos y compromisos para el hogar.
-                            </td>
+                            <td><KeyPointList items={["Metacognición: ¿Qué aprendimos hoy? ¿Qué dificultades tuvimos y cómo las superamos?", "Evaluación del cumplimiento de acuerdos y compromisos para el hogar."]} /></td>
                           </tr>
                         </tbody>
                       </table>
@@ -2144,51 +2038,38 @@ export function WordDocumentPreview({
                   </section>
                 ) : null}
 
-                {/* Secciones pedagógicas desarrolladas */}
-                <section className="word-section">
-                  <h2 className="word-section-h1">
-                    {toolId.includes("sesion") ? "IV. DESARROLLO DE CONTENIDOS Y EVIDENCIAS" : "III. PLANIFICACIÓN Y CONTENIDOS"}
-                  </h2>
-                  {artifact.sections.map((sec, idx) => (
-                    <div key={idx} style={{ marginBottom: "1.5rem" }}>
-                      <h3 className="word-section-h2">{idx + 1}. {sec.title}</h3>
-                      <p className="word-paper-p">{sec.narrative}</p>
-                      {sec.key_points.length > 0 ? (
-                        <ul>
-                          {sec.key_points.map((p, pIdx) => (
-                            <li key={pIdx} style={{ marginBottom: "0.35rem" }}>{p}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  ))}
-                </section>
+                {artifact.sections.map((sec, idx) => (
+                  <section className="word-section" key={`${sec.title}-${idx}`}>
+                    <h2 className="word-section-h1">{toRoman(sectionsStart + idx)}. {stripNumbering(sec.title)}</h2>
+                    <Narrative text={sec.narrative} />
+                    <KeyPointList items={sec.key_points} />
+                    <PreviewTables
+                      tables={(placement.bySection.get(idx) ?? []).map((table) => ({ table, index: tableIndexOf(table) }))}
+                      sectionTitle={sec.title}
+                      editingResult={editingResult}
+                      onUpdateTableCell={onUpdateTableCell}
+                    />
+                  </section>
+                ))}
 
                 {artifact.teacher_recommendations.length > 0 ? (
                   <section className="word-section">
-                    <h2 className="word-section-h1">ORIENTACIONES PARA LA REVISIÓN DOCENTE</h2>
-                    <ul>
-                      {artifact.teacher_recommendations.map((rec, idx) => (
-                        <li key={idx} style={{ marginBottom: "0.4rem" }}>{rec}</li>
-                      ))}
-                    </ul>
+                    <h2 className="word-section-h1">{toRoman(orientationsPart)}. ORIENTACIONES PARA LA REVISIÓN DOCENTE</h2>
+                    <KeyPointList items={artifact.teacher_recommendations} />
                   </section>
                 ) : null}
 
-                <div className="word-signatures-box">
-                  <div>
-                    <div className="word-signature-line">____________________________________________</div>
-                    <div className="word-signature-name">{teacher}</div>
-                    <div className="word-signature-role">Docente Responsable de {area}</div>
-                  </div>
-                  <div>
-                    <div className="word-signature-line">____________________________________________</div>
-                    <div className="word-signature-name">{director}</div>
-                    <div className="word-signature-role">Director(a) / Equipo Directivo</div>
-                  </div>
-                </div>
+                {signatures ? (
+                  <SignatureBox
+                    people={[
+                      { name: teacher, role: isPlaceholder(area) || /^_+$/.test(area) ? "Docente responsable" : `Docente responsable de ${area}` },
+                      { name: director, role: "Director(a) / Equipo Directivo" },
+                    ]}
+                  />
+                ) : null}
               </>
-            ) : null}
+              );
+            })() : null}
           </article>
           </div>
         </div>

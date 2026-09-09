@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 
 import type { WorkflowField } from "../../config/workflows";
 import { apiRequest } from "../../lib/api";
+import { readAccessToken } from "../../lib/session";
 
 type FieldValue = string | string[];
 
@@ -66,7 +67,7 @@ export function DocumentReferencePanel({ targetType, fields, selection, onImport
     const nextOpen = !open;
     setOpen(nextOpen);
     if (!nextOpen || documents.length) return;
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     setLoading(true);
     void apiRequest<CompatibleDocument[]>(`/documents/compatible/${targetType}`, { headers: { Authorization: `Bearer ${token}` } })

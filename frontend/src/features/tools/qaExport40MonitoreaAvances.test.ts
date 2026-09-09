@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { Packer } from "docx";
 import type { StructuredArtifact } from "./exportWorkflowDocx";
@@ -78,7 +79,7 @@ describe("QA Generator: 40-reforzamos-monitorea-avances", () => {
     });
 
     const buffer = await Packer.toBuffer(doc);
-    const targetDir = "c:\\Users\\PC\\Documents\\ChatGPT\\Avend Escala 3.0\\exports-qa-word";
+    const targetDir = process.env.QA_EXPORT_DIR ?? path.join(os.tmpdir(), "avendia-qa-export");
     const targetFile = path.join(targetDir, "40-reforzamos-monitorea-avances.docx");
 
     fs.mkdirSync(targetDir, { recursive: true });

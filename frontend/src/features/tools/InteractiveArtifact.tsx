@@ -72,7 +72,7 @@ function Matching({ activity }: { activity: WorkflowActivity }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [matched, setMatched] = useState<string[]>([]);
   const [attempts, setAttempts] = useState(0);
-  const answers = useMemo(() => [...activity.items].reverse().map((item, index, all) => all[(index + 1) % all.length]), [activity.items]);
+  const answers = useMemo(() => [...activity.items].reverse().map((_item, index, all) => all[(index + 1) % all.length]), [activity.items]);
   const chooseAnswer = (item: WorkflowActivityItem) => {
     if (!selected || matched.includes(item.id)) return;
     setAttempts((current) => current + 1);
