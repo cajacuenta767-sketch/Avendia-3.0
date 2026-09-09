@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { Packer } from "docx";
 import JSZip from "jszip";
@@ -100,7 +101,7 @@ describe("QA Generator: 27-evaluamos-examen", () => {
     expect(xml.slice(0, guideIndex)).toContain("Columna A");
     expect(xml.slice(0, guideIndex)).not.toContain("Apertura de trochas para extracción");
     expect(xml.slice(guideIndex)).toContain("Apertura de trochas para extracción");
-    const targetDir = "c:\\Users\\PC\\Documents\\ChatGPT\\Avend Escala 3.0\\exports-qa-word";
+    const targetDir = process.env.QA_EXPORT_DIR ?? path.join(os.tmpdir(), "avendia-qa-export");
     const targetFile = path.join(targetDir, "27-evaluamos-examen.docx");
 
     fs.mkdirSync(targetDir, { recursive: true });

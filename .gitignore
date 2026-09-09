@@ -26,3 +26,8 @@ backend/data/
 exports-qa-word/
 .DS_Store
 Thumbs.db
+
+# Logs and local scratch work
+*.log
+frontend/scratch/
+frontend/exports-qa-word/

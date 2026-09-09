@@ -21,7 +21,6 @@
     "pptxgenjs": "^4.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-hook-form": "^7.87.0",
     "react-router-dom": "^7.1.0",
     "recharts": "^3.10.1"
   },
@@ -46,5 +45,8 @@
   },
   "overrides": {
     "image-size": "npm:image-size-next@2.1.1"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

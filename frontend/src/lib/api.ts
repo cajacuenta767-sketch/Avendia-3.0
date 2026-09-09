@@ -68,7 +68,7 @@ function responseErrorMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
-function prepareRequest(path: string, init?: ApiRequestInit): {
+function prepareRequest(init?: ApiRequestInit): {
   requestInit: RequestInit;
   cancelTimeout: () => void;
 } {
@@ -123,7 +123,7 @@ function expireSession(path: string, status: number): void {
 
 export async function apiRequest<T>(path: string, init?: ApiRequestInit): Promise<T> {
   let response: Response;
-  const prepared = prepareRequest(path, init);
+  const prepared = prepareRequest(init);
 
   try {
     response = await fetch(`${API_URL}${path}`, prepared.requestInit);
@@ -165,7 +165,7 @@ export async function apiRequest<T>(path: string, init?: ApiRequestInit): Promis
 
 export async function apiBlob(path: string, init?: ApiRequestInit): Promise<{ blob: Blob; filename: string }> {
   let response: Response;
-  const prepared = prepareRequest(path, init);
+  const prepared = prepareRequest(init);
   try {
     response = await fetch(`${API_URL}${path}`, prepared.requestInit);
   } catch (error) {

@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { Packer } from "docx";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 import { buildSourceDocumentDocx } from "../evaluations/source-documents/exportSourceDocumentDocx";
 import { buildDocumentDocx, type StructuredArtifact } from "./exportWorkflowDocx";
 
-const targetDir = "c:\\Users\\PC\\Documents\\ChatGPT\\Avend Escala 3.0\\exports-qa-word";
+const targetDir = process.env.QA_EXPORT_DIR ?? path.join(os.tmpdir(), "avendia-qa-export");
 
 function artifact(title: string): StructuredArtifact {
   return {
