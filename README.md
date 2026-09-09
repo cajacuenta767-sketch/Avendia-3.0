@@ -50,10 +50,8 @@ Al terminar entra en `http://127.0.0.1:5173` con `admin@avendia.com` y
    ```
 
    `bootstrap_local.py` aplica las migraciones y deja lista una cuenta de
-   administrador para entrar. Sustituye a `alembic upgrade head` en local:
-   además del esquema, corrige la tabla `alembic_version` de PostgreSQL, cuya
-   columna por defecto (32 caracteres) no admite los nombres de revisión del
-   proyecto y hace fallar la migración.
+   administrador para entrar. Equivale a `alembic upgrade head` más la creación
+   del administrador definido en `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 
 4. Frontend:
 
@@ -98,5 +96,39 @@ npm run lint
 npm run test
 npm run build
 ```
+
+Estas mismas comprobaciones corren en GitHub Actions (`.github/workflows/ci.yml`)
+en cada pull request, más las migraciones y el seed contra un PostgreSQL limpio
+y la comprobación de que `docs/api-contract.md` coincide con el esquema OpenAPI.
+
+## Despliegue
+
+Hay dos caminos y ambos ejecutan el mismo código:
+
+- **Docker**: `docker compose up --build`. El contenedor de la API ejecuta
+  `scripts/prepare_production.py` al arrancar (crea el esquema, aplica las
+  migraciones y garantiza un administrador) y expone `/api/v1/ready` como
+  healthcheck. Corre como usuario sin privilegios.
+- **Vercel**: `backend/vercel.json` y `frontend/vercel.json`. Vercel no ejecuta
+  las migraciones: aplícalas antes de cada despliegue con
+  `DATABASE_URL=... DATABASE_SCHEMA=... uv run python scripts/prepare_production.py`
+  desde tu máquina o desde CI.
+
+Variables obligatorias en producción: `ENVIRONMENT=production`, `DATABASE_URL`
+(PostgreSQL), `DATABASE_SCHEMA`, `JWT_SECRET_KEY` (32+ caracteres),
+`GEMINI_API_KEY`, `ALLOWED_ORIGINS` con el dominio del frontend,
+`EXPOSE_PASSWORD_RESET_CODE=false` y las credenciales SMTP para la recuperación
+de contraseña. `ADMIN_EMAIL` y `ADMIN_PASSWORD` solo hacen falta la primera vez.
+
+## Seguridad operativa
+
+- Login, registro, recuperación de contraseña y generación con IA tienen límite
+  de intentos por cuenta y por IP (HTTP 429 con `Retry-After`). El limitador es
+  por proceso; con varias réplicas conviene respaldarlo con Redis.
+- `/docs`, `/redoc` y `/openapi.json` se apagan en producción.
+- Las imágenes externas solo se descargan de hosts públicos por HTTPS y cada
+  redirección se revalida (ver `app/core/safe_http.py`).
+- El frontend se sirve con `Content-Security-Policy` y cabeceras de
+  endurecimiento tanto en nginx como en Vercel.
 
 Antes de incorporar datos o rutas de Avendia anterior, sigue [el plan de migración](docs/migration-playbook.md).

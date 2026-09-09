@@ -16,10 +16,20 @@ PostgreSQL + pgvector
 
 ## Límites de módulos
 
-- `auth`: identidad, contraseñas, tokens y sesiones.
-- `users`: perfil, rol, membresía y preferencias.
-- `documents`: historial y contenido generado propiedad del usuario.
-- Próximos módulos: `planning`, `assessment`, `resources`, `tutoring`, `inclusion`, `credits` y `referrals`.
+- `auth`: identidad, contraseñas, tokens, recuperación y límites de intentos.
+- `users`: perfil, rol, catálogo educativo y preferencias de experiencia.
+- `documents`: historial, borradores y vista previa PDF de lo generado.
+- `ai`: herramientas de generación con Gemini, copiloto, presentaciones e imágenes.
+- `evaluation_instruments`: rúbricas, listas de cotejo y documentos fuente.
+- `rosters`: nóminas de estudiantes e importación desde Excel.
+- `calendar`: calendario escolar y eventos propios.
+- `templates` y `utilities`: formatos subidos, versiones, comunidad, ideas,
+  tutoriales, referidos e historial.
+- `admin`: panel de control, uso y créditos de IA, auditoría y ajustes.
+
+Transversales en `core`: configuración validada (`config.py`), envelope de
+errores (`errors.py`), seguridad JWT (`security.py`), limitador de ritmo
+(`ratelimit.py`) y descargas HTTPS seguras (`safe_http.py`).
 
 Cada módulo contiene sus propios modelos de entrada/salida y rutas. Las dependencias comunes viven en `core`, `db` y `api`.
 

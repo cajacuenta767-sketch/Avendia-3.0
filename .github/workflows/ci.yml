@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (ruff, pytest, migraciones en PostgreSQL)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: avendia_ci
+          POSTGRES_USER: avendia
+          POSTGRES_PASSWORD: avendia
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U avendia -d avendia_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Instalar dependencias
+        run: uv sync --dev --frozen
+      - name: Lint
+        run: uv run ruff check .
+      - name: Pruebas unitarias e integración (SQLite)
+        run: uv run pytest -q
+      - name: Migraciones y seed en PostgreSQL limpio
+        env:
+          ENVIRONMENT: development
+          DATABASE_URL: postgresql+asyncpg://avendia:avendia@localhost:5432/avendia_ci
+          DATABASE_SCHEMA: avendia3
+          JWT_SECRET_KEY: ci-secret-with-at-least-thirty-two-characters
+          ADMIN_EMAIL: admin@avendia.com
+          ADMIN_PASSWORD: Avendia2026!
+        run: |
+          uv run python scripts/prepare_production.py
+          uv run python scripts/prepare_production.py
+          uv run alembic current | grep -q "(head)"
+      - name: El contrato de API está actualizado
+        run: |
+          uv run python scripts/export_api_contract.py > /tmp/api-contract.md
+          diff -u ../docs/api-contract.md /tmp/api-contract.md
+
+  frontend:
+    name: Frontend (lint, typecheck, vitest, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Pruebas
+        run: npm run test
+      - name: Typecheck y build
+        run: npm run build
+      - name: Auditoría de dependencias de producción
+        run: npm audit --omit=dev --audit-level=high
