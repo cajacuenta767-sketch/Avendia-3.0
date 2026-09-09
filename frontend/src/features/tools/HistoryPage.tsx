@@ -26,7 +26,7 @@ import type { EvaluationInstrument } from "../evaluations/source-documents/evalu
 import { DocumentControls, DocumentTrash } from "../utilities/DocumentControls";
 import { UtilityHero } from "../utilities/UtilityHero";
 import { useUtilitySummary } from "../utilities/useUtilitySummary";
-import { sessionDraftScope } from "../../lib/session";
+import { sessionDraftScope, readAccessToken } from "../../lib/session";
 import "../utilities/utilities.css";
 type EvaluationSummary = Pick<EvaluationInstrument, "id" | "title" | "kind" | "status" | "created_at" | "updated_at">;
 
@@ -172,7 +172,7 @@ export function HistoryPage() {
   const [message, setMessage] = useState("");
 
   const refreshServer = useCallback(async (signal?: AbortSignal) => {
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     setLoading(true);
     try {
@@ -199,7 +199,7 @@ export function HistoryPage() {
     .sort((left, right) => (right.updatedAt || "").localeCompare(left.updatedAt || "")), [deviceItems, query, serverItems, source, status, favoritesOnly]);
 
   const duplicate = async (item: HistoryItem) => {
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token || !item.server) return;
     setWorkingId(item.id);
     try {
@@ -236,7 +236,7 @@ export function HistoryPage() {
         await refreshServer();
         setMessage("Instrumento archivado. Puedes restaurarlo cuando lo necesites.");
       } else {
-        const token = sessionStorage.getItem("avendia.accessToken");
+        const token = readAccessToken();
         if (!token) throw new Error("Sesión no disponible");
         await apiRequest(`/documents/${item.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
         setServerItems((current) => current.filter((entry) => entry.id !== item.id));

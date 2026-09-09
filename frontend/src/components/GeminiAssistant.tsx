@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 
 import { getToolByPath } from "../config/tools";
 import { apiRequest } from "../lib/api";
+import { readAccessToken } from "../lib/session";
 
 type AssistantField = { id: string; label: string; type: string };
 type AssistantContext = {
@@ -67,7 +68,7 @@ export function GeminiAssistant() {
     setInput("");
     setLoading(true);
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       const response = await apiRequest<CopilotResponse>("/ai/tools/copilot", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,

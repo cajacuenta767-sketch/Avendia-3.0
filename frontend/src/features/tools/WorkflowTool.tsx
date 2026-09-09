@@ -39,7 +39,7 @@ import {
   workflowModalities,
 } from "../../config/workflows";
 import { ApiError, apiBlob, apiRequest } from "../../lib/api";
-import { sessionDraftScope } from "../../lib/session";
+import { sessionDraftScope, readAccessToken } from "../../lib/session";
 import { useTeacherExperience } from "../../context/TeacherExperienceContext";
 import type { WorkflowArtifact } from "./exportWorkflowDocx";
 import { ContextualAIGuideDialog } from "./ContextualAIGuideDialog";
@@ -363,7 +363,7 @@ export function WorkflowTool() {
 
   useEffect(() => {
     if (!workflow || !documentIdFromUrl || draft.documentId === documentIdFromUrl) return;
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     type StoredDocument = { id: string; metadata_json: Record<string, unknown> };
     void apiRequest<StoredDocument>(`/documents/${documentIdFromUrl}`, {
@@ -388,7 +388,7 @@ export function WorkflowTool() {
   }, [documentIdFromUrl, draft.documentId, workflow]);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     void listInstitutionalTemplates().then((items) => {
       setTemplates(items);
@@ -409,7 +409,7 @@ export function WorkflowTool() {
   }, [preferences.always_show_help, workflow?.key]);
 
   useEffect(() => {
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     type Preferences = { consent: boolean; assistance_mode: AssistanceMode };
     void apiRequest<Preferences>("/ai/tools/field-assist/preferences", { headers: { Authorization: `Bearer ${token}` } })
@@ -526,7 +526,7 @@ export function WorkflowTool() {
     setStatus("saving");
     const saved = saveLocal(nextDraft);
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       if (token) {
         type StoredDocument = { id: string; metadata_json: Record<string, unknown> };
         const nextServerVersion = (saved.serverVersion ?? 0) + 1;
@@ -651,7 +651,7 @@ export function WorkflowTool() {
     setStatus("generating");
     setMessage("");
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       const requestId = crypto.randomUUID();
       const requestBody = JSON.stringify({
         request_id: requestId,
@@ -723,7 +723,7 @@ export function WorkflowTool() {
     const controller = new AbortController();
     guideRequest.current = controller;
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       const requestPayload = JSON.stringify({
           tool_id: tool.id,
           tool_title: tool.title,
@@ -782,7 +782,7 @@ export function WorkflowTool() {
 
   const saveGuideFeedback = (outcome: "useful" | "edited" | "incorrect" | "repetitive" | "too_long" | "discarded") => {
     if (!guideField) return;
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     void apiRequest("/ai/tools/field-assist/feedback", {
       method: "POST",
@@ -794,14 +794,14 @@ export function WorkflowTool() {
   const changeAssistanceMode = (value: AssistanceMode) => {
     setAssistanceMode(value);
     if (!rememberAssistance) return;
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     void apiRequest("/ai/tools/field-assist/preferences", { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ consent: true, assistance_mode: value, preferred_length: "balanced" }) }).catch(() => undefined);
   };
 
   const changeRememberAssistance = (value: boolean) => {
     setRememberAssistance(value);
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     void apiRequest("/ai/tools/field-assist/preferences", { method: "PATCH", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ consent: value, assistance_mode: assistanceMode, preferred_length: "balanced" }) }).catch(() => undefined);
   };
@@ -890,7 +890,7 @@ export function WorkflowTool() {
     if (!section) return;
     setRegeneratingSection(index);
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       const response = await apiRequest<{ reply: string }>("/ai/tools/copilot", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,

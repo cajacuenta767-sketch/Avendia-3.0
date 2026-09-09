@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 
 import { apiRequest } from "../../lib/api";
-import { readSessionUser } from "../../lib/session";
+import { readSessionUser, readAccessToken } from "../../lib/session";
 import { ActivityChart, RankingChart, SegmentDonut } from "./AdminCharts";
 import type {
   AdminDashboard, AdminTab, AdminUser, AdminUserDetail, AdminUsersResponse, AIUsageResponse,
@@ -24,7 +24,7 @@ const formatNumber = new Intl.NumberFormat("es-PE");
 const formatDate = new Intl.DateTimeFormat("es-PE", { dateStyle: "medium", timeStyle: "short" });
 
 function authHeaders() {
-  const token = sessionStorage.getItem("avendia.accessToken");
+  const token = readAccessToken();
   return token ? { Authorization: `Bearer ${token}` } : undefined;
 }
 function explainError(error: unknown) { return error instanceof Error ? error.message : "No se pudo completar la solicitud."; }

@@ -31,7 +31,7 @@ import {
   type EducationLevel,
 } from "../../config/education";
 import { ApiError, apiRequest } from "../../lib/api";
-import { sessionDraftScope } from "../../lib/session";
+import { sessionDraftScope, readAccessToken } from "../../lib/session";
 import { FormValidationSummary, type FormValidationItem } from "./FormValidationSummary";
 
 type EducationModality = (typeof educationModalities)[number]["value"];
@@ -196,7 +196,7 @@ export function SequenceOrderingTool() {
 
   useEffect(() => {
     if (!documentIdFromUrl || documentId === documentIdFromUrl) return;
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) return;
     type StoredDocument = { id: string; content: string | null; metadata_json: Record<string, unknown> };
     void apiRequest<StoredDocument>(`/documents/${documentIdFromUrl}`, { headers: { Authorization: `Bearer ${token}` } }).then((document) => {
@@ -282,7 +282,7 @@ export function SequenceOrderingTool() {
       return;
     }
     setValidationItems([]);
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) {
       setError("Tu sesión no está activa. Vuelve a ingresar para utilizar Avend IA.");
       return;
@@ -404,7 +404,7 @@ export function SequenceOrderingTool() {
 
   async function saveDraft() {
     if (!result) return;
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     if (!token) {
       setError("Tu sesión no está activa. Vuelve a ingresar para guardar el borrador.");
       return;

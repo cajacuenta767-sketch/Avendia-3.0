@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import { apiRequest } from "../../lib/api";
-import { readSessionUser } from "../../lib/session";
+import { readSessionUser, readAccessToken } from "../../lib/session";
 
 type Summary = { users_total: number; credits_available: number; credits_assigned: number; tokens_consumed: number; generations: number };
 type Account = { id: string; full_name: string; email: string; role: string; is_active: boolean; ai_credits_balance: number; ai_credits_total: number; ai_tokens_consumed: number; ai_generations: number; created_at: string };
@@ -18,7 +18,7 @@ export function AdminTokensPage() {
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
       const [nextSummary, nextAccounts] = await Promise.all([
@@ -40,7 +40,7 @@ export function AdminTokensPage() {
   if (user.role !== "admin") return <Navigate to="/dashboard" replace />;
 
   async function adjust(account: Account, amount: number) {
-    const token = sessionStorage.getItem("avendia.accessToken");
+    const token = readAccessToken();
     setUpdating(account.id); setError("");
     try {
       await apiRequest(`/admin/ai-usage/accounts/${account.id}`, { method: "PATCH", headers: token ? { Authorization: `Bearer ${token}` } : undefined, body: JSON.stringify({ amount, reason: "Ajuste manual desde el panel de administración" }) });

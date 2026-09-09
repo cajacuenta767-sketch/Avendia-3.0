@@ -12,6 +12,7 @@ import { SourceDocumentInput } from "./SourceDocumentInput";
 import { useEvaluationInstrument } from "./useEvaluationInstrument";
 import "./evaluationWizard.css";
 import "./SourceDocumentInput.css";
+import { readAccessToken } from "../../../lib/session";
 
 export type SourceDocumentToolKind = "learning_sheet" | "text_questions";
 
@@ -281,7 +282,7 @@ export function SourceDocumentTool({
     setGenerating(true);
     setGenerationError("");
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       const artifact = await apiRequest<WorkflowArtifact>("/ai/tools/workflow/generate", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,

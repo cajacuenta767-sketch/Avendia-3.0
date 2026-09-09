@@ -15,6 +15,7 @@ import type { WorkflowArtifact } from "../../tools/exportWorkflowDocx";
 import "../source-documents/evaluationWizard.css";
 import "../source-documents/SourceDocumentInput.css";
 import "./RecoveryFolderTool.css";
+import { readAccessToken } from "../../../lib/session";
 
 const STEPS: EvaluationWizardStep[] = [
   { id: "diagnosis", label: "Diagnóstico y grupo", description: "Selecciona estudiantes y describe la necesidad concreta de recuperación." },
@@ -128,7 +129,7 @@ export function RecoveryFolderTool({ instrumentId, onInstrumentIdChange }: { ins
     setGenerating(true);
     setGenerationError("");
     try {
-      const token = sessionStorage.getItem("avendia.accessToken");
+      const token = readAccessToken();
       const artifact = await apiRequest<WorkflowArtifact>("/ai/tools/workflow/generate", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
