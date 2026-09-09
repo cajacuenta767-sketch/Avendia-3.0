@@ -920,6 +920,11 @@ function createSignaturesTable(
   });
 }
 
+/** Sustituye un dato no aportado por una línea de llenado en cabeceras y textos corridos. */
+function fill(value: string, width = 12): string {
+  return isPlaceholder(value) ? "_".repeat(width) : value;
+}
+
 function extractCommonValues(values: Record<string, unknown> = {}, context: Record<string, unknown> = {}) {
   const missing = "No registrado";
   // Algunas llamadas (p. ej. las muestras de QA) traen los datos en el contexto y no en `values`.
@@ -1009,9 +1014,9 @@ export function buildInstrumentDocx(
       rows: [
         new TableRow({
           children: [
-            createStyledCell(`I.E.: ${v.ie}`, { widthPercent: 40 }),
-            createStyledCell(`Área: ${v.area}`, { widthPercent: 35 }),
-            createStyledCell(`Grado/Secc: ${v.grade} "${v.section}"`, { widthPercent: 25 }),
+            createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 40 }),
+            createStyledCell(`Área: ${fill(v.area, 14)}`, { widthPercent: 35 }),
+            createStyledCell(`Grado/Secc: ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 25 }),
           ],
         }),
         new TableRow({
@@ -1020,12 +1025,12 @@ export function buildInstrumentDocx(
               colSpan: 2,
               widthPercent: 75,
             }),
-            createStyledCell(`Fecha: ____/____/${v.year}`, { widthPercent: 25 }),
+            createStyledCell(`Fecha: ____/____/${fill(v.year, 6)}`, { widthPercent: 25 }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell(`Docente evaluador: ${v.teacher}`, { colSpan: 2, widthPercent: 75 }),
+            createStyledCell(`Docente evaluador: ${fill(v.teacher, 22)}`, { colSpan: 2, widthPercent: 75 }),
             createStyledCell(`Puntaje: ____ / ${cleanText(context.values?.total_score) || "20"}`, {
               bold: true,
               widthPercent: 25,
@@ -1052,7 +1057,7 @@ export function buildInstrumentDocx(
         new TableRow({
           children: [
             createStyledCell("ÁREA CURRICULAR / GRADO", { bold: true, widthPercent: 35 }),
-            createStyledCell(`${v.area} · ${v.grade} "${v.section}"`, { widthPercent: 65 }),
+            createStyledCell(`${fill(v.area, 14)} · ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 65 }),
           ],
         }),
         new TableRow({
@@ -1432,14 +1437,14 @@ export function buildActivityDocx(
             colSpan: 2,
             widthPercent: 75,
           }),
-          createStyledCell(`Grado/Secc: ${v.grade} "${v.section}"`, { widthPercent: 25 }),
+          createStyledCell(`Grado/Secc: ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 25 }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell(`I.E.: ${v.ie}`, { widthPercent: 50 }),
-          createStyledCell(`Área: ${v.area}`, { widthPercent: 25 }),
-          createStyledCell(`Fecha: ____/____/${v.year}`, { widthPercent: 25 }),
+          createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 50 }),
+          createStyledCell(`Área: ${fill(v.area, 14)}`, { widthPercent: 25 }),
+          createStyledCell(`Fecha: ____/____/${fill(v.year, 6)}`, { widthPercent: 25 }),
         ],
       }),
     ],
@@ -3000,7 +3005,7 @@ export function buildAnalyticsDocx(
       new TableRow({
         children: [
           createStyledCell("GRADO Y SECCIÓN EVALUADA", { bold: true, widthPercent: 35 }),
-          createStyledCell(`${v.grade} "${v.section}" · ${v.area}`, { widthPercent: 65 }),
+          createStyledCell(`${fill(v.grade, 10)} "${fill(v.section, 4)}" · ${fill(v.area, 14)}`, { widthPercent: 65 }),
         ],
       }),
       new TableRow({
@@ -3140,7 +3145,7 @@ export function buildCommunicationDocx(
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: `COMUNICADO OFICIAL A LA FAMILIA · CICLO ESCOLAR ${v.year}`,
+          text: `COMUNICADO OFICIAL A LA FAMILIA · CICLO ESCOLAR ${fill(v.year, 6)}`,
           bold: true,
           color: COLOR_SECONDARY,
           size: 19,
@@ -3157,13 +3162,13 @@ export function buildCommunicationDocx(
     rows: [
       new TableRow({
         children: [
-          createStyledCell(`Para: ${v.guardian} (Padre, madre o tutor legal)`, { widthPercent: 60 }),
+          createStyledCell(`Para: ${fill(v.guardian, 22)} (Padre, madre o tutor legal)`, { widthPercent: 60 }),
           createStyledCell(`Fecha: ${new Date().toLocaleDateString("es-PE")}`, { widthPercent: 40 }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell(`Estudiante: ${v.student} · ${v.grade} "${v.section}"`, { widthPercent: 60 }),
+          createStyledCell(`Estudiante: ${fill(v.student, 22)} · ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 60 }),
           createStyledCell(`Asunto: ${cleanText(artifact.document_title)}`, { bold: true, widthPercent: 40 }),
         ],
       }),
@@ -3227,7 +3232,7 @@ export function buildCommunicationDocx(
     new Paragraph({
       children: [
         new TextRun({
-          text: `Yo, ____________________________________________________, identificado con DNI N.° __________________, padre/madre/tutor de ${v.student} del ${v.grade} "${v.section}", confirmo haber recibido y tomado conocimiento de la comunicación "${cleanText(artifact.document_title)}". Firma del Padre / Apoderado: __________________________________        Teléfono: ___________________`,
+          text: `Yo, ____________________________________________________, identificado con DNI N.° __________________, padre/madre/tutor de ${fill(v.student, 22)} del ${fill(v.grade, 10)} "${fill(v.section, 4)}", confirmo haber recibido y tomado conocimiento de la comunicación "${cleanText(artifact.document_title)}". Firma del Padre / Apoderado: __________________________________        Teléfono: ___________________`,
           size: 17,
           font: "Calibri",
           color: COLOR_TEXT,
@@ -3342,12 +3347,12 @@ export function buildHomeworkDocx(
         new TableRow({
           children: [
             createStyledCell("Estudiante: __________________________________________", { widthPercent: 60 }),
-            createStyledCell(`Grado y sección: ${v.grade} — ${v.section}`, { widthPercent: 40 }),
+            createStyledCell(`Grado y sección: ${fill(v.grade, 10)} — ${fill(v.section, 4)}`, { widthPercent: 40 }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell(`I.E.: ${v.ie}`, { widthPercent: 60 }),
+            createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 60 }),
             createStyledCell("Fecha: ____ / ____ / ______", { widthPercent: 40 }),
           ],
         }),
@@ -3637,7 +3642,7 @@ export function buildDocumentDocx(
     ["DRE", v.dre],
     ["UGEL", v.ugel],
     ["INSTITUCIÓN EDUCATIVA", v.ie],
-    ["NIVEL / GRADO / SECCIÓN", `${v.level} / ${v.grade} "${v.section}"`],
+    ["NIVEL / GRADO / SECCIÓN", `${fill(v.level, 10)} / ${fill(v.grade, 10)} "${fill(v.section, 4)}"`],
     ["ÁREA CURRICULAR", v.area],
     ["DOCENTE RESPONSABLE", v.teacher],
     ["DIRECTOR(A)", v.director],
