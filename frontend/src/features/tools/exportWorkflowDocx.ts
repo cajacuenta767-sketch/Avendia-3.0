@@ -34,6 +34,7 @@ import {
   scoreToVigesimal,
   splitLabel,
   splitNarrative,
+  stripNumbering,
   toRoman,
   type DocumentQuestion,
 } from "./documentFormat";
@@ -284,6 +285,17 @@ const documentStyles = {
       run: { font: "Calibri", size: 22, bold: true, color: COLOR_SECONDARY },
       paragraph: { spacing: { before: 180, after: 80 }, keepNext: true, outlineLevel: 1 },
     },
+    // Entradas del índice precargado (se ven en cualquier visor; Word las actualiza con páginas).
+    {
+      id: "TOC1", name: "toc 1", basedOn: "Normal", next: "Normal",
+      run: { font: "Calibri", size: 20, bold: true, color: COLOR_PRIMARY },
+      paragraph: { spacing: { before: 60, after: 40 } },
+    },
+    {
+      id: "TOC2", name: "toc 2", basedOn: "Normal", next: "Normal",
+      run: { font: "Calibri", size: 19, color: COLOR_TEXT },
+      paragraph: { spacing: { after: 30 }, indent: { left: 360 } },
+    },
     {
       id: "Heading3",
       name: "Heading 3",
@@ -304,9 +316,10 @@ function pageProperties(mode: PageMode = "portrait") {
   return {
     page: {
       size: {
+        // docx intercambia ancho y alto cuando la orientación es horizontal: siempre se pasa A4 vertical.
         orientation: landscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
-        width: landscape ? 16838 : 11906,
-        height: landscape ? 11906 : 16838,
+        width: 11906,
+        height: 16838,
       },
       margin: landscape
         ? { top: 720, bottom: 720, left: 1080, right: 1080 }
@@ -1282,8 +1295,8 @@ export function buildInstrumentDocx(
           page: {
             size: {
               orientation: isLandscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
-              width: isLandscape ? 16838 : 11906,
-              height: isLandscape ? 11906 : 16838,
+              width: 11906,
+              height: 16838,
             },
             margin: { top: 900, bottom: 900, left: 1080, right: 1080 },
           },
@@ -3488,10 +3501,13 @@ const LONG_DOCUMENTS: Array<[string, string]> = [
 ];
 
 /** Portada institucional e índice para los documentos extensos. */
+type IndexEntry = { title: string; level: 1 | 2 };
+
 function createCoverBlocks(
   artifact: WorkflowArtifact,
   v: ReturnType<typeof extractCommonValues>,
   kindLabel: string,
+  entries: IndexEntry[],
 ): (Paragraph | Table | TableOfContents)[] {
   const line = (text: string, size: number, bold = false, color = COLOR_TEXT) => new Paragraph({
     alignment: AlignmentType.CENTER,
@@ -3530,7 +3546,7 @@ function createCoverBlocks(
     line(`Año lectivo ${isPlaceholder(v.year) ? "________" : v.year}`, 22, true, COLOR_SECONDARY),
     new Paragraph({ children: [new PageBreak()] }),
     createHeading("CONTENIDO", HeadingLevel.HEADING_1),
-    new TableOfContents("Contenido", { hyperlink: true, headingStyleRange: "1-2" }),
+    new TableOfContents("Contenido", { hyperlink: true, headingStyleRange: "1-2", cachedEntries: entries }),
     new Paragraph({ children: [new PageBreak()] }),
   ];
 }
@@ -3543,9 +3559,30 @@ export function buildDocumentDocx(
   const isSession = (context.workflowKey || "").includes("sesion");
   const longDocument = LONG_DOCUMENTS.find(([key]) => (context.workflowKey || "").includes(key));
   const isLongDocument = Boolean(longDocument);
+  // Las tablas se imprimen junto a la sección que las describe; el resto forma
+  // un bloque de matrices. Solo sin tablas de la IA se usa la secuencia genérica.
+  const placement = attachTablesToSections(artifact);
+  const showGenericSequence = placement.remaining.length === 0 && isSession && (artifact.tables?.length ?? 0) === 0;
   const children: (Paragraph | Table | TableOfContents)[] = [];
   if (longDocument) {
-    children.push(...createCoverBlocks(artifact, v, context.toolTitle ? String(context.toolTitle) : longDocument[1]));
+    // Índice precargado con la misma estructura que se construye más abajo.
+    let part = 3;
+    const entries: IndexEntry[] = [
+      { title: "I. INFORMACIÓN GENERAL", level: 1 },
+      { title: "II. PROPÓSITO GENERAL Y FUNDAMENTACIÓN", level: 1 },
+    ];
+    if (placement.remaining.length > 0) {
+      entries.push({ title: `${toRoman(part)}. MATRICES DE PLANIFICACIÓN`, level: 1 });
+      placement.remaining.forEach((table) => entries.push({ title: cleanText(table.title), level: 2 }));
+      part += 1;
+    } else if (showGenericSequence) {
+      entries.push({ title: "III. SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS", level: 1 });
+      part += 1;
+    }
+    artifact.sections.forEach((sec, idx) => entries.push({ title: `${toRoman(part + idx)}. ${stripNumbering(cleanText(sec.title)).toLocaleUpperCase("es")}`, level: 1 }));
+    part += artifact.sections.length;
+    if (artifact.teacher_recommendations.length > 0) entries.push({ title: `${toRoman(part)}. ORIENTACIONES PARA LA REVISIÓN DOCENTE`, level: 1 });
+    children.push(...createCoverBlocks(artifact, v, context.toolTitle ? String(context.toolTitle) : longDocument[1], entries));
   }
 
   children.push(
@@ -3628,15 +3665,12 @@ export function buildDocumentDocx(
   children.push(createHeading("PROPÓSITO GENERAL Y FUNDAMENTACIÓN", HeadingLevel.HEADING_1, "II."));
   children.push(createBodyParagraph(artifact.executive_summary));
 
-  // Las tablas se imprimen junto a la sección que las describe; el resto forma
-  // un bloque de matrices. Solo sin tablas de la IA se usa la secuencia genérica.
-  const placement = attachTablesToSections(artifact);
   let partNumber = 3;
   if (placement.remaining.length > 0) {
     children.push(createHeading("MATRICES DE PLANIFICACIÓN", HeadingLevel.HEADING_1, `${toRoman(partNumber)}.`));
     children.push(...createTableBlocks(placement.remaining));
     partNumber += 1;
-  } else if (isSession && (artifact.tables?.length ?? 0) === 0) {
+  } else if (showGenericSequence) {
     children.push(createHeading("SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS", HeadingLevel.HEADING_1, "III."));
     const momentsRows: TableRow[] = [
       new TableRow({
@@ -3688,7 +3722,7 @@ export function buildDocumentDocx(
 
   // Secciones desarrolladas, cada una con sus tablas a continuación
   artifact.sections.forEach((sec, idx) => {
-    children.push(createHeading(sec.title, HeadingLevel.HEADING_1, `${toRoman(partNumber + idx)}.`));
+    children.push(createHeading(stripNumbering(sec.title), HeadingLevel.HEADING_1, `${toRoman(partNumber + idx)}.`));
     if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
     sec.key_points.forEach((point) => children.push(createKeyPoint(point)));
     const sectionTables = placement.bySection.get(idx);

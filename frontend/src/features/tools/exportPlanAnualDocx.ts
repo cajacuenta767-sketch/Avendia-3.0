@@ -167,10 +167,24 @@ export async function buildPlanAnualDocxDocument(
     ["Subdirector(a)", value(values, "subdirector_name")], ["Enfoque pedagógico", value(values, "pedagogical_approach")],
     ["Tono de redacción", value(values, "writing_tone")], ["Enfoque de evaluación", value(values, "assessment_approach")],
   ] as Array<[string, string]>).filter(([, content]) => !isPlaceholder(content));
+  const signers: Array<[string, string]> = [
+    [value(values, "teacher_name"), "Docente responsable"],
+    [value(values, "director_name"), "Director(a)"],
+  ].filter(([name]) => !isPlaceholder(name)) as Array<[string, string]>;
+  // Índice precargado: se ve en cualquier visor y Word lo completa con las páginas al actualizar campos.
+  const indexEntries = [
+    { title: "I. DATOS INFORMATIVOS", level: 1 },
+    { title: "II. SÍNTESIS DE LA PLANIFICACIÓN", level: 1 },
+    ...artifact.sections.map((section, index) => ({ title: `${index + 1}. ${stripNumbering(cleanText(section.title))}`, level: 2 })),
+    { title: "III. MATRICES ANUALES", level: 1 },
+    ...tables.map((table, index) => ({ title: `${index + 1}. ${stripNumbering(cleanText(table.title))}`, level: 2 })),
+    { title: "IV. RECOMENDACIONES PARA LA IMPLEMENTACIÓN", level: 1 },
+    ...(signers.length ? [{ title: "V. VALIDACIÓN", level: 1 }] : []),
+  ];
   const children: Array<Paragraph | Table> = [
     ...coverPage(artifact, values),
     heading("Contenido", HeadingLevel.HEADING_1),
-    new TableOfContents("Contenido", { hyperlink: true, headingStyleRange: "1-2" }),
+    new TableOfContents("Contenido", { hyperlink: true, headingStyleRange: "1-2", cachedEntries: indexEntries }),
     new Paragraph({ children: [new PageBreak()] }),
     heading("I. DATOS INFORMATIVOS", HeadingLevel.HEADING_1),
     dataTable(information.length ? information : [["Institución educativa", "________________"], ["Docente responsable", "________________"], ["Año lectivo", "________"]]),
@@ -203,10 +217,6 @@ export async function buildPlanAnualDocxDocument(
     spacing: { after: 55 },
   })));
 
-  const signers: Array<[string, string]> = [
-    [value(values, "teacher_name"), "Docente responsable"],
-    [value(values, "director_name"), "Director(a)"],
-  ].filter(([name]) => !isPlaceholder(name)) as Array<[string, string]>;
   if (signers.length) {
     children.push(new Paragraph({
       children: [new TextRun({ text: "V. VALIDACIÓN", bold: true, color: TEXT, size: 23, font: "Calibri" })],
@@ -241,10 +251,12 @@ export async function buildPlanAnualDocxDocument(
       paragraphStyles: [
         { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: "Calibri", size: 24, bold: true, color: PRIMARY }, paragraph: { spacing: { before: 220, after: 80 }, keepNext: true, outlineLevel: 0 } },
         { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: "Calibri", size: 21, bold: true, color: SECONDARY }, paragraph: { spacing: { before: 150, after: 80 }, keepNext: true, outlineLevel: 1 } },
+        { id: "TOC1", name: "toc 1", basedOn: "Normal", next: "Normal", run: { font: "Calibri", size: 20, bold: true, color: PRIMARY }, paragraph: { spacing: { before: 60, after: 40 } } },
+        { id: "TOC2", name: "toc 2", basedOn: "Normal", next: "Normal", run: { font: "Calibri", size: 19, color: TEXT }, paragraph: { spacing: { after: 30 }, indent: { left: 360 } } },
       ],
     },
     sections: [{
-      properties: { page: { size: { orientation: PageOrientation.LANDSCAPE, width: 16838, height: 11906 }, margin: { top: 720, right: 900, bottom: 720, left: 900 } } },
+      properties: { page: { size: { orientation: PageOrientation.LANDSCAPE, width: 11906, height: 16838 }, margin: { top: 720, right: 900, bottom: 720, left: 900 } } },
       headers: { default: new Header({ children: [paragraph(`${institution} · PCA ${year}`, { size: 15 })] }) },
       footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "Página ", color: MUTED, size: 15 }), new TextRun({ children: [PageNumber.CURRENT], color: MUTED, size: 15 }), new TextRun({ text: " de ", color: MUTED, size: 15 }), new TextRun({ children: [PageNumber.TOTAL_PAGES], color: MUTED, size: 15 })] })] }) },
       children,

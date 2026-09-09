@@ -19,7 +19,7 @@ import {
 
 import type { WorkflowDefinition } from "../../config/workflows";
 import { AnswerKeyTable, DocumentCover, DocumentIndex, InfoTable, KeyPointList, KeyPointText, Narrative, PreviewTables, QuestionBlock, RiskBadge, ScoringTable, SignatureBox, type IndexEntry } from "./DocumentText";
-import { attachTablesToSections, isPlaceholder, resolveQuestions, riskLevelFor, rubricScoring, toRoman } from "./documentFormat";
+import { attachTablesToSections, isPlaceholder, resolveQuestions, riskLevelFor, rubricScoring, toRoman, stripNumbering } from "./documentFormat";
 import type { WorkflowArtifactTable, WorkflowArtifact } from "./exportWorkflowDocx";
 import { HomeworkDocumentPreview } from "./HomeworkDocumentPreview";
 import { PdfDocumentPreview } from "./PdfDocumentPreview";
@@ -1938,7 +1938,7 @@ export function WordDocumentPreview({
                   ...placement.remaining.map((table) => ({ label: table.title, level: 2 as const })),
                 ] : []),
                 ...(sequencePart ? [{ label: `${toRoman(sequencePart)}. SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS` }] : []),
-                ...artifact.sections.map((sec, idx) => ({ label: `${toRoman(sectionsStart + idx)}. ${sec.title}` })),
+                ...artifact.sections.map((sec, idx) => ({ label: `${toRoman(sectionsStart + idx)}. ${stripNumbering(sec.title)}` })),
                 ...(artifact.teacher_recommendations.length ? [{ label: `${toRoman(orientationsPart)}. ORIENTACIONES PARA LA REVISIÓN DOCENTE` }] : []),
               ];
               return (
@@ -2040,7 +2040,7 @@ export function WordDocumentPreview({
 
                 {artifact.sections.map((sec, idx) => (
                   <section className="word-section" key={`${sec.title}-${idx}`}>
-                    <h2 className="word-section-h1">{toRoman(sectionsStart + idx)}. {sec.title}</h2>
+                    <h2 className="word-section-h1">{toRoman(sectionsStart + idx)}. {stripNumbering(sec.title)}</h2>
                     <Narrative text={sec.narrative} />
                     <KeyPointList items={sec.key_points} />
                     <PreviewTables
