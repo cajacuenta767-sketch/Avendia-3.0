@@ -54,7 +54,7 @@ import {
   type AssistanceMode,
 } from "./pedagogicalContext";
 import { StructuredArtifactPreview } from "./StructuredArtifactPreview";
-import { listInstitutionalTemplates, renderInstitutionalTemplate, type InstitutionalTemplate } from "./templateApi";
+import { applyInstitutionalTemplate, listInstitutionalTemplates, renderInstitutionalTemplate, type InstitutionalTemplate } from "./templateApi";
 
 type FieldValue = string | string[];
 type Draft = {
@@ -420,17 +420,23 @@ export function WorkflowTool() {
   }, []);
 
   const exactPreviewWorkflowKey = workflow?.key ?? "";
+  const exactPreviewTemplate = templates.find((template) => template.id === draft.templateId);
   const exactPreviewToolTitle = tool?.title ?? "";
   const prepareExactPreview = useCallback(async () => {
     if (!draft.artifact || !exactPreviewWorkflowKey || !exactPreviewToolTitle) {
       throw new Error("No hay documento para previsualizar.");
     }
     const { buildWorkflowDocxBlob } = await import("./exportWorkflowDocx");
-    const { blob, fileName } = await buildWorkflowDocxBlob(draft.artifact, {
+    const generated = await buildWorkflowDocxBlob(draft.artifact, {
       workflowKey: exactPreviewWorkflowKey,
       values: draft.values,
       toolTitle: exactPreviewToolTitle,
     });
+    const fileName = generated.fileName;
+    // La vista exacta muestra el documento tal como se descargará, con el formato institucional si hay uno.
+    const blob = exactPreviewTemplate && exactPreviewTemplate.extension === ".docx"
+      ? (await applyInstitutionalTemplate(exactPreviewTemplate.id, generated.blob, fileName)).blob
+      : generated.blob;
     const form = new FormData();
     form.set("file", new File([blob], fileName, {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -441,7 +447,7 @@ export function WorkflowTool() {
       timeoutMs: 55_000,
     });
     return preview.blob;
-  }, [draft.artifact, draft.values, exactPreviewToolTitle, exactPreviewWorkflowKey]);
+  }, [draft.artifact, draft.values, exactPreviewTemplate, exactPreviewToolTitle, exactPreviewWorkflowKey]);
 
   if (!tool || !workflow || !currentStep) return <Navigate to="/dashboard" replace />;
 
@@ -591,7 +597,15 @@ export function WorkflowTool() {
     try {
       const persisted = await saveDocument(draft);
       if (!persisted) return;
-      if (selectedTemplate) {
+      if (selectedTemplate && selectedTemplate.extension === ".docx") {
+        // El Word completo de Avendia recibe la cabecera, el pie y el logo del formato de la escuela.
+        const { buildWorkflowDocxBlob } = await import("./exportWorkflowDocx");
+        const generated = await buildWorkflowDocxBlob(draft.artifact, { workflowKey: workflow.key, values: draft.values, toolTitle: tool.title });
+        const branded = await applyInstitutionalTemplate(selectedTemplate.id, generated.blob, generated.fileName);
+        const { downloadApiBlob } = await import("../../lib/api");
+        downloadApiBlob({ blob: branded.blob, filename: generated.fileName });
+        setMessage(`Documento descargado con el formato ${selectedTemplate.name}.`);
+      } else if (selectedTemplate) {
         await renderInstitutionalTemplate(selectedTemplate.id, draft.artifact, workflow.key);
         setMessage(`Documento descargado con ${selectedTemplate.name}.`);
       } else {

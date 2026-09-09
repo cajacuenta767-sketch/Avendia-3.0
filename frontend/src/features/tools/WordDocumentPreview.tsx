@@ -18,13 +18,23 @@ import {
 } from "lucide-react";
 
 import type { WorkflowDefinition } from "../../config/workflows";
-import { AnswerKeyTable, InfoTable, KeyPointList, KeyPointText, Narrative, PreviewTables, QuestionBlock, RiskBadge, ScoringTable, SignatureBox } from "./DocumentText";
+import { AnswerKeyTable, DocumentCover, DocumentIndex, InfoTable, KeyPointList, KeyPointText, Narrative, PreviewTables, QuestionBlock, RiskBadge, ScoringTable, SignatureBox, type IndexEntry } from "./DocumentText";
 import { attachTablesToSections, isPlaceholder, resolveQuestions, riskLevelFor, rubricScoring, toRoman } from "./documentFormat";
 import type { WorkflowArtifactTable, WorkflowArtifact } from "./exportWorkflowDocx";
 import { HomeworkDocumentPreview } from "./HomeworkDocumentPreview";
 import { PdfDocumentPreview } from "./PdfDocumentPreview";
 import { PlanAnualDocumentPreview } from "./PlanAnualDocumentPreview";
 import "../../styles/word-preview.css";
+
+/** Herramientas cuyo Word lleva portada e índice (ver LONG_DOCUMENTS en exportWorkflowDocx.ts). */
+const LONG_DOCUMENT_KINDS: Array<[string, string]> = [
+  ["carpeta-pedagogica", "Carpeta pedagógica"],
+  ["unidad-aprendizaje", "Unidad de aprendizaje"],
+  ["proyectos-integrados", "Proyecto de aprendizaje integrado"],
+  ["plan-tutoria", "Plan de tutoría"],
+  ["plan-atencion", "Plan de atención"],
+  ["plan-refuerzo", "Plan de refuerzo"],
+];
 
 type Props = {
   artifact: WorkflowArtifact;
@@ -1918,8 +1928,41 @@ export function WordDocumentPreview({
                 "unidad-aprendizaje", "sesion-aprendizaje", "proyectos-integrados", "adaptacion-nee-dua", "carpeta-pedagogica",
                 "plan-atencion", "plan-refuerzo", "plan-tutoria", "informe-tutoria", "informe-padres", "fichas-acompanamiento",
               ].some((key) => (workflowKey || toolId).includes(key));
+              // Documentos extensos: portada e índice, igual que el Word exportado.
+              const longDocumentKind = LONG_DOCUMENT_KINDS.find(([key]) => (workflowKey || toolId).includes(key))?.[1];
+              const indexEntries: IndexEntry[] = [
+                { label: "I. INFORMACIÓN GENERAL" },
+                { label: "II. PROPÓSITO GENERAL Y FUNDAMENTACIÓN" },
+                ...(matricesPart ? [
+                  { label: `${toRoman(matricesPart)}. MATRICES DE PLANIFICACIÓN` },
+                  ...placement.remaining.map((table) => ({ label: table.title, level: 2 as const })),
+                ] : []),
+                ...(sequencePart ? [{ label: `${toRoman(sequencePart)}. SECUENCIA DIDÁCTICA Y PROCESOS PEDAGÓGICOS` }] : []),
+                ...artifact.sections.map((sec, idx) => ({ label: `${toRoman(sectionsStart + idx)}. ${sec.title}` })),
+                ...(artifact.teacher_recommendations.length ? [{ label: `${toRoman(orientationsPart)}. ORIENTACIONES PARA LA REVISIÓN DOCENTE` }] : []),
+              ];
               return (
               <>
+                {longDocumentKind ? (
+                  <>
+                    <DocumentCover
+                      institution={ie}
+                      kindLabel={longDocumentKind}
+                      title={artifact.document_title}
+                      rows={[
+                        ["Institución educativa", ie],
+                        ["DRE / UGEL", [dre, ugel].filter((part) => !/^_+$/.test(part)).join(" / ")],
+                        ["Nivel / grado / sección", /^_+$/.test(grade) ? "" : `${level} / ${grade} "${section}"`],
+                        ["Área curricular", area],
+                        ["Docente responsable", teacher],
+                        ["Director(a)", director],
+                        ["Año lectivo", year],
+                      ]}
+                      year={year}
+                    />
+                    <DocumentIndex entries={indexEntries} />
+                  </>
+                ) : null}
                 <header className="word-paper-header">
                   <div className="word-paper-motto">
                     DOCUMENTO PEDAGÓGICO EDITABLE

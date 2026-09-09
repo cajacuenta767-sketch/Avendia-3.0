@@ -55,3 +55,14 @@ describe("documentFormat", () => {
     expect(sameTitle("Secuencia didáctica", "Secuencia didáctica de la sesión")).toBe(false);
   });
 });
+
+describe("stripNumbering", () => {
+  it("removes a leading roman, decimal or letter ordinal", async () => {
+    const { stripNumbering } = await import("./documentFormat");
+    expect(stripNumbering("I. Justificación curricular")).toBe("Justificación curricular");
+    expect(stripNumbering("3) Perfil de egreso")).toBe("Perfil de egreso");
+    expect(stripNumbering("A. Metas")).toBe("Metas");
+    expect(stripNumbering("Calendarización anual")).toBe("Calendarización anual");
+    expect(stripNumbering("IV.")).toBe("IV.");
+  });
+});

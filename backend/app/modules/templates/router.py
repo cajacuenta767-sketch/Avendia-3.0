@@ -1,3 +1,4 @@
+import asyncio
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import quote
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
 from app.db.session import get_db
+from app.modules.templates.branding import BrandingError, apply_template_branding
 from app.modules.templates.model import InstitutionalTemplate
 from app.modules.templates.schemas import InstitutionalTemplateRead, TemplateRenderRequest
 from app.modules.templates.service import MIME_TYPES, render_template
@@ -154,6 +156,37 @@ async def render_with_template(
         ) from exc
     headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"}
     return StreamingResponse(BytesIO(content), media_type=mime_type, headers=headers)
+
+
+@router.post("/{template_id}/apply")
+async def apply_template_format(
+    template_id: UUID,
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    """Aplica cabecera, pie y logo del formato institucional a un Word generado por Avendia."""
+    template = await owned_template(template_id, user, db)
+    if template.extension != ".docx":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Solo los formatos Word (.docx) permiten aplicar su cabecera y pie.",
+        )
+    content = await file.read(MAX_TEMPLATE_SIZE + 1)
+    if not content or len(content) > MAX_TEMPLATE_SIZE or not content.startswith(b"PK"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="El documento a formatear debe ser un Word válido de hasta 10 MB.",
+        )
+    try:
+        merged = await asyncio.to_thread(apply_template_branding, template.content, content)
+    except BrandingError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    filename = Path(file.filename or "documento-avendia.docx").name
+    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"}
+    return StreamingResponse(BytesIO(merged), media_type=MIME_TYPES[".docx"], headers=headers)
 
 
 @router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)

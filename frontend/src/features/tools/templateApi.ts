@@ -62,3 +62,13 @@ export async function renderInstitutionalTemplate(templateId: string, artifact: 
   });
   downloadApiBlob(file);
 }
+
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+/** Aplica cabecera, pie y logo del formato institucional a un Word ya generado. */
+export async function applyInstitutionalTemplate(templateId: string, blob: Blob, fileName: string): Promise<{ blob: Blob; filename: string }> {
+  requireAuthentication();
+  const form = new FormData();
+  form.set("file", new File([blob], fileName, { type: DOCX_MIME }));
+  return apiBlob(`/templates/${templateId}/apply`, { method: "POST", body: form, timeoutMs: 55_000 });
+}

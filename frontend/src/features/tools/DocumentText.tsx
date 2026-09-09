@@ -293,3 +293,60 @@ export function ScoringTable({ scoring }: { scoring: RubricScoring }) {
 export function RiskBadge({ assessment }: { assessment: RiskAssessment }) {
   return <span className={`word-status-badge word-status-badge--${assessment.level}`}>{assessment.label}</span>;
 }
+
+// ==========================================================================
+// Portada e índice para documentos extensos (misma estructura que el Word)
+// ==========================================================================
+export type IndexEntry = { label: string; level?: 1 | 2 };
+
+/** Portada institucional: institución, tipo de documento, título y datos clave. */
+export function DocumentCover({
+  institution, kindLabel, title, rows, year,
+}: {
+  institution: string;
+  kindLabel: string;
+  title: string;
+  rows: Array<[string, string]>;
+  year: string;
+}) {
+  const visible = rows.filter(([, value]) => !isPlaceholder(value) && !/^_+$/.test(value.trim()) && !/no registrado/i.test(value));
+  return (
+    <section className="word-cover" aria-label="Portada">
+      <p className="word-cover__institution">{isPlaceholder(institution) || /^_+$/.test(institution) ? "Institución educativa" : institution}</p>
+      <p className="word-cover__kind">{kindLabel.toLocaleUpperCase("es")}</p>
+      <h1 className="word-cover__title">{title}</h1>
+      {visible.length ? (
+        <table className="word-table word-table--info word-cover__table">
+          <tbody>
+            {visible.map(([label, value]) => (
+              <tr key={label}>
+                <td className="word-table-cell-bold">{label}</td>
+                <td>{value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+      <p className="word-cover__year">Año lectivo {isPlaceholder(year) || /^_+$/.test(year) ? "________" : year}</p>
+    </section>
+  );
+}
+
+/** Índice de contenido equivalente a la tabla de contenido del Word. */
+export function DocumentIndex({ entries }: { entries: IndexEntry[] }) {
+  if (!entries.length) return null;
+  return (
+    <section className="word-section word-toc" aria-label="Contenido">
+      <h2 className="word-section-h1">CONTENIDO</h2>
+      <ol className="word-toc__list">
+        {entries.map((entry, index) => (
+          <li key={`${index}-${entry.label}`} className={entry.level === 2 ? "word-toc__item word-toc__item--sub" : "word-toc__item"}>
+            <span className="word-toc__label">{entry.label}</span>
+            <span className="word-toc__leader" aria-hidden="true" />
+          </li>
+        ))}
+      </ol>
+      <p className="word-toc__note">En el archivo Word la numeración de páginas se actualiza automáticamente al abrir el documento.</p>
+    </section>
+  );
+}

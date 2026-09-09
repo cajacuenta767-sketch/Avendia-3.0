@@ -13,6 +13,7 @@ import {
   Paragraph,
   ShadingType,
   Table,
+  TableOfContents,
   TableCell,
   TableRow,
   TextRun,
@@ -906,19 +907,20 @@ function createSignaturesTable(
   });
 }
 
-function extractCommonValues(values: Record<string, unknown> = {}) {
+function extractCommonValues(values: Record<string, unknown> = {}, context: Record<string, unknown> = {}) {
   const missing = "No registrado";
+  // Algunas llamadas (p. ej. las muestras de QA) traen los datos en el contexto y no en `values`.
   return {
-    year: cleanText(values.school_year) || missing,
-    dre: cleanText(values.dre) || missing,
-    ugel: cleanText(values.ugel) || missing,
-    ie: cleanText(values.institution) || missing,
-    level: cleanText(values.level) || missing,
-    grade: cleanText(values.grade) || missing,
-    section: cleanText(values.section || values.sections) || missing,
-    area: cleanText(values.curricular_area || values.curricular_areas || values.area) || missing,
-    teacher: cleanText(values.teacher_name) || missing,
-    director: cleanText(values.director_name) || missing,
+    year: cleanText(values.school_year || context.schoolYear) || missing,
+    dre: cleanText(values.dre || context.dre) || missing,
+    ugel: cleanText(values.ugel || context.ugel) || missing,
+    ie: cleanText(values.institution || context.schoolName) || missing,
+    level: cleanText(values.level || context.level) || missing,
+    grade: cleanText(values.grade || context.grade) || missing,
+    section: cleanText(values.section || values.sections || context.section) || missing,
+    area: cleanText(values.curricular_area || values.curricular_areas || values.area || context.course) || missing,
+    teacher: cleanText(values.teacher_name || context.teacherName) || missing,
+    director: cleanText(values.director_name || context.directorName) || missing,
     student: cleanText(values.student_name) || missing,
     guardian: cleanText(values.guardian_name || values.guardian_names) || missing,
   };
@@ -931,7 +933,7 @@ export function buildInstrumentDocx(
   artifact: WorkflowArtifact,
   context: ExportWorkflowDocxOptions
 ): Document {
-  const v = extractCommonValues(context.values);
+  const v = extractCommonValues(context.values, context);
   const isRubric = (context.workflowKey || "").includes("rubrica");
   const isChecklist = (context.workflowKey || "").includes("lista-cotejo");
   const isStandaloneExam = (context.workflowKey || "").includes("examen");
@@ -1351,7 +1353,7 @@ export function buildActivityDocx(
   artifact: WorkflowArtifact,
   context: ExportWorkflowDocxOptions
 ): Document {
-  const v = extractCommonValues(context.values);
+  const v = extractCommonValues(context.values, context);
   const isWordSearch = (context.workflowKey || "").includes("sopa");
   const isFlashcards = (context.workflowKey || "").includes("tarjeta");
   const isHangman = (context.workflowKey || "").includes("ahorcado");
@@ -2926,7 +2928,7 @@ export function buildAnalyticsDocx(
   artifact: WorkflowArtifact,
   context: ExportWorkflowDocxOptions
 ): Document {
-  const v = extractCommonValues(context.values);
+  const v = extractCommonValues(context.values, context);
   const children: (Paragraph | Table)[] = [];
 
   children.push(
@@ -3091,7 +3093,7 @@ export function buildCommunicationDocx(
   artifact: WorkflowArtifact,
   context: ExportWorkflowDocxOptions
 ): Document {
-  const v = extractCommonValues(context.values);
+  const v = extractCommonValues(context.values, context);
   const children: (Paragraph | Table)[] = [];
 
   children.push(
@@ -3289,7 +3291,7 @@ export function buildHomeworkDocx(
   artifact: WorkflowArtifact,
   context: ExportWorkflowDocxOptions
 ): Document {
-  const v = extractCommonValues(context.values);
+  const v = extractCommonValues(context.values, context);
   const activity = artifact.activity;
   if (!activity || activity.mode !== "ficha_hogar" || activity.items.length < 3) {
     throw new Error("La tarea no contiene actividades suficientes para exportar.");
@@ -3476,13 +3478,75 @@ export function buildHomeworkDocx(
 // ========================================================================== 
 // 5. BUILDER: DOCUMENTOS DE GESTIÓN CURRICULAR Y RECURSOS
 // ========================================================================== 
+const LONG_DOCUMENTS: Array<[string, string]> = [
+  ["carpeta-pedagogica", "Carpeta pedagógica"],
+  ["unidad-aprendizaje", "Unidad de aprendizaje"],
+  ["proyectos-integrados", "Proyecto de aprendizaje integrado"],
+  ["plan-tutoria", "Plan de tutoría"],
+  ["plan-atencion", "Plan de atención"],
+  ["plan-refuerzo", "Plan de refuerzo"],
+];
+
+/** Portada institucional e índice para los documentos extensos. */
+function createCoverBlocks(
+  artifact: WorkflowArtifact,
+  v: ReturnType<typeof extractCommonValues>,
+  kindLabel: string,
+): (Paragraph | Table | TableOfContents)[] {
+  const line = (text: string, size: number, bold = false, color = COLOR_TEXT) => new Paragraph({
+    alignment: AlignmentType.CENTER,
+    children: [new TextRun({ text: cleanText(text), bold, color, size, font: "Calibri" })],
+    spacing: { after: 140 },
+  });
+  const rows: [string, string][] = ([
+    ["INSTITUCIÓN EDUCATIVA", v.ie],
+    ["DRE / UGEL", [v.dre, v.ugel].filter((part) => !isPlaceholder(part)).join(" / ")],
+    ["NIVEL / GRADO / SECCIÓN", isPlaceholder(v.grade) ? "" : `${v.level} / ${v.grade} "${v.section}"`],
+    ["ÁREA CURRICULAR", v.area],
+    ["DOCENTE RESPONSABLE", v.teacher],
+    ["DIRECTOR(A)", v.director],
+    ["AÑO LECTIVO", v.year],
+  ] as [string, string][]).filter(([, value]) => !isPlaceholder(value) && !/no registrado/i.test(value));
+  // Una tabla sin filas hace fallar a docx ("Invalid array length"): solo se construye si hay datos.
+  const table = rows.length ? new Table({
+    width: { size: 70, type: WidthType.PERCENTAGE },
+    alignment: AlignmentType.CENTER,
+    rows: rows.map(([label, value], index) => new TableRow({
+      cantSplit: true,
+      children: [
+        createStyledCell(label, { bold: true, widthPercent: 40, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+        createStyledCell(value, { widthPercent: 60, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+      ],
+    })),
+  }) : null;
+  return [
+    new Paragraph({ spacing: { before: 2200 }, children: [] }),
+    line(isPlaceholder(v.ie) ? "Institución educativa" : v.ie, 24, true, COLOR_PRIMARY),
+    line(kindLabel.toLocaleUpperCase("es"), 40, true, COLOR_PRIMARY),
+    line(artifact.document_title, 26, true),
+    new Paragraph({ spacing: { before: 500 }, children: [] }),
+    ...(table ? [table] : []),
+    new Paragraph({ spacing: { before: 700 }, children: [] }),
+    line(`Año lectivo ${isPlaceholder(v.year) ? "________" : v.year}`, 22, true, COLOR_SECONDARY),
+    new Paragraph({ children: [new PageBreak()] }),
+    createHeading("CONTENIDO", HeadingLevel.HEADING_1),
+    new TableOfContents("Contenido", { hyperlink: true, headingStyleRange: "1-2" }),
+    new Paragraph({ children: [new PageBreak()] }),
+  ];
+}
+
 export function buildDocumentDocx(
   artifact: WorkflowArtifact,
   context: ExportWorkflowDocxOptions
 ): Document {
-  const v = extractCommonValues(context.values);
+  const v = extractCommonValues(context.values, context);
   const isSession = (context.workflowKey || "").includes("sesion");
-  const children: (Paragraph | Table)[] = [];
+  const longDocument = LONG_DOCUMENTS.find(([key]) => (context.workflowKey || "").includes(key));
+  const isLongDocument = Boolean(longDocument);
+  const children: (Paragraph | Table | TableOfContents)[] = [];
+  if (longDocument) {
+    children.push(...createCoverBlocks(artifact, v, context.toolTitle ? String(context.toolTitle) : longDocument[1]));
+  }
 
   children.push(
     new Paragraph({
@@ -3676,6 +3740,7 @@ export function buildDocumentDocx(
   }
 
   return new Document({
+    features: { updateFields: isLongDocument },
     styles: documentStyles,
     sections: [
       {

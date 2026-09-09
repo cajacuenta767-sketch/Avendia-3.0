@@ -19,6 +19,11 @@ export function isPlaceholder(value: unknown): boolean {
   return !text || /^no registrado$/i.test(text) || /^(n\/a|por definir|pendiente)$/i.test(text);
 }
 
+/** Quita la numeración inicial ("I.", "1.", "1)", "A.") para que el documento numere una sola vez. */
+export function stripNumbering(title: string): string {
+  return String(title ?? "").replace(/^\s*(?:[IVXLC]+|\d+|[A-Z])\s*[.)\-:]\s+/, "").trim() || String(title ?? "").trim();
+}
+
 export function toRoman(value: number): string {
   const numerals: [number, string][] = [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
   let remaining = Math.max(1, Math.floor(value));

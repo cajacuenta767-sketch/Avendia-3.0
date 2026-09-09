@@ -11,7 +11,7 @@ Todas las rutas cuelgan de `/api/v1`. Salvo `health`, `ready`, `auth/*` y las im
 
 Errores: cuerpo `{ detail, error: { code, message, field, retryable, request_id } }`. Códigos: `authentication_required` (401), `permission_denied` (403), `not_found` (404), `revision_conflict` (409), `validation_failed` (422), `rate_limited` (429, con cabecera `Retry-After`), `service_unavailable` (5xx).
 
-Total: 128 operaciones.
+Total: 129 operaciones.
 
 ## admin
 
@@ -174,6 +174,7 @@ Total: 128 operaciones.
 | `POST` | `/api/v1/templates` | Upload Template |
 | `DELETE` | `/api/v1/templates/{template_id}` | Delete Template |
 | `POST` | `/api/v1/templates/{template_id}/analyze` | Analyze |
+| `POST` | `/api/v1/templates/{template_id}/apply` | Apply Template Format |
 | `PATCH` | `/api/v1/templates/{template_id}/default` | Set Default Template |
 | `GET` | `/api/v1/templates/{template_id}/details` | Details |
 | `PUT` | `/api/v1/templates/{template_id}/details` | Edit |

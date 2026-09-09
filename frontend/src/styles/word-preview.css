@@ -1835,3 +1835,127 @@
   margin-top: 2rem;
   padding-top: 1rem;
 }
+
+/* ==========================================================================
+   Hoja horizontal (PCA), portada e índice de documentos extensos
+   ========================================================================== */
+.word-document-paper--landscape {
+  max-width: 1400px;
+  min-height: 0;
+  aspect-ratio: auto;
+  padding: 3rem 3.75rem;
+}
+
+.word-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 560px;
+  padding: 2rem 1rem 3rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 2px dashed #bdd7ee;
+  page-break-after: always;
+  break-after: page;
+}
+
+.word-cover__institution {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f4d78;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.word-cover__kind {
+  margin: 0 0 0.75rem;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1f4d78;
+  letter-spacing: 0.06em;
+}
+
+.word-cover__title {
+  margin: 0 0 2rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1f2937;
+  max-width: 48rem;
+}
+
+.word-cover__table {
+  width: min(100%, 36rem);
+  margin: 0 auto 2.5rem;
+  text-align: left;
+}
+
+.word-cover__year {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2e74b5;
+}
+
+[data-theme="dark"] .word-cover__institution,
+[data-theme="dark"] .word-cover__kind {
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .word-cover__title {
+  color: #f1f5f9;
+}
+
+.word-toc {
+  page-break-after: always;
+  break-after: page;
+  margin-bottom: 2.5rem;
+}
+
+.word-toc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.word-toc__item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  font-weight: 600;
+  color: #1f4d78;
+}
+
+.word-toc__item--sub {
+  padding-left: 1.5rem;
+  font-weight: 400;
+  color: #1f2937;
+}
+
+.word-toc__leader {
+  flex: 1;
+  border-bottom: 1px dotted #94a3b8;
+  min-width: 2rem;
+}
+
+.word-toc__note {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+[data-theme="dark"] .word-toc__item {
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .word-toc__item--sub {
+  color: #e2e8f0;
+}
+
+@media print {
+  .word-document-paper--landscape {
+    max-width: none;
+  }
+}

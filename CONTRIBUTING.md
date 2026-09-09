@@ -38,3 +38,29 @@ rojo no se revisa.
    componente como `*.test.tsx`).
 3. Commit con mensaje en español que explique el porqué.
 4. Pull request con la lista de verificación anterior en verde.
+
+## Documentos Word generados
+
+- CI tiene un tercer trabajo, `documentos`, que genera el Word de muestra de las
+  58 herramientas (`npx vitest run src/features/tools/qaExport`), lo convierte
+  a PDF con LibreOffice y compara el número de páginas con
+  `frontend/e2e/docx/pages-baseline.json`. Los PDF y la primera página en PNG
+  quedan como artefacto del trabajo para revisarlos.
+- Si cambias un exportador a propósito, actualiza la línea base con
+  LibreOffice instalado:
+  `node e2e/docx/check-docx-pdf.cjs <dir-docx> <dir-pdf> --update-baseline`.
+
+## Banco de referencia con Gemini real
+
+Sirve para comparar lo que la IA produce antes y después de cambiar un prompt.
+
+```powershell
+cd frontend
+npx vite-node scripts/exportReferencePayloads.ts   # docs/reference-bank/payloads.json
+cd ../backend
+uv run python scripts/reference_bank.py generate --out data/reference-bank/AAAA-MM-DD
+uv run python scripts/reference_bank.py compare data/reference-bank/antes data/reference-bank/despues
+```
+
+`generate` necesita `GEMINI_API_KEY` y guarda un JSON por herramienta más
+`summary.json`. Las corridas van en `data/`, que no se versiona.
