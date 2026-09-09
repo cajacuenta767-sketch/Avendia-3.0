@@ -22,6 +22,22 @@ assets/design/  Especificación visual aprobada
 
 ## Inicio local
 
+### Opción rápida (un solo archivo)
+
+Solo necesitas tener instalado [Node.js LTS](https://nodejs.org). El lanzador
+instala `uv` si falta, crea el `.env`, instala dependencias, aplica las
+migraciones, crea la cuenta de administrador, arranca la API y la interfaz, y
+abre el navegador. Si no detecta PostgreSQL en el puerto 5432 usa SQLite.
+
+- Windows: doble clic en `iniciar-local.cmd` (o `powershell -ExecutionPolicy Bypass -File .\iniciar-local.ps1`).
+- Linux / macOS: `bash iniciar-local.sh`.
+
+Al terminar entra en `http://127.0.0.1:5173` con `admin@avendia.com` y
+`Avendia2026!`. Puedes volver a ejecutarlo cuantas veces quieras: conserva el
+`.env` y la base existentes.
+
+### Opción manual
+
 1. Copia `.env.example` como `.env` y reemplaza los secretos.
 2. Levanta PostgreSQL con `docker compose up -d db`.
 3. Backend:

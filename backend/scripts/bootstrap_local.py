@@ -108,7 +108,7 @@ async def ensure_admin(email: str, password: str, full_name: str, reset_password
             user.is_active = True
             if reset_password:
                 user.password_hash = hash_password(password)
-            outcome = "promovido a administrador"
+            outcome = "existente, activado como administrador"
         await session.commit()
     return outcome
 
