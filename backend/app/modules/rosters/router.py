@@ -49,6 +49,17 @@ from app.modules.users.education_catalog import validate_education_selection
 from app.modules.users.model import User
 
 router = APIRouter(prefix="/rosters", tags=["rosters"])
+
+
+async def reload_students(db: AsyncSession, student_ids: list[UUID]) -> None:
+    """Recarga en una sola consulta los alumnos ya presentes en la sesión."""
+    if not student_ids:
+        return
+    await db.execute(
+        select(Student).where(Student.id.in_(student_ids)).execution_options(populate_existing=True)
+    )
+
+
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
@@ -452,9 +463,8 @@ async def reorder_students(
     for sort_order, student_id in enumerate(payload.student_ids):
         by_id[student_id].sort_order = sort_order
     await db.commit()
+    await reload_students(db, list(payload.student_ids))
     ordered = [by_id[student_id] for student_id in payload.student_ids]
-    for student in ordered:
-        await db.refresh(student)
     return StudentListResponse(items=ordered, total=len(ordered), limit=len(ordered), offset=0)
 
 
@@ -558,8 +568,7 @@ async def confirm_import(
                 "Vuelve a cargar la vista previa."
             ),
         ) from exc
-    for student in students:
-        await db.refresh(student)
+    await reload_students(db, [student.id for student in students])
     return ImportConfirmResponse(
         created_count=len(students),
         skipped_count=prepared.skipped_count,

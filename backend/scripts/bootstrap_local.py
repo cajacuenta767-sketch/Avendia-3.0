@@ -6,10 +6,9 @@ Ejecutar desde ``backend/``::
 
 Pasos que realiza:
 
-1. Asegura que ``alembic_version`` admita los identificadores largos de las
-   revisiones del proyecto (PostgreSQL crea la columna con 32 caracteres).
-2. Aplica todas las migraciones hasta ``head``.
-3. Crea (o promueve) una cuenta de administrador activa con la que entrar.
+1. Aplica todas las migraciones hasta ``head`` (``migrations/env.py`` amplía
+   ``alembic_version`` en PostgreSQL para los identificadores largos).
+2. Crea (o promueve) una cuenta de administrador activa con la que entrar.
 
 Las credenciales se toman de ``ADMIN_EMAIL`` / ``ADMIN_PASSWORD`` /
 ``ADMIN_FULL_NAME`` o de los argumentos ``--email`` / ``--password`` /
@@ -30,7 +29,7 @@ os.chdir(BACKEND_DIR)
 
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
-from sqlalchemy import select, text  # noqa: E402
+from sqlalchemy import select  # noqa: E402
 
 DEFAULT_EMAIL = "admin@avendia.com"
 DEFAULT_PASSWORD = "Avendia2026!"
@@ -48,27 +47,6 @@ def parse_args() -> argparse.Namespace:
         help="Si la cuenta ya existe, reemplaza su contraseña por la indicada.",
     )
     return parser.parse_args()
-
-
-async def ensure_version_table() -> None:
-    from app.db.session import engine, settings
-
-    if not settings.database_url.startswith("postgresql+asyncpg://"):
-        return
-    schema = settings.database_schema or "public"
-    quoted = f'"{schema}"'
-    async with engine.begin() as connection:
-        await connection.execute(text(f"CREATE SCHEMA IF NOT EXISTS {quoted}"))
-        await connection.execute(
-            text(
-                f"CREATE TABLE IF NOT EXISTS {quoted}.alembic_version ("
-                "version_num VARCHAR(255) NOT NULL, "
-                "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
-            )
-        )
-        await connection.execute(
-            text(f"ALTER TABLE {quoted}.alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)")
-        )
 
 
 async def ensure_admin(email: str, password: str, full_name: str, reset_password: bool) -> str:
@@ -118,7 +96,6 @@ async def main() -> None:
     from app.db.session import engine, settings
 
     print(f"Base de datos: {settings.database_url.split('@')[-1]}")
-    await ensure_version_table()
     await asyncio.to_thread(command.upgrade, Config("alembic.ini"), "head")
     outcome = await ensure_admin(args.email, args.password, args.name, args.reset_password)
     await engine.dispose()

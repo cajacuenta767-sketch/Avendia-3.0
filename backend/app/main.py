@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from time import perf_counter
@@ -18,10 +19,17 @@ from app.core.errors import (
 from app.db.session import engine
 
 settings = get_settings()
-production_frontend = "https://avendia-web.vercel.app"
+logging.basicConfig(
+    level=settings.log_level.upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger("avendia.request")
+
 allowed_origins = list(settings.allowed_origins)
-if production_frontend not in allowed_origins:
-    allowed_origins.append(production_frontend)
+production_origin = settings.production_frontend_origin
+if production_origin and production_origin not in allowed_origins:
+    allowed_origins.append(production_origin)
+is_production = settings.environment == "production"
 
 
 @asynccontextmanager
@@ -35,7 +43,9 @@ app = FastAPI(
     title=settings.app_name,
     version="3.0.0",
     lifespan=lifespan,
-    docs_url="/docs" if settings.environment != "production" else None,
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json",
 )
 
 app.add_exception_handler(HTTPException, http_exception_handler)
@@ -59,8 +69,18 @@ async def request_context(request: Request, call_next):
     request.state.request_id = request_id
     started = perf_counter()
     response = await call_next(request)
+    duration_ms = (perf_counter() - started) * 1000
     response.headers["X-Request-ID"] = request_id
-    response.headers["Server-Timing"] = f"app;dur={(perf_counter() - started) * 1000:.1f}"
+    response.headers["Server-Timing"] = f"app;dur={duration_ms:.1f}"
+    if request.url.path != "/api/v1/health":
+        logger.info(
+            "%s %s -> %s en %.1f ms [request_id=%s]",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+            request_id,
+        )
     return response
 
 

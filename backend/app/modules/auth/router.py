@@ -1,10 +1,20 @@
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.ratelimit import (
+    LOGIN_PER_ACCOUNT,
+    LOGIN_PER_IP,
+    PASSWORD_RESET_COMPLETE_PER_ACCOUNT,
+    PASSWORD_RESET_PER_IP,
+    PASSWORD_RESET_REQUEST_PER_ACCOUNT,
+    REGISTER_PER_IP,
+    enforce_ip_rate_limit,
+    enforce_rate_limit,
+)
 from app.core.security import (
     create_access_token,
     create_password_reset_code,
@@ -39,7 +49,10 @@ def aware_utc(value: datetime) -> datetime:
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)) -> User:
+async def register(
+    payload: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)
+) -> User:
+    enforce_ip_rate_limit(request, "auth.register", REGISTER_PER_IP)
     platform_settings = await get_platform_settings(db)
     if not platform_settings.registration_open:
         raise HTTPException(
@@ -78,8 +91,13 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> TokenResponse:
-    user = await db.scalar(select(User).where(User.email == payload.email.lower().strip()))
+async def login(
+    payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)
+) -> TokenResponse:
+    email = payload.email.lower().strip()
+    enforce_ip_rate_limit(request, "auth.login", LOGIN_PER_IP)
+    enforce_rate_limit("auth.login.account", email, LOGIN_PER_ACCOUNT)
+    user = await db.scalar(select(User).where(User.email == email))
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -98,10 +116,14 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)) -> To
 @router.post("/password-reset/request", response_model=PasswordResetRequestResponse)
 async def request_password_reset(
     payload: PasswordResetRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> PasswordResetRequestResponse:
     neutral_message = "Si el correo está registrado, recibirás un código para recuperar tu cuenta."
-    user = await db.scalar(select(User).where(User.email == payload.email.lower().strip()))
+    email = payload.email.lower().strip()
+    enforce_ip_rate_limit(request, "auth.reset.request", PASSWORD_RESET_PER_IP)
+    enforce_rate_limit("auth.reset.request.account", email, PASSWORD_RESET_REQUEST_PER_ACCOUNT)
+    user = await db.scalar(select(User).where(User.email == email))
     if user is None or not user.is_active:
         return PasswordResetRequestResponse(message=neutral_message)
 
@@ -126,7 +148,7 @@ async def request_password_reset(
     await db.commit()
 
     delivered = await send_password_reset_email(user.email, code)
-    development_code = code if settings.environment != "production" and not delivered else None
+    development_code = code if settings.expose_password_reset_code and not delivered else None
     return PasswordResetRequestResponse(
         message=neutral_message,
         development_reset_code=development_code,
@@ -136,15 +158,19 @@ async def request_password_reset(
 @router.post("/password-reset/complete", response_model=PasswordResetCompleteResponse)
 async def complete_password_reset(
     payload: PasswordResetComplete,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> PasswordResetCompleteResponse:
+    email = payload.email.lower().strip()
+    enforce_ip_rate_limit(request, "auth.reset.complete", PASSWORD_RESET_PER_IP)
+    enforce_rate_limit("auth.reset.complete.account", email, PASSWORD_RESET_COMPLETE_PER_ACCOUNT)
     if payload.new_password == payload.code:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="La nueva contraseña no puede ser igual al código de recuperación.",
         )
 
-    user = await db.scalar(select(User).where(User.email == payload.email.lower().strip()))
+    user = await db.scalar(select(User).where(User.email == email))
     generic_error = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="El código es inválido o ya venció. Solicita uno nuevo.",

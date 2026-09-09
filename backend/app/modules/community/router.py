@@ -104,10 +104,14 @@ async def create_post(
     db.add(post)
     try:
         await db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         await db.rollback()
+        duplicate = HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="La publicación ya existe o entra en conflicto con otra.",
+        )
         if not payload.request_id:
-            raise
+            raise duplicate from exc
         existing = await db.scalar(
             select(CommunityPost)
             .options(selectinload(CommunityPost.author))
@@ -116,7 +120,7 @@ async def create_post(
             )
         )
         if not existing:
-            raise
+            raise duplicate from exc
         return serialize(existing)
     await db.refresh(post, ["author"])
     return serialize(post)

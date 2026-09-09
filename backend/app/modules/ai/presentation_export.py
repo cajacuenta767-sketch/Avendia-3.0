@@ -12,6 +12,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
 
+from app.core.safe_http import UnsafeUrlError, fetch_public_https
 from app.modules.ai.presentation_images import find_presentation_image
 from app.modules.ai.schemas import GeneratedPresentationSlide, PresentationExportRequest
 
@@ -44,9 +45,11 @@ def _asset_path(slide: GeneratedPresentationSlide) -> Path | io.BytesIO | None:
         return find_presentation_image(match.group(1))
     if slide.image_url.startswith("https://"):
         try:
-            response = httpx.get(slide.image_url, timeout=20, follow_redirects=True)
-            response.raise_for_status()
-        except httpx.HTTPError:
+            response = fetch_public_https(slide.image_url, timeout=20)
+        except (httpx.HTTPError, UnsafeUrlError):
+            return None
+        content_type = response.headers.get("content-type", "").split(";", 1)[0].lower()
+        if not content_type.startswith("image/"):
             return None
         return io.BytesIO(response.content) if response.content else None
     return None
