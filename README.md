@@ -29,9 +29,15 @@ assets/design/  Especificación visual aprobada
    ```powershell
    cd backend
    uv sync --dev
-   uv run alembic upgrade head
+   uv run python scripts/bootstrap_local.py
    uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
    ```
+
+   `bootstrap_local.py` aplica las migraciones y deja lista una cuenta de
+   administrador para entrar. Sustituye a `alembic upgrade head` en local:
+   además del esquema, corrige la tabla `alembic_version` de PostgreSQL, cuya
+   columna por defecto (32 caracteres) no admite los nombres de revisión del
+   proyecto y hace fallar la migración.
 
 4. Frontend:
 
@@ -42,6 +48,27 @@ assets/design/  Especificación visual aprobada
    ```
 
 La interfaz queda en `http://127.0.0.1:5173` y la API en `http://127.0.0.1:8001/api/v1`.
+
+## Entrar en local
+
+Tras ejecutar `bootstrap_local.py`, entra en `http://127.0.0.1:5173` con:
+
+- Correo: `admin@avendia.com`
+- Contraseña: `Avendia2026!`
+
+Para usar otras credenciales pasa `--email`, `--password` y `--name`, o define
+`ADMIN_EMAIL`, `ADMIN_PASSWORD` y `ADMIN_FULL_NAME`. Si la cuenta ya existe, el
+script la activa y la promueve a administrador; con `--reset-password` también
+reemplaza su contraseña. Sin `.env` el backend usa SQLite (`avendia3-dev.db`) y
+el mismo comando funciona igual.
+
+Si el inicio de sesión falla, comprueba:
+
+- Que el backend responde en `http://127.0.0.1:8001/api/v1/health`.
+- Que `VITE_API_URL` del `.env` apunta a esa API y que reiniciaste `npm run dev`
+  después de cambiarlo.
+- Que el correo no usa dominios reservados como `.local` o `.test`: el
+  registro los rechaza.
 
 ## Verificación
 
