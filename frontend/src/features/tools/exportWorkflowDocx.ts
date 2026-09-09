@@ -20,7 +20,22 @@ import {
 } from "docx";
 
 import type { WorkflowActivity } from "./InteractiveArtifact";
-import { attachTablesToSections, isPlaceholder, sameTitle, splitLabel, splitNarrative, toRoman } from "./documentFormat";
+import {
+  attachTablesToSections,
+  formatPoints,
+  isPlaceholder,
+  parseQuestionText,
+  QUESTION_FORMAT_LABELS,
+  resolveQuestions,
+  riskLevelFor,
+  rubricScoring,
+  sameTitle,
+  scoreToVigesimal,
+  splitLabel,
+  splitNarrative,
+  toRoman,
+  type DocumentQuestion,
+} from "./documentFormat";
 import {
   buildPlanAnualDocxDocument,
   type ExportPlanAnualContext,
@@ -46,6 +61,7 @@ export type WorkflowArtifact = {
   teacher_recommendations: string[];
   activity?: WorkflowActivity | null;
   tables?: WorkflowArtifactTable[];
+  questions?: DocumentQuestion[];
   model: string;
   contract_version?: string;
   generation_brief?: string;
@@ -566,59 +582,15 @@ function createBodyParagraph(
   });
 }
 
-type ExamQuestionFormat = "opcion" | "corta" | "relacionar" | "vf" | "desarrollo" | "generica";
-
-type ParsedExamQuestion = {
-  format: ExamQuestionFormat;
-  label: string;
-  prompt: string;
-  options: string[];
-  leftColumn: string[];
-  rightColumn: string[];
-};
-
-function parseExamQuestion(rawQuestion: string): ParsedExamQuestion {
-  const source = cleanText(rawQuestion);
-  const formatMatch = source.match(/^\[([^\]]+)\]\s*/);
-  const declared = (formatMatch?.[1] ?? "").toLocaleLowerCase("es");
-  const body = source.slice(formatMatch?.[0].length ?? 0).trim();
-  const format: ExamQuestionFormat = declared.includes("opción") || declared.includes("opcion")
-    ? "opcion"
-    : declared.includes("respuesta corta")
-      ? "corta"
-      : declared.includes("relacionar")
-        ? "relacionar"
-        : declared.includes("verdadero")
-          ? "vf"
-          : declared.includes("desarrollo")
-            ? "desarrollo"
-            : "generica";
-  const labels: Record<ExamQuestionFormat, string> = {
-    opcion: "OPCIÓN MÚLTIPLE",
-    corta: "RESPUESTA CORTA",
-    relacionar: "RELACIONAR",
-    vf: "VERDADERO / FALSO",
-    desarrollo: "DESARROLLO",
-    generica: "RESPUESTA",
-  };
-
-  const optionMatches = [...body.matchAll(/(?:^|\||\n)\s*([A-D])[.)]\s*([^|\n]+)/gi)];
-  const options = optionMatches.map((match) => `${match[1].toUpperCase()}) ${match[2].trim()}`);
-  const firstOption = body.search(/(?:^|\||\n)\s*[A-D][.)]\s*/i);
-  const relationMatch = body.match(/^(.*?)\s*\|?\s*Columna A:\s*(.*?)\s*\|\s*Columna B:\s*(.*)$/i);
-  const splitColumn = (value: string | undefined) => (value ?? "")
-    .split(/\s*;\s*/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  return {
-    format,
-    label: labels[format],
-    prompt: relationMatch?.[1]?.trim() || (firstOption >= 0 ? body.slice(0, firstOption).replace(/\|\s*$/, "").trim() : body),
-    options,
-    leftColumn: splitColumn(relationMatch?.[2]),
-    rightColumn: splitColumn(relationMatch?.[3]),
-  };
+function createLabeledParagraph(label: string, text: string, options: { size?: number } = {}): Paragraph {
+  const size = options.size ?? 20;
+  return new Paragraph({
+    children: [
+      new TextRun({ text: `${label} `, bold: true, color: COLOR_PRIMARY, size, font: "Calibri" }),
+      new TextRun({ text: cleanText(text), color: COLOR_TEXT, size, font: "Calibri" }),
+    ],
+    spacing: { before: 60, after: 100, line: 276 },
+  });
 }
 
 function createAnswerLines(count: number): Paragraph[] {
@@ -633,28 +605,65 @@ function createAnswerLines(count: number): Paragraph[] {
   }));
 }
 
-function createExamQuestionBlocks(rawQuestion: string, index: number): (Paragraph | Table)[] {
-  const question = parseExamQuestion(rawQuestion);
+function createResponseSpace(format: DocumentQuestion["format"]): (Paragraph | Table)[] {
+  if (format === "desarrollo") return createAnswerLines(5);
+  if (format === "tabla") {
+    const rows = Array.from({ length: 3 }, () => new TableRow({
+      cantSplit: true,
+      children: Array.from({ length: 3 }, () => createStyledCell(" ", { widthPercent: 33 })),
+    }));
+    return [new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }), new Paragraph({ spacing: { after: 100 } })];
+  }
+  if (format === "dibujo" || format === "operacion") {
+    const box = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [new TableRow({
+        cantSplit: true,
+        height: { value: 2600, rule: "atLeast" as const },
+        children: [new TableCell({
+          borders: {
+            top: { style: BorderStyle.DASHED, size: 6, color: "B9CDE5" },
+            bottom: { style: BorderStyle.DASHED, size: 6, color: "B9CDE5" },
+            left: { style: BorderStyle.DASHED, size: 6, color: "B9CDE5" },
+            right: { style: BorderStyle.DASHED, size: 6, color: "B9CDE5" },
+          },
+          children: [new Paragraph({ children: [] })],
+        })],
+      })],
+    });
+    return [box, new Paragraph({ spacing: { after: 100 } })];
+  }
+  return createAnswerLines(2);
+}
+
+/** Reactivo listo para el estudiante a partir de la pregunta tipada. */
+function createQuestionBlocks(question: DocumentQuestion, options: { showLevel?: boolean } = {}): (Paragraph | Table)[] {
+  const points = formatPoints(question.points);
+  const tag = [
+    QUESTION_FORMAT_LABELS[question.format],
+    options.showLevel && question.cognitive_level ? question.cognitive_level : "",
+    points,
+  ].filter(Boolean).join(" · ");
   const blocks: (Paragraph | Table)[] = [
     new Paragraph({
       children: [
-        new TextRun({ text: `${index + 1}. `, bold: true, color: COLOR_PRIMARY, size: 21, font: "Calibri" }),
-        new TextRun({ text: question.prompt, bold: true, color: COLOR_TEXT, size: 20, font: "Calibri" }),
-        new TextRun({ text: `   ${question.label}`, bold: true, color: COLOR_SECONDARY, size: 15, font: "Calibri" }),
+        new TextRun({ text: `${question.number}. `, bold: true, color: COLOR_PRIMARY, size: 21, font: "Calibri" }),
+        new TextRun({ text: cleanText(question.prompt), bold: true, color: COLOR_TEXT, size: 20, font: "Calibri" }),
+        new TextRun({ text: `   ${tag}`, bold: true, color: COLOR_SECONDARY, size: 15, font: "Calibri" }),
       ],
       spacing: { before: 80, after: 80 },
       keepNext: true,
     }),
   ];
 
-  if (question.format === "opcion" && question.options.length) {
+  if (question.format === "opcion_multiple" && question.options.length) {
     const rows: TableRow[] = [];
     for (let optionIndex = 0; optionIndex < question.options.length; optionIndex += 2) {
       rows.push(new TableRow({
         cantSplit: true,
         children: [
           createStyledCell(`[  ] ${question.options[optionIndex]}`, { widthPercent: 50 }),
-          createStyledCell(question.options[optionIndex + 1] ? `[  ] ${question.options[optionIndex + 1]}` : "", { widthPercent: 50 }),
+          createStyledCell(question.options[optionIndex + 1] ? `[  ] ${question.options[optionIndex + 1]}` : " ", { widthPercent: 50 }),
         ],
       }));
     }
@@ -663,7 +672,7 @@ function createExamQuestionBlocks(rawQuestion: string, index: number): (Paragrap
     return blocks;
   }
 
-  if (question.format === "vf") {
+  if (question.format === "verdadero_falso") {
     blocks.push(new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       rows: [new TableRow({
@@ -678,8 +687,8 @@ function createExamQuestionBlocks(rawQuestion: string, index: number): (Paragrap
     return blocks;
   }
 
-  if (question.format === "relacionar" && question.leftColumn.length && question.rightColumn.length) {
-    const rowCount = Math.max(question.leftColumn.length, question.rightColumn.length);
+  if (question.format === "relacionar" && question.left_column.length && question.right_column.length) {
+    const rowCount = Math.max(question.left_column.length, question.right_column.length);
     const rows = [
       new TableRow({
         tableHeader: true,
@@ -693,9 +702,9 @@ function createExamQuestionBlocks(rawQuestion: string, index: number): (Paragrap
       ...Array.from({ length: rowCount }, (_, rowIndex) => new TableRow({
         cantSplit: true,
         children: [
-          createStyledCell(question.leftColumn[rowIndex] ?? "", { widthPercent: 44 }),
+          createStyledCell(question.left_column[rowIndex] ?? " ", { widthPercent: 44 }),
           createStyledCell("____", { widthPercent: 12, alignment: AlignmentType.CENTER }),
-          createStyledCell(question.rightColumn[rowIndex] ?? "", { widthPercent: 44 }),
+          createStyledCell(question.right_column[rowIndex] ?? " ", { widthPercent: 44 }),
         ],
       })),
     ];
@@ -704,8 +713,86 @@ function createExamQuestionBlocks(rawQuestion: string, index: number): (Paragrap
     return blocks;
   }
 
-  blocks.push(...createAnswerLines(question.format === "desarrollo" ? 8 : question.format === "corta" ? 2 : 3));
+  blocks.push(...createResponseSpace(question.format));
   return blocks;
+}
+
+/** Clave docente en tabla a partir de las preguntas tipadas. */
+function createAnswerKeyBlocks(questions: DocumentQuestion[]): (Paragraph | Table)[] {
+  const answered = questions.filter((question) => question.answer || question.justification);
+  if (!answered.length) return [];
+  const hasPoints = answered.some((question) => question.points != null);
+  const hasJustification = answered.some((question) => question.justification);
+  const widths = hasJustification ? [8, 42, 38, 12] : [8, 76, 0, 16];
+  const header = new TableRow({
+    tableHeader: true,
+    cantSplit: true,
+    children: [
+      createStyledCell("N°", { isHeader: true, widthPercent: widths[0] }),
+      createStyledCell("Respuesta esperada", { isHeader: true, widthPercent: widths[1] }),
+      ...(hasJustification ? [createStyledCell("Justificación", { isHeader: true, widthPercent: widths[2] })] : []),
+      ...(hasPoints ? [createStyledCell("Puntaje", { isHeader: true, widthPercent: widths[3] })] : []),
+    ],
+  });
+  const rows = answered.map((question, index) => new TableRow({
+    cantSplit: true,
+    children: [
+      createStyledCell(String(question.number), { widthPercent: widths[0], alignment: AlignmentType.CENTER, bold: true, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+      createStyledCell(question.answer || "—", { widthPercent: widths[1], fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+      ...(hasJustification ? [createStyledCell(question.justification || " ", { widthPercent: widths[2], fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined })] : []),
+      ...(hasPoints ? [createStyledCell(formatPoints(question.points) || " ", { widthPercent: widths[3], alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined })] : []),
+    ],
+  }));
+  return [
+    createHeading("Clave de respuestas", HeadingLevel.HEADING_2),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [header, ...rows] }),
+    new Paragraph({ spacing: { after: 120 } }),
+  ];
+}
+
+/** Registro de puntaje por criterio y nivel, con conversión a nota vigesimal. */
+function createScoringBlocks(scoring: ReturnType<typeof rubricScoring>): (Paragraph | Table)[] {
+  if (!scoring) return [];
+  const legend = scoring.levels
+    .map((level, index) => `${level} = ${scoring.pointsPerLevel[index]} ${scoring.pointsPerLevel[index] === 1 ? "punto" : "puntos"}`)
+    .join(" · ");
+  const rows = [
+    new TableRow({
+      tableHeader: true,
+      cantSplit: true,
+      children: [
+        createStyledCell("Criterio", { isHeader: true, widthPercent: 50 }),
+        createStyledCell("Nivel alcanzado", { isHeader: true, widthPercent: 28 }),
+        createStyledCell("Puntos", { isHeader: true, widthPercent: 22 }),
+      ],
+    }),
+    ...scoring.criteria.map((criterion, index) => new TableRow({
+      cantSplit: true,
+      children: [
+        createStyledCell(criterion, { widthPercent: 50, bold: true, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+        createStyledCell("________", { widthPercent: 28, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+        createStyledCell(`____ / ${scoring.maxPerCriterion}`, { widthPercent: 22, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+      ],
+    })),
+    new TableRow({
+      cantSplit: true,
+      children: [
+        createStyledCell("Total", { widthPercent: 50, bold: true }),
+        createStyledCell("Nota vigesimal: ____ / 20", { widthPercent: 28, alignment: AlignmentType.CENTER, bold: true }),
+        createStyledCell(`____ / ${scoring.total}`, { widthPercent: 22, alignment: AlignmentType.CENTER, bold: true }),
+      ],
+    }),
+  ];
+  const example = Math.ceil(scoring.total * 0.75);
+  return [
+    createHeading("Registro de puntaje", HeadingLevel.HEADING_2),
+    createBodyParagraph(legend, { italic: true, after: 80 }),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }),
+    createBodyParagraph(
+      `Conversión: nota = puntos obtenidos × 20 ÷ ${scoring.total}. Por ejemplo, ${example} puntos equivalen a ${scoreToVigesimal(example, scoring.total)}.`,
+      { italic: true, after: 120 },
+    ),
+  ];
 }
 
 function createSignaturesTable(
@@ -848,6 +935,9 @@ export function buildInstrumentDocx(
   const isRubric = (context.workflowKey || "").includes("rubrica");
   const isChecklist = (context.workflowKey || "").includes("lista-cotejo");
   const isStandaloneExam = (context.workflowKey || "").includes("examen");
+  const isScale = (context.workflowKey || "").includes("escala-estimacion");
+  const isTextQuestions = (context.workflowKey || "").includes("preguntas-texto");
+  const typedQuestions = isStandaloneExam || isTextQuestions ? resolveQuestions(artifact) : [];
   const isExam =
     isStandaloneExam ||
     (context.workflowKey || "").includes("preguntas");
@@ -968,9 +1058,10 @@ export function buildInstrumentDocx(
   }
 
   // Matriz de Evaluación
-  if ((artifact.tables?.length ?? 0) > 0 && !isStandaloneExam) {
+  if ((artifact.tables?.length ?? 0) > 0 && !isStandaloneExam && !isTextQuestions) {
     children.push(createHeading("MATRICES DE APLICACIÓN", HeadingLevel.HEADING_1, "II."));
     children.push(...createGeneratedTableBlocks(artifact));
+    if (isRubric || isScale) children.push(...createScoringBlocks(rubricScoring(artifact.tables?.[0])));
   } else if (isRubric) {
     children.push(createHeading("MATRIZ ANALÍTICA DE NIVELES DE LOGRO", HeadingLevel.HEADING_1, "II."));
     const rubricRows: TableRow[] = [
@@ -1060,7 +1151,10 @@ export function buildInstrumentDocx(
       children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
       if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       if (/preguntas/i.test(sec.title)) {
-        sec.key_points.forEach((point, pointIndex) => children.push(...createExamQuestionBlocks(point, pointIndex)));
+        const questions = typedQuestions.length
+          ? typedQuestions
+          : sec.key_points.map((point, pointIndex) => parseQuestionText(point, pointIndex + 1));
+        questions.forEach((question) => children.push(...createQuestionBlocks(question)));
         return;
       }
       sec.key_points.forEach((point, pointIndex) => {
@@ -1082,7 +1176,9 @@ export function buildInstrumentDocx(
       children: [new TextRun({ text: "GUÍA DOCENTE · NO ENTREGAR AL ESTUDIANTE", bold: true, size: 28, color: "000000" })],
       spacing: { after: 180 },
     }));
-    teacherSections.forEach((sec, idx) => {
+    const typedKey = createAnswerKeyBlocks(typedQuestions);
+    children.push(...typedKey);
+    teacherSections.filter((sec) => !(typedKey.length && /clave/i.test(sec.title))).forEach((sec, idx) => {
       children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
       if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       sec.key_points.forEach((point, pointIndex) => children.push(new Paragraph({
@@ -1101,6 +1197,48 @@ export function buildInstrumentDocx(
         spacing: { after: 60 },
       })));
     }
+  } else if (isTextQuestions && typedQuestions.length) {
+    // Preguntas sobre un texto: fuente, reactivos por nivel y clave docente separada.
+    const isTeacherSection = (title: string) => /(clave|criterios|retroalimentaci[oó]n|respuestas esperadas)/i.test(title);
+    const isQuestionSection = (title: string) => /^preguntas/i.test(title.trim());
+    const sourceSections = artifact.sections.filter((section) => !isTeacherSection(section.title) && !isQuestionSection(section.title));
+    children.push(createHeading("TEXTO Y PREGUNTAS", HeadingLevel.HEADING_1, "II."));
+    sourceSections.forEach((sec) => {
+      children.push(createHeading(sec.title, HeadingLevel.HEADING_2));
+      if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
+      sec.key_points.forEach((point) => children.push(createKeyPoint(point)));
+    });
+    const levels = [...new Set(typedQuestions.map((question) => question.cognitive_level || "Preguntas"))];
+    levels.forEach((level) => {
+      children.push(createHeading(level === "Preguntas" ? "Preguntas" : `Preguntas de nivel ${level.toLocaleLowerCase("es")}`, HeadingLevel.HEADING_2));
+      typedQuestions
+        .filter((question) => (question.cognitive_level || "Preguntas") === level)
+        .forEach((question) => children.push(...createQuestionBlocks(question)));
+    });
+    if ((artifact.tables?.length ?? 0) > 0) children.push(...createGeneratedTableBlocks(artifact));
+
+    children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      shading: { fill: "FFF2CC", type: ShadingType.CLEAR },
+      children: [new TextRun({ text: "GUÍA DOCENTE · NO ENTREGAR AL ESTUDIANTE", bold: true, size: 28, color: "000000", font: "Calibri" })],
+      spacing: { after: 180 },
+    }));
+    const key = createAnswerKeyBlocks(typedQuestions);
+    children.push(...key);
+    artifact.sections
+      .filter((section) => isTeacherSection(section.title) && !(key.length && /clave/i.test(section.title)))
+      .forEach((sec) => {
+        children.push(createHeading(sec.title, HeadingLevel.HEADING_2));
+        if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
+        sec.key_points.forEach((point, pointIndex) => children.push(new Paragraph({
+          children: [
+            new TextRun({ text: `${pointIndex + 1}. `, bold: true, color: COLOR_SECONDARY, size: 20, font: "Calibri" }),
+            ...labelRuns(point, 20),
+          ],
+          spacing: { after: 70 },
+        })));
+      });
   } else {
     // Otros instrumentos genéricos
     children.push(createHeading("REACTIVOS Y CONSIGNAS DE EVALUACIÓN", HeadingLevel.HEADING_1, "II."));
@@ -1298,7 +1436,7 @@ export function buildActivityDocx(
       children: [
         new TextRun({ text: "Instrucciones: ", bold: true, color: COLOR_PRIMARY, size: 20, font: "Calibri" }),
         new TextRun({
-          text: cleanText(artifact.executive_summary) || "Lee con atención y completa los retos propuestos aplicando tus saberes.",
+          text: cleanText(artifact.activity?.instructions || artifact.executive_summary) || "Lee con atención y completa los retos propuestos aplicando tus saberes.",
           color: COLOR_TEXT,
           size: 20,
           font: "Calibri",
@@ -1308,7 +1446,7 @@ export function buildActivityDocx(
     })
   );
 
-  if ((artifact.tables?.length ?? 0) > 0) {
+  if ((artifact.tables?.length ?? 0) > 0 && !isDebate && !isCaseStudy) {
     children.push(createHeading("RUTA DE TRABAJO", HeadingLevel.HEADING_2));
     children.push(...createGeneratedTableBlocks(artifact));
   }
@@ -2544,442 +2682,184 @@ export function buildActivityDocx(
 
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isDebate) {
-    children.push(createHeading("GUÍA Y ESTRUCTURA DE DINÁMICA DE DEBATE EN EL AULA", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Moción o Tesis Central: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 20,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: artifact.document_title || "¿Se debe regular estrictamente el uso de dispositivos móviles en el entorno escolar?",
-            size: 20,
-            bold: true,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 120 },
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones generales y acuerdos de convivencia: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "El debate es un ejercicio de argumentación rigurosa, escucha activa y respeto democrático. Cada equipo defenderá su postura basándose en evidencias, datos contrastables y razonamientos lógicos, sin descalificaciones personales.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 140 },
-      })
-    );
+    const activity = artifact.activity;
+    const items = activity?.items ?? [];
+    const teacherSection = (title: string) => /(pauta|docente|criterio|r[uú]brica|evaluaci[oó]n|solucion)/i.test(title);
+    children.push(createHeading("GUÍA Y ESTRUCTURA DEL DEBATE EN EL AULA", HeadingLevel.HEADING_1, "I."));
+    children.push(createLabeledParagraph("Moción o tesis central:", artifact.document_title));
+    children.push(createLabeledParagraph(
+      "Instrucciones y acuerdos de convivencia:",
+      activity?.instructions || artifact.executive_summary,
+    ));
+    artifact.sections.filter((section) => !teacherSection(section.title)).forEach((sec) => {
+      children.push(createHeading(sec.title, HeadingLevel.HEADING_2));
+      if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
+      sec.key_points.forEach((point) => children.push(createKeyPoint(point)));
+    });
+    if ((artifact.tables?.length ?? 0) > 0) children.push(...createGeneratedTableBlocks(artifact));
 
-    // Tabla 1: Estructura de Fases y Tiempos del Debate
-    children.push(createHeading("ESTRUCTURA DE FASES Y TIEMPOS DEL DEBATE", HeadingLevel.HEADING_2));
-    const phaseRows: TableRow[] = [
-      new TableRow({
-        tableHeader: true,
-        cantSplit: true,
-        children: [
-          createStyledCell("Fase del Debate", { isHeader: true, widthPercent: 25 }),
-          createStyledCell("Tiempo", { isHeader: true, widthPercent: 15, alignment: AlignmentType.CENTER }),
-          createStyledCell("Rol Participante", { isHeader: true, widthPercent: 25 }),
-          createStyledCell("Objetivo Pedagógico CNEB", { isHeader: true, widthPercent: 35 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("1. Apertura e Introducción", { bold: true, widthPercent: 25 }),
-          createStyledCell("3 min por equipo", { widthPercent: 15, alignment: AlignmentType.CENTER }),
-          createStyledCell("Primer Orador (A favor y En contra)", { widthPercent: 25 }),
-          createStyledCell("Presentar la tesis del equipo y el marco contextual de su postura.", { widthPercent: 35 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("2. Argumentación Principal", { bold: true, widthPercent: 25 }),
-          createStyledCell("4 min por equipo", { widthPercent: 15, alignment: AlignmentType.CENTER }),
-          createStyledCell("Segundo Orador (Evidencias)", { widthPercent: 25 }),
-          createStyledCell("Sustentar argumentos con estudios, estadísticas, leyes y ejemplos reales.", { widthPercent: 35 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("3. Refutación y Preguntas", { bold: true, widthPercent: 25 }),
-          createStyledCell("5 min cruzados", { widthPercent: 15, alignment: AlignmentType.CENTER }),
-          createStyledCell("Tercer Orador / Preguntas Cruzadas", { widthPercent: 25 }),
-          createStyledCell("Detectar falacias, contraargumentar y responder cuestionamientos.", { widthPercent: 35 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("4. Conclusiones y Cierre", { bold: true, widthPercent: 25 }),
-          createStyledCell("2 min por equipo", { widthPercent: 15, alignment: AlignmentType.CENTER }),
-          createStyledCell("Orador de Cierre", { widthPercent: 25 }),
-          createStyledCell("Sintetizar puntos fuertes del equipo y brindar mensaje final reflexivo.", { widthPercent: 35 }),
-        ],
-      }),
+    if (items.length) {
+      children.push(createHeading("Banco de argumentos y preguntas", HeadingLevel.HEADING_2));
+      const rows = [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("N°", { isHeader: true, widthPercent: 7 }),
+            createStyledCell("Argumento o pregunta", { isHeader: true, widthPercent: 43 }),
+            createStyledCell("Rol o momento", { isHeader: true, widthPercent: 20 }),
+            createStyledCell("Repreguntas para profundizar", { isHeader: true, widthPercent: 30 }),
+          ],
+        }),
+        ...items.map((item, index) => new TableRow({
+          cantSplit: true,
+          children: [
+            createStyledCell(String(index + 1), { widthPercent: 7, alignment: AlignmentType.CENTER, bold: true }),
+            createStyledCell(item.prompt, { widthPercent: 43 }),
+            createStyledCell(item.hint || " ", { widthPercent: 20 }),
+            createStyledCell(item.options?.length ? item.options.join("\n") : " ", { widthPercent: 30 }),
+          ],
+        })),
+      ];
+      children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }), new Paragraph({ spacing: { after: 140 } }));
+    }
+
+    children.push(createHeading("Ficha de observación del jurado", HeadingLevel.HEADING_2));
+    const observationCriteria = [
+      "Solidez y coherencia de los argumentos",
+      "Uso de datos, evidencias y ejemplos",
+      "Claridad de expresión, tono y respeto",
+      "Capacidad de refutación de ideas contrarias",
     ];
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: phaseRows }), new Paragraph({ spacing: { after: 140 } }));
-
-    // Tabla 2: Posturas Contrapuestas y Banco de Argumentos
-    children.push(createHeading("MATRIZ DE POSTURAS CONTRAPUESTAS Y ARGUMENTOS", HeadingLevel.HEADING_2));
-    const argRows: TableRow[] = [
-      new TableRow({
-        tableHeader: true,
-        cantSplit: true,
-        children: [
-          createStyledCell("EQUIPO A: A FAVOR (Regulación / Restricción)", { isHeader: true, widthPercent: 50, alignment: AlignmentType.CENTER }),
-          createStyledCell("EQUIPO B: EN CONTRA (Integración Digital Activa)", { isHeader: true, widthPercent: 50, alignment: AlignmentType.CENTER }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell(
-            "• Concentración y atención sostenida: Reduce interrupciones y distracciones constantes en horas de clase.\n\n" +
-            "• Salud mental y convivencia: Disminuye la incidencia de ciberacoso y fomenta la interacción social directa entre pares.\n\n" +
-            "• Equidad en el aula: Evita brechas visibles entre estudiantes con dispositivos de distinta gama o conectividad.\n\n" +
-            "• Desarrollo de pensamiento profundo: Estimula la lectura analítica y la escritura reflexiva sin atajos digitales inmediatos.",
-            { widthPercent: 50 }
-          ),
-          createStyledCell(
-            "• Competencia Digital CNEB (Comp. 28): Prepara a los estudiantes para desenvolverse éticamente en entornos virtuales.\n\n" +
-            "• Acceso inmediato a la información: Permite corroborar fuentes, explorar simuladores y consultar bases de datos educativas en tiempo real.\n\n" +
-            "• Alfabetización crítica de medios: Enseña a discernir noticias falsas y gestionar el autocontrol bajo guía docente en lugar de prohibir.\n\n" +
-            "• Herramienta pedagógica versátil: Facilita evaluaciones formativas interactivas, encuestas de aula y portafolios digitales.",
-            { widthPercent: 50 }
-          ),
-        ],
-      }),
-    ];
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: argRows }), new Paragraph({ spacing: { after: 140 } }));
-
-    // Tabla 3: Ficha de Registro y Toma de Notas del Jurado/Estudiante
-    children.push(createHeading("FICHA DE OBSERVACIÓN Y REGISTRO DEL ESTUDIANTE / JURADO", HeadingLevel.HEADING_2));
     const noteRows: TableRow[] = [
       new TableRow({
         tableHeader: true,
         cantSplit: true,
         children: [
-          createStyledCell("Criterio Evaluado", { isHeader: true, widthPercent: 25 }),
-          createStyledCell("Equipo A Favor (Anotaciones / Puntaje 1-4)", { isHeader: true, widthPercent: 37 }),
-          createStyledCell("Equipo En Contra (Anotaciones / Puntaje 1-4)", { isHeader: true, widthPercent: 38 }),
+          createStyledCell("Criterio observado", { isHeader: true, widthPercent: 30 }),
+          createStyledCell("Equipo a favor (notas / puntaje 1-4)", { isHeader: true, widthPercent: 35 }),
+          createStyledCell("Equipo en contra (notas / puntaje 1-4)", { isHeader: true, widthPercent: 35 }),
         ],
       }),
-      new TableRow({
+      ...observationCriteria.map((criterion) => new TableRow({
         cantSplit: true,
         children: [
-          createStyledCell("Solidez y coherencia de los argumentos", { bold: true, widthPercent: 25 }),
-          createStyledCell("Notas: ________________________________\nPuntaje: [   ]", { widthPercent: 37 }),
-          createStyledCell("Notas: ________________________________\nPuntaje: [   ]", { widthPercent: 38 }),
+          createStyledCell(criterion, { bold: true, widthPercent: 30 }),
+          createStyledCell("Notas: ________________________\nPuntaje: [   ]", { widthPercent: 35 }),
+          createStyledCell("Notas: ________________________\nPuntaje: [   ]", { widthPercent: 35 }),
         ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Uso de datos, evidencias y ejemplos", { bold: true, widthPercent: 25 }),
-          createStyledCell("Notas: ________________________________\nPuntaje: [   ]", { widthPercent: 37 }),
-          createStyledCell("Notas: ________________________________\nPuntaje: [   ]", { widthPercent: 38 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Claridad de expresión, tono y respeto", { bold: true, widthPercent: 25 }),
-          createStyledCell("Notas: ________________________________\nPuntaje: [   ]", { widthPercent: 37 }),
-          createStyledCell("Notas: ________________________________\nPuntaje: [   ]", { widthPercent: 38 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Capacidad de refutación de ideas contrarias", { bold: true, widthPercent: 25 }),
-          createStyledCell("Notas: ________________________________\nPuntaje: [   ]", { widthPercent: 37 }),
-          createStyledCell("Notas: ________________________________\nPuntaje: [   ]", { widthPercent: 38 }),
-        ],
-      }),
+      })),
     ];
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: noteRows }));
 
-    // Solucionario y Rúbrica en nueva página
-    children.push(
-      new Paragraph({
-        children: [new PageBreak()],
-      }),
-      createHeading("RÚBRICA DE EVALUACIÓN Y PAUTA DOCENTE: DEBATE EN EL AULA", HeadingLevel.HEADING_1, "II."),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "(USO EXCLUSIVO DEL DOCENTE - EVALUACIÓN FORMATIVA CNEB)",
-            italics: true,
-            bold: true,
-            size: 18,
-            color: COLOR_MUTED,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 120 },
-      })
-    );
-
-    const rubricRows: TableRow[] = [
-      new TableRow({
-        tableHeader: true,
-        cantSplit: true,
-        children: [
-          createStyledCell("Criterio CNEB", { isHeader: true, widthPercent: 20 }),
-          createStyledCell("AD - Destacado", { isHeader: true, widthPercent: 20, alignment: AlignmentType.CENTER }),
-          createStyledCell("A - Esperado", { isHeader: true, widthPercent: 20, alignment: AlignmentType.CENTER }),
-          createStyledCell("B - En Proceso", { isHeader: true, widthPercent: 20, alignment: AlignmentType.CENTER }),
-          createStyledCell("C - En Inicio", { isHeader: true, widthPercent: 20, alignment: AlignmentType.CENTER }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Argumentación y Sustento Ético", { bold: true, widthPercent: 20 }),
-          createStyledCell("Argumenta con profundidad, citando múltiples fuentes y relacionando ética con bienestar social.", { widthPercent: 20 }),
-          createStyledCell("Sustenta sus posturas con argumentos lógicos y fuentes verídicas adecuadas al tema.", { widthPercent: 20 }),
-          createStyledCell("Presenta argumentos con escasas evidencias o basados en opiniones generales.", { widthPercent: 20 }),
-          createStyledCell("Expone afirmaciones sin justificación ni evidencia comprobable.", { widthPercent: 20 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Contraargumentación y Escucha", { bold: true, widthPercent: 20 }),
-          createStyledCell("Refuta con agudeza lógica argumentos contrarios, respondiendo con datos y cortesía intachable.", { widthPercent: 20 }),
-          createStyledCell("Contraargumenta respondiendo directamente a las objeciones del equipo oponente.", { widthPercent: 20 }),
-          createStyledCell("Intenta refutar pero desvía el foco de la discusión o reitera su postura inicial.", { widthPercent: 20 }),
-          createStyledCell("No responde a las objeciones o interrumpe sin escuchar a los demás.", { widthPercent: 20 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Competencia Comunicativa Oral", { bold: true, widthPercent: 20 }),
-          createStyledCell("Uso sobresaliente de recursos no verbales, modulación vocal y manejo impecable del tiempo.", { widthPercent: 20 }),
-          createStyledCell("Vocalización clara, lenguaje formal y empleo correcto del tiempo asignado.", { widthPercent: 20 }),
-          createStyledCell("Tono monótono o vacilante, con ligeros excesos o faltas en el uso del tiempo.", { widthPercent: 20 }),
-          createStyledCell("Dificultad notoria para expresarse oralmente o abandono antes del tiempo.", { widthPercent: 20 }),
-        ],
-      }),
-    ];
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: rubricRows }));
+    children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(createHeading("PAUTA DOCENTE Y CRITERIOS DE EVALUACIÓN", HeadingLevel.HEADING_1, "II."));
+    children.push(createBodyParagraph("(Uso exclusivo del docente. Evaluación formativa CNEB)", { italic: true, after: 120 }));
+    artifact.sections.filter((section) => teacherSection(section.title)).forEach((sec) => {
+      children.push(createHeading(sec.title, HeadingLevel.HEADING_2));
+      if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
+      sec.key_points.forEach((point) => children.push(createKeyPoint(point)));
+    });
+    if (items.some((item) => item.answer)) {
+      children.push(createHeading("Desarrollo esperado de cada argumento", HeadingLevel.HEADING_2));
+      const rows = [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("N°", { isHeader: true, widthPercent: 7 }),
+            createStyledCell("Argumento o pregunta", { isHeader: true, widthPercent: 38 }),
+            createStyledCell("Desarrollo esperado con evidencia", { isHeader: true, widthPercent: 55 }),
+          ],
+        }),
+        ...items.map((item, index) => new TableRow({
+          cantSplit: true,
+          children: [
+            createStyledCell(String(index + 1), { widthPercent: 7, alignment: AlignmentType.CENTER, bold: true }),
+            createStyledCell(item.prompt, { widthPercent: 38 }),
+            createStyledCell(item.answer || " ", { widthPercent: 55 }),
+          ],
+        })),
+      ];
+      children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }));
+    }
+    artifact.teacher_recommendations.forEach((recommendation) => children.push(createKeyPoint(recommendation)));
   } else if (isCaseStudy) {
-    children.push(createHeading("ESTUDIO DE CASO ABP: INVESTIGACIÓN Y RESOLUCIÓN DE PROBLEMAS", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Título del Caso: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 20,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: artifact.document_title || "Dilema de la Gestión del Agua y Desarrollo Sostenible",
-            bold: true,
-            size: 20,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 120 },
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Situación Problemática Real: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: artifact.executive_summary || "En una cuenca agrícola costera, la escasez hídrica estacional genera tensiones entre la pequeña agricultura comunal, las empresas agroexportadoras de riego presurizado y la demanda de agua potable de los centros urbanos en crecimiento.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 140 },
-      })
-    );
+    const activity = artifact.activity;
+    const items = activity?.items ?? [];
+    const teacherSection = (title: string) => /(pauta|docente|criterio|r[uú]brica|evaluaci[oó]n|solucion|respuesta)/i.test(title);
+    children.push(createHeading("ESTUDIO DE CASO: ANÁLISIS Y PROPUESTA", HeadingLevel.HEADING_1, "I."));
+    children.push(createLabeledParagraph("Título del caso:", artifact.document_title));
+    children.push(createLabeledParagraph("Situación problemática:", artifact.executive_summary));
+    if (activity?.instructions) children.push(createLabeledParagraph("Consigna de trabajo:", activity.instructions));
+    artifact.sections.filter((section) => !teacherSection(section.title)).forEach((sec) => {
+      children.push(createHeading(sec.title, HeadingLevel.HEADING_2));
+      if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
+      sec.key_points.forEach((point) => children.push(createKeyPoint(point)));
+    });
+    if ((artifact.tables?.length ?? 0) > 0) children.push(...createGeneratedTableBlocks(artifact));
 
-    // Tabla 1: Matriz de Actores y Posiciones en Conflicto
-    children.push(createHeading("MATRIZ DE ACTORES Y POSICIONES EN CONFLICTO", HeadingLevel.HEADING_2));
-    const actorRows: TableRow[] = [
-      new TableRow({
-        tableHeader: true,
-        cantSplit: true,
-        children: [
-          createStyledCell("Actor Social / Institución", { isHeader: true, widthPercent: 25 }),
-          createStyledCell("Interés y Postura Principal", { isHeader: true, widthPercent: 25 }),
-          createStyledCell("Sustento Legal y Económico", { isHeader: true, widthPercent: 25 }),
-          createStyledCell("Propuesta de Solución", { isHeader: true, widthPercent: 25 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Comunidad de Pequeños Agricultores", { bold: true, widthPercent: 25 }),
-          createStyledCell("Defensa de derechos de agua tradicionales para cultivos de panllevar y seguridad alimentaria.", { widthPercent: 25 }),
-          createStyledCell("Uso consuetudinario ancestral y soberanía alimentaria familiar local.", { widthPercent: 25 }),
-          createStyledCell("Respetar turnos tradicionales y subsidio estatal para revestimiento de canales.", { widthPercent: 25 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Asociación de Agroexportadores", { bold: true, widthPercent: 25 }),
-          createStyledCell("Garantizar volumen hídrico constante para plantaciones de alta productividad y contratos externos.", { widthPercent: 25 }),
-          createStyledCell("Generación de empleo formal, divisas para el país e inversión en riego por goteo.", { widthPercent: 25 }),
-          createStyledCell("Construcción de pozos tubulares profundos y ampliación de reservorios privados.", { widthPercent: 25 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Población Urbana y Municipio", { bold: true, widthPercent: 25 }),
-          createStyledCell("Acceso ininterrumpido a agua potable de calidad para consumo humano diario.", { widthPercent: 25 }),
-          createStyledCell("Artículo 7-A de la Constitución Política: Derecho fundamental irrenunciable al agua.", { widthPercent: 25 }),
-          createStyledCell("Prioridad absoluta de la red pública sobre cualquier actividad extractiva o agrícola.", { widthPercent: 25 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Autoridad Nacional del Agua (ANA)", { bold: true, widthPercent: 25 }),
-          createStyledCell("Equilibrio hídrico de la cuenca y preservación del caudal ecológico mínimo.", { widthPercent: 25 }),
-          createStyledCell("Ley de Recursos Hídricos N° 29338: el agua es patrimonio de la Nación.", { widthPercent: 25 }),
-          createStyledCell("Comité de gestión de cuenca con monitoreo digital y medición obligatoria de consumos.", { widthPercent: 25 }),
-        ],
-      }),
-    ];
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: actorRows }), new Paragraph({ spacing: { after: 140 } }));
+    if (items.length) {
+      children.push(createHeading("Preguntas de análisis del equipo", HeadingLevel.HEADING_2));
+      const rows = [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("N°", { isHeader: true, widthPercent: 7 }),
+            createStyledCell("Pregunta y evidencias sugeridas", { isHeader: true, widthPercent: 43 }),
+            createStyledCell("Análisis y propuesta del equipo", { isHeader: true, widthPercent: 50 }),
+          ],
+        }),
+        ...items.map((item, index) => new TableRow({
+          cantSplit: true,
+          children: [
+            createStyledCell(String(index + 1), { widthPercent: 7, alignment: AlignmentType.CENTER, bold: true }),
+            createStyledCell(
+              item.options?.length ? `${item.prompt}\nEvidencias: ${item.options.join("; ")}` : item.prompt,
+              { widthPercent: 43 },
+            ),
+            createStyledCell("____________________________________\n____________________________________\n____________________________________", { widthPercent: 50 }),
+          ],
+        })),
+      ];
+      children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }));
+    }
 
-    // Tabla 2: Preguntas Guía de Análisis ABP para el Equipo
-    children.push(createHeading("PREGUNTAS GUÍA DE ANÁLISIS CRÍTICO Y PROPUESTA ABP", HeadingLevel.HEADING_2));
-    const questionRows: TableRow[] = [
-      new TableRow({
-        tableHeader: true,
-        cantSplit: true,
-        children: [
-          createStyledCell("N°", { isHeader: true, widthPercent: 8, alignment: AlignmentType.CENTER }),
-          createStyledCell("Desafío Cognitivo / Pregunta Investigativa", { isHeader: true, widthPercent: 42 }),
-          createStyledCell("Análisis Crítico y Propuesta del Equipo Estudiantil", { isHeader: true, widthPercent: 50 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("1", { bold: true, widthPercent: 8, alignment: AlignmentType.CENTER }),
-          createStyledCell("¿Cuál es la raíz multidimensional del conflicto? Identifica causas económicas, ambientales y políticas.", { bold: true, widthPercent: 42 }),
-          createStyledCell("Líneas de análisis y evidencia:\n____________________________________________________\n____________________________________________________\n____________________________________________________", { widthPercent: 50 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("2", { bold: true, widthPercent: 8, alignment: AlignmentType.CENTER }),
-          createStyledCell("¿Cómo se jerarquiza el uso del agua según la legislación peruana frente a las demandas del mercado?", { bold: true, widthPercent: 42 }),
-          createStyledCell("Líneas de análisis y evidencia:\n____________________________________________________\n____________________________________________________\n____________________________________________________", { widthPercent: 50 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("3", { bold: true, widthPercent: 8, alignment: AlignmentType.CENTER }),
-          createStyledCell("Diseña una propuesta de solución concertada que equilibre productividad, justicia social y conservación ecológica.", { bold: true, widthPercent: 42 }),
-          createStyledCell("Líneas de análisis y evidencia:\n____________________________________________________\n____________________________________________________\n____________________________________________________", { widthPercent: 50 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("4", { bold: true, widthPercent: 8, alignment: AlignmentType.CENTER }),
-          createStyledCell("¿Qué compromisos éticos debe asumir cada actor social para garantizar la sostenibilidad a 10 años?", { bold: true, widthPercent: 42 }),
-          createStyledCell("Líneas de análisis y evidencia:\n____________________________________________________\n____________________________________________________\n____________________________________________________", { widthPercent: 50 }),
-        ],
-      }),
-    ];
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: questionRows }));
-
-    // Solucionario y Rúbrica ABP en nueva página
-    children.push(
-      new Paragraph({
-        children: [new PageBreak()],
-      }),
-      createHeading("GUÍA METODOLÓGICA Y CRITERIOS DE EVALUACIÓN ABP", HeadingLevel.HEADING_1, "II."),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "(PAUTA DOCENTE - EVALUACIÓN DE COMPETENCIAS CIUDADANAS Y ECONÓMICAS)",
-            italics: true,
-            bold: true,
-            size: 18,
-            color: COLOR_MUTED,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 120 },
-      })
-    );
-
-    const guideRows: TableRow[] = [
-      new TableRow({
-        tableHeader: true,
-        cantSplit: true,
-        children: [
-          createStyledCell("Criterio de Evaluación ABP", { isHeader: true, widthPercent: 25 }),
-          createStyledCell("Nivel Esperado / Evidencia de Aprendizaje", { isHeader: true, widthPercent: 40 }),
-          createStyledCell("Intervención Docente / Retroalimentación", { isHeader: true, widthPercent: 35 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Comprensión Multicausal", { bold: true, widthPercent: 25 }),
-          createStyledCell("Distingue con claridad entre la sequía climática natural y las presiones antrópicas derivadas del crecimiento agroexportador y urbano.", { widthPercent: 40 }),
-          createStyledCell("Formular repreguntas sobre externalidades ambientales y agotamiento del acuífero.", { widthPercent: 35 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Ponderación Ética y Legal", { bold: true, widthPercent: 25 }),
-          createStyledCell("Aplica el orden de prioridad de la Ley N° 29338 (1° Primario/Poblacional, 2° Agrícola/Ecológico, 3° Productivo/Industrial).", { widthPercent: 40 }),
-          createStyledCell("Verificar que la solución del equipo no vulnere el acceso básico de las poblaciones vulnerables.", { widthPercent: 35 }),
-        ],
-      }),
-      new TableRow({
-        cantSplit: true,
-        children: [
-          createStyledCell("Viabilidad de la Propuesta", { bold: true, widthPercent: 25 }),
-          createStyledCell("Propone acuerdos concretos: tecnificación de riego comunal financiada con obras por impuestos y junta de cuenca paritaria.", { widthPercent: 40 }),
-          createStyledCell("Evaluar si los costos, plazos y mecanismos de fiscalización propuestos son factibles en la realidad.", { widthPercent: 35 }),
-        ],
-      }),
-    ];
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: guideRows }));
+    children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(createHeading("PAUTA DOCENTE Y CRITERIOS DE EVALUACIÓN", HeadingLevel.HEADING_1, "II."));
+    children.push(createBodyParagraph("(Uso exclusivo del docente. No entregar al estudiante)", { italic: true, after: 120 }));
+    if (items.some((item) => item.answer || item.hint)) {
+      children.push(createHeading("Respuestas esperadas y andamiaje", HeadingLevel.HEADING_2));
+      const rows = [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("N°", { isHeader: true, widthPercent: 7 }),
+            createStyledCell("Pregunta", { isHeader: true, widthPercent: 30 }),
+            createStyledCell("Respuesta o criterio esperado", { isHeader: true, widthPercent: 38 }),
+            createStyledCell("Andamiaje docente", { isHeader: true, widthPercent: 25 }),
+          ],
+        }),
+        ...items.map((item, index) => new TableRow({
+          cantSplit: true,
+          children: [
+            createStyledCell(String(index + 1), { widthPercent: 7, alignment: AlignmentType.CENTER, bold: true }),
+            createStyledCell(item.prompt, { widthPercent: 30 }),
+            createStyledCell(item.answer || " ", { widthPercent: 38 }),
+            createStyledCell(item.hint || " ", { widthPercent: 25 }),
+          ],
+        })),
+      ];
+      children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }));
+    }
+    artifact.sections.filter((section) => teacherSection(section.title)).forEach((sec) => {
+      children.push(createHeading(sec.title, HeadingLevel.HEADING_2));
+      if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
+      sec.key_points.forEach((point) => children.push(createKeyPoint(point)));
+    });
+    artifact.teacher_recommendations.forEach((recommendation) => children.push(createKeyPoint(recommendation)));
   } else {
     // Retos y actividades estándar
     artifact.sections.forEach((sec, idx) => {
@@ -3145,9 +3025,11 @@ export function buildAnalyticsDocx(
     }),
   ];
 
-  artifact.sections.forEach((sec, idx) => {
-    const riskLabel = idx === 0 ? "Crítico (Alerta)" : idx === 1 ? "En Proceso" : "Monitoreo";
-    const riskFill = idx === 0 ? "FEE2E2" : idx === 1 ? "FEF3C7" : "DCFCE7";
+  const riskFills = { danger: "FEE2E2", warning: "FEF3C7", success: "DCFCE7" } as const;
+  artifact.sections.forEach((sec) => {
+    const assessment = riskLevelFor(sec, artifact.tables ?? []);
+    const riskLabel = assessment.label;
+    const riskFill = riskFills[assessment.level];
     analyticsRows.push(
       new TableRow({
         cantSplit: true,

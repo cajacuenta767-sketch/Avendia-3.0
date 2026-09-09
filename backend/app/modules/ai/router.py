@@ -14,9 +14,10 @@ from app.db.session import get_db
 from app.modules.admin.model import AIGenerationRecord, AISuggestionFeedback
 from app.modules.admin.service import (
     InsufficientAICredits,
-    ensure_ai_credits,
     record_ai_usage,
     record_generation_quality,
+    refund_ai_credits,
+    reserve_ai_credits,
 )
 from app.modules.ai.presentation_export import build_presentation_pptx
 from app.modules.ai.presentation_images import find_presentation_image
@@ -141,12 +142,17 @@ async def create_copilot_reply(
     db: AsyncSession = Depends(get_db),
 ) -> CopilotResponse:
     try:
-        ensure_ai_credits(user, 40)
-        result = await generate_copilot_reply(payload)
+        reserved = await reserve_ai_credits(db, user, 40)
+        try:
+            result = await generate_copilot_reply(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=40,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.reply) // 4),
             tool_id="copilot",
             module=payload.module,
@@ -181,12 +187,17 @@ async def create_field_assist_reply(
     db: AsyncSession = Depends(get_db),
 ) -> CopilotResponse:
     try:
-        ensure_ai_credits(user, 40)
-        result = await generate_field_assist_reply(payload)
+        reserved = await reserve_ai_credits(db, user, 40)
+        try:
+            result = await generate_field_assist_reply(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=40,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.reply) // 4),
             tool_id=payload.tool_id,
             module=payload.module,
@@ -221,12 +232,17 @@ async def create_word_grouping_activity(
     db: AsyncSession = Depends(get_db),
 ) -> WordGroupingResponse:
     try:
-        ensure_ai_credits(user, 120)
-        result = await generate_word_grouping(payload)
+        reserved = await reserve_ai_credits(db, user, 120)
+        try:
+            result = await generate_word_grouping(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=120,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.model_dump_json()) // 4),
             tool_id="agrupar-palabras",
             module="recursos",
@@ -261,12 +277,17 @@ async def create_sequence_ordering_activity(
     db: AsyncSession = Depends(get_db),
 ) -> SequenceOrderingResponse:
     try:
-        ensure_ai_credits(user, 120)
-        result = await generate_sequence_ordering(payload)
+        reserved = await reserve_ai_credits(db, user, 120)
+        try:
+            result = await generate_sequence_ordering(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=120,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.model_dump_json()) // 4),
             tool_id="ordenar-bloques",
             module="recursos",
@@ -348,8 +369,12 @@ async def create_workflow_artifact(
                 db.add(generation_record)
             await db.commit()
 
-        ensure_ai_credits(user, 300)
-        result = await generate_workflow_artifact(payload)
+        reserved = await reserve_ai_credits(db, user, 300)
+        try:
+            result = await generate_workflow_artifact(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         if generation_record is not None:
             result = result.model_copy(update={"generation_id": str(generation_record.id)})
             generation_record.status = "completed"
@@ -376,6 +401,7 @@ async def create_workflow_artifact(
             db,
             user,
             credit_cost=300,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.model_dump_json()) // 4),
             tool_id=payload.tool_id,
             module=payload.module,
@@ -434,12 +460,17 @@ async def create_presentation(
     db: AsyncSession = Depends(get_db),
 ) -> PresentationGenerationResponse:
     try:
-        ensure_ai_credits(user, 220)
-        result = await generate_presentation(payload)
+        reserved = await reserve_ai_credits(db, user, 220)
+        try:
+            result = await generate_presentation(payload)
+        except Exception:
+            await refund_ai_credits(db, user, reserved)
+            raise
         await record_ai_usage(
             db,
             user,
             credit_cost=220,
+            reserved=reserved,
             estimated_tokens=max(1, len(result.model_dump_json()) // 4),
             tool_id="presentaciones-didacticas",
             module="recursos",
