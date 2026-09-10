@@ -1216,7 +1216,7 @@ export function buildInstrumentDocx(
       .sort((left, right) => examSectionPriority(left.section.title) - examSectionPriority(right.section.title) || left.index - right.index)
       .map(({ section }) => section);
     studentSections.forEach((sec, idx) => {
-      children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
+      children.push(createHeading(`${idx + 1}. ${stripNumbering(sec.title)}`, HeadingLevel.HEADING_2));
       if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       if (/preguntas/i.test(sec.title)) {
         const questions = typedQuestions.length
@@ -1247,7 +1247,7 @@ export function buildInstrumentDocx(
     const typedKey = createAnswerKeyBlocks(typedQuestions);
     children.push(...typedKey);
     teacherSections.filter((sec) => !(typedKey.length && /clave/i.test(sec.title))).forEach((sec, idx) => {
-      children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
+      children.push(createHeading(`${idx + 1}. ${stripNumbering(sec.title)}`, HeadingLevel.HEADING_2));
       if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       sec.key_points.forEach((point, pointIndex) => children.push(new Paragraph({
         children: [
@@ -1311,12 +1311,20 @@ export function buildInstrumentDocx(
     // Otros instrumentos genéricos
     children.push(createHeading("REACTIVOS Y CONSIGNAS DE EVALUACIÓN", HeadingLevel.HEADING_1, "II."));
     artifact.sections.forEach((sec, idx) => {
-      children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
+      children.push(createHeading(`${idx + 1}. ${stripNumbering(sec.title)}`, HeadingLevel.HEADING_2));
       if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
-      sec.key_points.forEach((point) => children.push(new Paragraph({
-        children: [new TextRun({ text: `[  ] ${cleanText(point)}`, size: 20, font: "Calibri", color: COLOR_TEXT })],
-        spacing: { before: 40, after: 60 },
-      })));
+      // La casilla solo corresponde a un desempeño observable. Los puntos con
+      // etiqueta ("Periodo lectivo: ...") son datos del instrumento, no algo que marcar.
+      sec.key_points.forEach((point) => {
+        if (splitLabel(cleanText(point)).label) {
+          children.push(createKeyPoint(point));
+          return;
+        }
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `[  ] ${cleanText(point)}`, size: 20, font: "Calibri", color: COLOR_TEXT })],
+          spacing: { before: 40, after: 60 },
+        }));
+      });
     });
   }
 
