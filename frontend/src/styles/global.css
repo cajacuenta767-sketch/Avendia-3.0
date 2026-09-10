@@ -1348,3 +1348,15 @@ textarea { padding: 12px; line-height: 1.55; resize: vertical; }
   .generation-quality > header > strong { grid-column:2; justify-self:start; }
   .generation-quality ul { grid-template-columns:1fr; }
 }
+
+/* Elección al abrir una herramienta con borrador guardado */
+.workflow-draft-choice { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:18px; padding:14px 18px; border:1px solid #cddcf5; border-radius:16px; background:linear-gradient(135deg,#f4f8ff,#fbfdff); }
+.workflow-draft-choice__text { display:grid; gap:2px; min-width:0; }
+.workflow-draft-choice__text strong { font-size:0.95rem; color:#1f4d78; }
+.workflow-draft-choice__text small { color:var(--muted); }
+.workflow-draft-choice__actions { display:flex; flex-wrap:wrap; gap:10px; }
+@media (max-width:720px) {
+  .workflow-draft-choice { align-items:stretch; flex-direction:column; }
+  .workflow-draft-choice__actions { flex-direction:column; }
+  .workflow-draft-choice__actions button { width:100%; }
+}

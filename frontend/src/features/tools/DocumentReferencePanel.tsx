@@ -77,6 +77,12 @@ export function DocumentReferencePanel({ targetType, fields, selection, onImport
 
   const selectDocument = (nextId: string) => {
     setDocumentId(nextId);
+    // "Crear desde cero" debe devolver los campos copiados a su valor original.
+    if (!nextId) {
+      setSelectedFields([]);
+      onClear();
+      return;
+    }
     const next = documents.find((document) => document.id === nextId);
     const sourceFields = next?.metadata_json?.fields ?? {};
     setSelectedFields(fields.filter((field) => !blockedField(field.id) && sourceValueFor(field.id, sourceFields) !== undefined).map((field) => field.id));

@@ -15,6 +15,7 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  RotateCcw,
   Save,
   Sparkles,
   Trash2,
@@ -170,6 +171,32 @@ function readDraft(storageKey: string, legacyStorageKey: string, initialValues: 
   return fallback;
 }
 
+/** Indica si hay un borrador guardado con contenido propio, para ofrecer continuarlo o empezar de cero. */
+function readStoredDraftMeta(
+  storageKey: string,
+  legacyStorageKey: string,
+  initialValues: Record<string, FieldValue>,
+): { updatedAt: string; hasArtifact: boolean } | null {
+  for (const key of [storageKey, legacyStorageKey]) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) ?? "null") as Partial<Draft> | null;
+      if (!saved) continue;
+      const hasArtifact = Boolean(saved.artifact);
+      const hasOwnValues = Object.entries(saved.values ?? {}).some(([id, value]) => {
+        const text = displayValue(value).trim();
+        return text && text !== displayValue(initialValues[id] ?? "").trim();
+      });
+      if (!hasArtifact && !hasOwnValues) continue;
+      return { updatedAt: String(saved.updatedAt ?? ""), hasArtifact };
+    } catch {
+      // Un borrador ilegible se ignora y se prueba con el siguiente.
+    }
+  }
+  return null;
+}
+
+type DraftPrompt = { mode: "restored"; updatedAt: string; hasArtifact: boolean } | { mode: "confirm" } | null;
+
 export function WorkflowTool() {
   const location = useLocation();
   const { pathname } = location;
@@ -182,6 +209,11 @@ export function WorkflowTool() {
   const [draft, setDraft] = useState<Draft>(() => workflow
     ? readDraft(storageKey, legacyStorageKey, getInitialWorkflowValues(workflow))
     : { version: 2, values: {}, currentStep: 0, artifact: null, updatedAt: "" });
+  const [draftPrompt, setDraftPrompt] = useState<DraftPrompt>(() => {
+    if (!workflow) return null;
+    const meta = readStoredDraftMeta(storageKey, legacyStorageKey, getInitialWorkflowValues(workflow));
+    return meta ? { mode: "restored", updatedAt: meta.updatedAt, hasArtifact: meta.hasArtifact } : null;
+  });
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [message, setMessage] = useState("");
   const [showErrors, setShowErrors] = useState(false);
@@ -853,6 +885,58 @@ export function WorkflowTool() {
     setMessage("Se restauró el contenido anterior del campo.");
   };
 
+  /** Descarta el borrador guardado y deja la herramienta como recién abierta. */
+  const startFromScratch = () => {
+    if (!workflow) return;
+    const values = getInitialWorkflowValues(workflow);
+    try {
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(legacyStorageKey);
+    } catch {
+      // Sin almacenamiento disponible basta con limpiar el estado en pantalla.
+    }
+    setDraft({
+      version: 2,
+      values,
+      currentStep: 0,
+      artifact: null,
+      fieldSources: Object.fromEntries(
+        Object.entries(values)
+          .filter(([, value]) => displayValue(value).trim())
+          .map(([id]) => [id, "profile" as const]),
+      ),
+      updatedAt: "",
+    });
+    setDraftPrompt(null);
+    setFieldsToReview([]);
+    setTouchedFields(new Set());
+    setShowErrors(false);
+    setEditingResult(false);
+    setStatus("idle");
+    setMessage("Empezaste un documento nuevo. Se conservan los datos de tu perfil.");
+  };
+
+  /** Quita la referencia y devuelve a su valor original los campos que copió. */
+  const clearReference = () => {
+    setDraft((current) => {
+      const imported = current.reference?.fields ?? [];
+      if (!imported.length) return { ...current, reference: undefined };
+      const initial = workflow ? getInitialWorkflowValues(workflow) : {};
+      const values = { ...current.values };
+      const fieldSources = { ...(current.fieldSources ?? {}) };
+      imported.forEach((id) => {
+        if (fieldSources[id] !== "reference") return;
+        const original = initial[id] ?? "";
+        values[id] = original;
+        if (displayValue(original).trim()) fieldSources[id] = "profile";
+        else delete fieldSources[id];
+      });
+      return { ...current, reference: undefined, values, fieldSources };
+    });
+    setFieldsToReview([]);
+    setMessage("Se quitaron los datos copiados del documento de referencia.");
+  };
+
   const importReference = (reference: DocumentReferenceSelection, values: Record<string, FieldValue>) => {
     setDraft((current) => ({
       ...current,
@@ -1213,11 +1297,53 @@ export function WorkflowTool() {
     </div>;
   }
 
+  const draftSavedAt = draftPrompt?.mode === "restored" && draftPrompt.updatedAt
+    ? new Date(draftPrompt.updatedAt).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })
+    : "";
+  const draftPromptBanner = draftPrompt ? (
+    <section className="workflow-draft-choice" role="status" aria-label="Borrador guardado">
+      <div className="workflow-draft-choice__text">
+        <strong>
+          {draftPrompt.mode === "confirm"
+            ? "¿Empezar desde cero?"
+            : `Tienes un borrador guardado${draftSavedAt ? ` del ${draftSavedAt}` : ""}`}
+        </strong>
+        <small>
+          {draftPrompt.mode === "confirm"
+            ? "Se descartará lo que ves en pantalla. Los datos de tu perfil se conservan."
+            : draftPrompt.hasArtifact
+              ? "Incluye el documento que ya habías generado."
+              : "Incluye los datos que ya habías completado."}
+        </small>
+      </div>
+      <div className="workflow-draft-choice__actions">
+        {draftPrompt.mode === "confirm" ? (
+          <>
+            <button type="button" className="secondary-button" onClick={() => setDraftPrompt(null)}>Cancelar</button>
+            <button type="button" className="workflow-primary" onClick={startFromScratch}><RotateCcw /> Sí, empezar desde cero</button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="workflow-primary" onClick={() => setDraftPrompt(null)}>Continuar borrador</button>
+            <button type="button" className="secondary-button" onClick={startFromScratch}><RotateCcw /> Empezar desde cero</button>
+          </>
+        )}
+      </div>
+    </section>
+  ) : null;
+  // Mientras el aviso está en pantalla el botón sobra: el aviso ya ofrece las dos opciones.
+  const startOverButton = draftPrompt ? null : (
+    <button type="button" className="secondary-button" onClick={() => setDraftPrompt({ mode: "confirm" })}>
+      <RotateCcw /> Empezar desde cero
+    </button>
+  );
+
   if (draft.artifact && !workflow.embeddedResult) {
     return (
       <main className="workflow-page"><div className="workflow-shell">
         <header className="workflow-header"><div><span>{tool.module} · resultado generado</span><h1>{draft.artifact.document_title}</h1><p>{draft.artifact.executive_summary}</p></div><button type="button" className="secondary-button" onClick={() => saveDocument()}><Save /> Guardar</button></header>
-        <section className="workflow-result-actions"><button type="button" className="secondary-button" onClick={() => setDraft((current) => ({ ...current, artifact: null, currentStep: workflow.steps.length - 1 }))}><ChevronLeft /> Editar datos</button><button type="button" className="secondary-button" onClick={() => setEditingResult((current) => !current)}><Pencil /> {editingResult ? "Cerrar edición" : "Editar resultado"}</button><button type="button" className="secondary-button" onClick={() => generate()} disabled={status === "generating"}><RefreshCw /> Regenerar todo</button><button type="button" className="secondary-button" onClick={() => void copyArtifact()}><Clipboard /> {workflow.artifactType === "comunicacion" ? "Copiar correo" : "Copiar"}</button>{renderTemplateExport()}</section>
+        {draftPromptBanner}
+        <section className="workflow-result-actions">{startOverButton}<button type="button" className="secondary-button" onClick={() => setDraft((current) => ({ ...current, artifact: null, currentStep: workflow.steps.length - 1 }))}><ChevronLeft /> Editar datos</button><button type="button" className="secondary-button" onClick={() => setEditingResult((current) => !current)}><Pencil /> {editingResult ? "Cerrar edición" : "Editar resultado"}</button><button type="button" className="secondary-button" onClick={() => generate()} disabled={status === "generating"}><RefreshCw /> Regenerar todo</button><button type="button" className="secondary-button" onClick={() => void copyArtifact()}><Clipboard /> {workflow.artifactType === "comunicacion" ? "Copiar correo" : "Copiar"}</button>{renderTemplateExport()}</section>
         {message ? <div className={`workflow-message ${status === "error" ? "workflow-message--error" : ""}`}>{message}</div> : null}
         {draft.artifact.activity?.items.length ? <InteractiveArtifact activity={draft.artifact.activity} toolId={tool.id} values={draft.values} /> : null}
         {renderQualityPanel()}
@@ -1229,7 +1355,7 @@ export function WorkflowTool() {
 
   return (
     <main className="workflow-page"><div className="workflow-shell">
-      <header className="workflow-header"><div><span>{tool.module} · complejidad {workflow.complexity}</span><h1>{tool.title}</h1><p>{tool.description}</p></div><div className="workflow-header__actions"><button type="button" className="secondary-button" onClick={() => saveDocument()} disabled={status === "saving"}>{status === "saving" ? <LoaderCircle className="is-spinning" /> : status === "saved" ? <Check /> : <Save />}{status === "saved" ? "Guardado" : "Guardar borrador"}</button></div></header>
+      <header className="workflow-header"><div><span>{tool.module} · complejidad {workflow.complexity}</span><h1>{tool.title}</h1><p>{tool.description}</p></div><div className="workflow-header__actions">{startOverButton}<button type="button" className="secondary-button" onClick={() => saveDocument()} disabled={status === "saving"}>{status === "saving" ? <LoaderCircle className="is-spinning" /> : status === "saved" ? <Check /> : <Save />}{status === "saved" ? "Guardado" : "Guardar borrador"}</button></div></header>
       <section className={`workflow-orientation ${orientationOpen ? "is-open" : ""}`} aria-labelledby="workflow-orientation-title">
         <button className="workflow-orientation__toggle" type="button" aria-expanded={orientationOpen} onClick={() => setOrientationOpen((value) => !value)}>
           <span><CircleHelp aria-hidden="true" /><strong id="workflow-orientation-title">Antes de comenzar</strong></span>
@@ -1241,7 +1367,8 @@ export function WorkflowTool() {
           <article><Clock3 aria-hidden="true" /><div><strong>Tiempo aproximado</strong><p>{estimatedMinutes} minutos en modo guiado.</p></div></article>
         </div> : null}
       </section>
-      <DocumentReferencePanel targetType={workflow.key.split("/").at(-1) ?? tool.id} fields={allFields} selection={draft.reference} onImport={importReference} onClear={() => setDraft((current) => ({ ...current, reference: undefined }))} />
+      {draftPromptBanner}
+      <DocumentReferencePanel targetType={workflow.key.split("/").at(-1) ?? tool.id} fields={allFields} selection={draft.reference} onImport={importReference} onClear={clearReference} />
       <ol className="workflow-stepper" aria-label="Pasos de la herramienta">{workflow.steps.map((item, index) => {
         const state = stepStatus(item, index);
         return <li className={index === draft.currentStep ? "is-active" : state === "Listo" ? "is-completed" : ""} key={item.id}><button type="button" aria-current={index === draft.currentStep ? "step" : undefined} aria-label={`${item.shortTitle}: ${state}`} onClick={() => setDraft((current) => ({ ...current, currentStep: index }))}><span>{state === "Listo" && index !== draft.currentStep ? <Check /> : index + 1}</span><strong>{item.shortTitle}</strong><small>{state}</small></button></li>;
