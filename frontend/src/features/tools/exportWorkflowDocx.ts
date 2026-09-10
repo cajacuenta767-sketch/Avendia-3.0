@@ -3309,15 +3309,12 @@ export function buildCommunicationDocx(
 // ========================================================================== 
 function createHomeworkResponseBlocks(responseType = "texto_breve"): (Paragraph | Table)[] {
   if (responseType === "tabla") {
+    // Cuadrícula en blanco: rotular las columnas con "Dato 1, 2, 3" ensucia la ficha
+    // y no describe lo que el estudiante debe anotar; el enunciado ya lo indica.
     return [new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: Array.from({ length: 4 }, (_, rowIndex) => new TableRow({
-        children: Array.from({ length: 3 }, (_, columnIndex) =>
-          createStyledCell(
-            rowIndex === 0 ? `Dato ${columnIndex + 1}` : " ",
-            { isHeader: rowIndex === 0, widthPercent: 33 }
-          )
-        ),
+      rows: Array.from({ length: 5 }, () => new TableRow({
+        children: Array.from({ length: 3 }, () => createStyledCell(" ", { widthPercent: 33 })),
       })),
     })];
   }
