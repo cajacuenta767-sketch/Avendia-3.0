@@ -6,6 +6,7 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  LevelFormat,
   Packer,
   PageBreak,
   PageNumber,
@@ -380,7 +381,7 @@ function labelRuns(text: string, size: number, color = COLOR_TEXT): TextRun[] {
 
 function createKeyPoint(text: string, options: { size?: number; after?: number } = {}): Paragraph {
   return new Paragraph({
-    bullet: { level: 0 },
+    numbering: { reference: "vinetas", level: 0 },
     children: labelRuns(text, options.size ?? 20),
     spacing: { after: options.after ?? 50, line: 264 },
   });
@@ -469,6 +470,35 @@ function createTableBlocks(tables: WorkflowArtifactTable[], options: { sectionTi
   });
 }
 
+/**
+ * Viñetas propias: la viñeta por defecto de Word se ve gruesa y con sangría ancha.
+ * "vinetas" se usa en el cuerpo y "vinetas-celda" dentro de las tablas, más ajustada.
+ */
+const AVENDIA_NUMBERING = {
+  config: [
+    {
+      reference: "vinetas",
+      levels: [{
+        level: 0,
+        format: LevelFormat.BULLET,
+        text: "\u2022",
+        alignment: AlignmentType.LEFT,
+        style: { paragraph: { indent: { left: 284, hanging: 170 } }, run: { font: "Calibri" } },
+      }],
+    },
+    {
+      reference: "vinetas-celda",
+      levels: [{
+        level: 0,
+        format: LevelFormat.BULLET,
+        text: "\u2022",
+        alignment: AlignmentType.LEFT,
+        style: { paragraph: { indent: { left: 227, hanging: 170 } }, run: { font: "Calibri" } },
+      }],
+    },
+  ],
+};
+
 /** Ancho útil de una página A4 vertical con los márgenes del documento, en twips. */
 const CONTENT_WIDTH_TWIPS = 9746;
 
@@ -517,7 +547,7 @@ function createStyledCell(
         const isBullet = line.startsWith("•") || line.startsWith("-");
         const cleanLine = line.replace(/^[-•]\s*/, "");
         return new Paragraph({
-          bullet: isBullet ? { level: 0 } : undefined,
+          numbering: isBullet ? { reference: "vinetas-celda", level: 0 } : undefined,
           alignment: options.alignment ?? (isHeader ? AlignmentType.CENTER : AlignmentType.LEFT),
           children: [
             new TextRun({
@@ -1227,7 +1257,7 @@ export function buildInstrumentDocx(
     if (artifact.teacher_recommendations.length) {
       children.push(createHeading("Orientaciones para retroalimentar", HeadingLevel.HEADING_2));
       artifact.teacher_recommendations.forEach((recommendation) => children.push(new Paragraph({
-        bullet: { level: 0 },
+        numbering: { reference: "vinetas", level: 0 },
         children: [new TextRun({ text: cleanText(recommendation), size: 19, font: "Calibri", color: COLOR_TEXT })],
         spacing: { after: 60 },
       })));
@@ -1295,7 +1325,7 @@ export function buildInstrumentDocx(
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
-          bullet: { level: 0 },
+          numbering: { reference: "vinetas", level: 0 },
           children: [new TextRun({ text: cleanText(rec), size: 19, font: "Calibri", color: COLOR_TEXT })],
           spacing: { after: 60 },
         })
@@ -1308,6 +1338,7 @@ export function buildInstrumentDocx(
     || (context.workflowKey || "").includes("registros-auxiliares");
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [
       {
@@ -2933,7 +2964,7 @@ export function buildActivityDocx(
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
-          bullet: { level: 0 },
+          numbering: { reference: "vinetas", level: 0 },
           children: [new TextRun({ text: cleanText(rec), size: 18, color: COLOR_MUTED, font: "Calibri" })],
           spacing: { after: 40 },
         })
@@ -2942,6 +2973,7 @@ export function buildActivityDocx(
   }
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [
       {
@@ -3097,7 +3129,7 @@ export function buildAnalyticsDocx(
   artifact.teacher_recommendations.forEach((rec) => {
     children.push(
       new Paragraph({
-        bullet: { level: 0 },
+        numbering: { reference: "vinetas", level: 0 },
         children: [new TextRun({ text: cleanText(rec), size: 19, font: "Calibri", color: COLOR_TEXT })],
         spacing: { after: 60 },
       })
@@ -3107,6 +3139,7 @@ export function buildAnalyticsDocx(
   children.push(createSignaturesTable(displayValue(v.teacher, ""), "Docente Responsable del Análisis", displayValue(v.director, ""), "Dirección / Coordinación Pedagógica"));
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [
       {
@@ -3258,6 +3291,7 @@ export function buildCommunicationDocx(
   );
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [
       {
@@ -3470,6 +3504,7 @@ export function buildHomeworkDocx(
   );
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [{
       properties: {
@@ -3764,7 +3799,7 @@ export function buildDocumentDocx(
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
-          bullet: { level: 0 },
+          numbering: { reference: "vinetas", level: 0 },
           children: [new TextRun({ text: cleanText(rec), size: 19, font: "Calibri", color: COLOR_TEXT })],
           spacing: { after: 50 },
         })
@@ -3802,6 +3837,7 @@ export function buildDocumentDocx(
   }
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     features: { updateFields: isLongDocument },
     styles: documentStyles,
     sections: [
