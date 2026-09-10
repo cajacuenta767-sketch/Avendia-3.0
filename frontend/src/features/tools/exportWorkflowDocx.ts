@@ -3236,11 +3236,14 @@ export function buildCommunicationDocx(
   children.push(commTable);
 
   const institution = isPlaceholder(v.ie) ? "de nuestra institución educativa" : `de la I.E. "${v.ie}"`;
+  // Si la carta ya trae su propio saludo, el de plantilla sobra: saludar dos veces
+  // en el mismo comunicado se lee como un descuido.
+  const traeSaludo = artifact.sections.some((section) => /saludo|salutaci[oó]n/i.test(section.title));
   children.push(
     createBodyParagraph(isPlaceholder(v.guardian) ? "Estimada familia:" : `Estimada familia ${v.guardian}:`, { bold: true }),
-    createBodyParagraph(
+    ...(traeSaludo ? [] : [createBodyParagraph(
       `Reciban un cordial saludo institucional de parte del equipo directivo y docente ${institution}. Por medio de la presente nos dirigimos a ustedes para informarles lo siguiente:`
-    ),
+    )]),
     ...createBodyParagraphs(artifact.executive_summary)
   );
 
