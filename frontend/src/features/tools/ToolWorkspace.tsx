@@ -23,6 +23,8 @@ export function ToolWorkspace() {
   if (moduleId !== "evaluamos") return <WorkflowTool key={toolKey} />;
 
   const instrumentId = searchParams.get("document")?.trim() || undefined;
+  // "?desde=" llega desde "Continúa tu clase": el documento de origen precarga el encuadre.
+  const fromDocumentId = searchParams.get("desde")?.trim() || undefined;
   const handleInstrumentIdChange = (nextInstrumentId: string) => {
     const next = new URLSearchParams(searchParams);
     if (nextInstrumentId) next.set("document", nextInstrumentId);
@@ -31,7 +33,7 @@ export function ToolWorkspace() {
   };
 
   let content = null;
-  const instrumentProps = { instrumentId, onInstrumentIdChange: handleInstrumentIdChange };
+  const instrumentProps = { instrumentId, onInstrumentIdChange: handleInstrumentIdChange, fromDocumentId };
   if (toolId === "lista-cotejo") content = <ChecklistTool {...instrumentProps} />;
   if (toolId === "rubrica-evaluacion" || toolId === "rubrica") content = <RubricTool variant="builder" {...instrumentProps} />;
   if (toolId === "calificador-rubrica" || toolId === "calificador") content = <RubricTool variant="grader" {...instrumentProps} />;

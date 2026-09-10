@@ -53,8 +53,8 @@ describe("Continúa tu clase", () => {
     );
 
     expect(screen.getByText("Continúa tu clase")).toBeInTheDocument();
-    expect(screen.getByText("Evaluación escrita")).toBeInTheDocument();
-    expect(screen.getByText("Tarea para casa")).toBeInTheDocument();
+    expect(screen.getByText("Instrumento")).toBeInTheDocument();
+    expect(screen.getByText("Ficha")).toBeInTheDocument();
     expect(screen.getByText("Presentación")).toBeInTheDocument();
     expect(screen.getByText("Recurso interactivo")).toBeInTheDocument();
   });

@@ -200,8 +200,8 @@ type DraftPrompt = { mode: "restored"; updatedAt: string; hasArtifact: boolean }
 
 /** Recursos que continúan una sesión de aprendizaje reutilizando lo ya llenado en ella. */
 const CLASS_CONTINUATIONS: { path: string; label: string; hint: string }[] = [
-  { path: "/dashboard/evaluamos/examen", label: "Evaluación escrita", hint: "Prueba con los criterios y el tema de la sesión." },
-  { path: "/dashboard/planificamos/tarea-extension-hogar", label: "Tarea para casa", hint: "Actividad de extensión ligada a la evidencia." },
+  { path: "/dashboard/evaluamos/lista-cotejo", label: "Instrumento", hint: "Lista de cotejo con el encuadre de la sesión." },
+  { path: "/dashboard/evaluamos/ficha-aprendizaje", label: "Ficha", hint: "Práctica imprimible sobre el mismo tema." },
   { path: "/dashboard/recursos/presentaciones-didacticas", label: "Presentación", hint: "Diapositivas para proyectar la clase." },
   { path: "/dashboard/recursos/crucigramas", label: "Recurso interactivo", hint: "Juego de repaso con el vocabulario del tema." },
 ];
