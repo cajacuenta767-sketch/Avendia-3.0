@@ -17,7 +17,10 @@ function EvaluationLoadingState() {
 export function ToolWorkspace() {
   const { moduleId, toolId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  if (moduleId !== "evaluamos") return <WorkflowTool />;
+  // La clave fuerza un montaje por herramienta: sin ella, al cambiar de herramienta
+  // sin recargar se conservaba el borrador de la anterior y sus pasos.
+  const toolKey = `${moduleId ?? ""}/${toolId ?? ""}`;
+  if (moduleId !== "evaluamos") return <WorkflowTool key={toolKey} />;
 
   const instrumentId = searchParams.get("document")?.trim() || undefined;
   const handleInstrumentIdChange = (nextInstrumentId: string) => {
@@ -38,6 +41,6 @@ export function ToolWorkspace() {
   if (toolId === "carpetas-recuperacion") content = <RecoveryFolderTool {...instrumentProps} />;
   if (toolId === "registros-auxiliares") content = <AuxiliaryRegisterTool {...instrumentProps} />;
 
-  if (!content) return <WorkflowTool />;
+  if (!content) return <WorkflowTool key={toolKey} />;
   return <Suspense fallback={<EvaluationLoadingState />}>{content}</Suspense>;
 }

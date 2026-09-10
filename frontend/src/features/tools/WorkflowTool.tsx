@@ -22,7 +22,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getWorkflowFieldGuide } from "../../config/aiGuides";
 import { getDynamicEducationOptions } from "../../config/education";
@@ -45,6 +45,7 @@ import { useTeacherExperience } from "../../context/TeacherExperienceContext";
 import type { WorkflowArtifact } from "./exportWorkflowDocx";
 import { ContextualAIGuideDialog } from "./ContextualAIGuideDialog";
 import { DocumentReferencePanel, type DocumentReferenceSelection } from "./DocumentReferencePanel";
+import { blockedField, sourceValueFor, type CompatibleDocument } from "./documentReference";
 import { InteractiveArtifact } from "./InteractiveArtifact";
 import {
   contextStatus,
@@ -197,6 +198,14 @@ function readStoredDraftMeta(
 
 type DraftPrompt = { mode: "restored"; updatedAt: string; hasArtifact: boolean } | { mode: "confirm" } | null;
 
+/** Recursos que continúan una sesión de aprendizaje reutilizando lo ya llenado en ella. */
+const CLASS_CONTINUATIONS: { path: string; label: string; hint: string }[] = [
+  { path: "/dashboard/evaluamos/examen", label: "Evaluación escrita", hint: "Prueba con los criterios y el tema de la sesión." },
+  { path: "/dashboard/planificamos/tarea-extension-hogar", label: "Tarea para casa", hint: "Actividad de extensión ligada a la evidencia." },
+  { path: "/dashboard/recursos/presentaciones-didacticas", label: "Presentación", hint: "Diapositivas para proyectar la clase." },
+  { path: "/dashboard/recursos/crucigramas", label: "Recurso interactivo", hint: "Juego de repaso con el vocabulario del tema." },
+];
+
 export function WorkflowTool() {
   const location = useLocation();
   const { pathname } = location;
@@ -244,8 +253,12 @@ export function WorkflowTool() {
   const teacherNeedApplied = useRef(false);
   const recentContextApplied = useRef(false);
   const documentIdFromUrl = searchParams.get("document");
+  const continuedFromDocumentId = searchParams.get("desde");
+  const navigate = useNavigate();
+  const continuationApplied = useRef("");
   const selectedTemplate = templates.find((template) => template.id === draft.templateId);
 
+  const isClassSession = Boolean(workflow?.key.includes("sesion-aprendizaje"));
   const currentStep = workflow?.steps[draft.currentStep];
   const allFields = workflow?.steps.flatMap((item) => item.fields) ?? [];
   const currentErrors = useMemo(
@@ -481,6 +494,52 @@ export function WorkflowTool() {
     return preview.blob;
   }, [draft.artifact, draft.values, exactPreviewTemplate, exactPreviewToolTitle, exactPreviewWorkflowKey]);
 
+  // Al llegar desde otra herramienta con "?desde=", se copian sus datos compatibles.
+  useEffect(() => {
+    if (!workflow || !tool || !continuedFromDocumentId) return;
+    if (continuationApplied.current === continuedFromDocumentId) return;
+    const token = readAccessToken();
+    if (!token) return;
+    continuationApplied.current = continuedFromDocumentId;
+    const targetType = workflow.key.split("/").at(-1) ?? tool.id;
+    const campos = workflow.steps.flatMap((step) => step.fields);
+    void apiRequest<CompatibleDocument[]>(`/documents/compatible/${targetType}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((documents) => {
+        const source = documents.find((document) => document.id === continuedFromDocumentId);
+        if (!source) {
+          setMessage("El documento de origen ya no está disponible. Completa los datos manualmente.");
+          return;
+        }
+        const sourceFields = source.metadata_json?.fields ?? {};
+        const ids = campos
+          .filter((field) => !blockedField(field.id) && sourceValueFor(field.id, sourceFields) !== undefined)
+          .map((field) => field.id);
+        if (!ids.length) {
+          setMessage(`No hay datos reutilizables de «${source.title}». Completa los campos de esta herramienta.`);
+          return;
+        }
+        const values = Object.fromEntries(ids.map((id) => [id, sourceValueFor(id, sourceFields) ?? ""]));
+        setDraft((current) => ({
+          ...current,
+          artifact: null,
+          reference: {
+            documentId: source.id,
+            revision: source.revision,
+            title: source.title,
+            fields: ids,
+            compatibilityStatus: source.compatibility_status,
+          },
+          values: { ...current.values, ...values },
+          fieldSources: { ...current.fieldSources, ...Object.fromEntries(ids.map((id) => [id, "reference" as const])) },
+        }));
+        setFieldsToReview(source.compatibility_status === "compatible" ? [] : ids);
+        setMessage(`Se copiaron ${ids.length} datos de «${source.title}». Revísalos y genera el recurso.`);
+      })
+      .catch(() => setMessage("No se pudieron copiar los datos del documento de origen."));
+  }, [continuedFromDocumentId, tool, workflow]);
+
   if (!tool || !workflow || !currentStep) return <Navigate to="/dashboard" replace />;
 
   const optionsFor = (field: WorkflowField) => {
@@ -616,6 +675,29 @@ export function WorkflowTool() {
       setMessage("El borrador quedó guardado en este dispositivo, pero no se pudo sincronizar con el servidor.");
       return false;
     }
+  };
+
+  /** Guarda el documento y devuelve su identificador en el servidor, si lo hay. */
+  const saveAndGetDocumentId = async (): Promise<string | null> => {
+    const ok = await saveDocument();
+    if (!ok) return null;
+    try {
+      const stored = JSON.parse(localStorage.getItem(storageKey) ?? "null") as Draft | null;
+      return stored?.documentId ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  /** Abre la herramienta siguiente de la clase copiando lo llenado en esta sesión. */
+  const continueClass = async (path: string) => {
+    const documentId = await saveAndGetDocumentId();
+    if (!documentId) {
+      setStatus("error");
+      setMessage("Guarda la sesión antes de continuar: no se pudo sincronizar con el servidor.");
+      return;
+    }
+    navigate(`${path}?desde=${documentId}`);
   };
 
   const downloadWord = async () => {
@@ -1268,6 +1350,33 @@ export function WorkflowTool() {
     </div>;
   };
 
+  /** Recursos que continúan la clase, disponibles junto al resultado de la sesión. */
+  function renderClassNext() {
+    if (!isClassSession) return null;
+    return (
+      <section className="workflow-class-next" aria-label="Continúa tu clase">
+        <div className="workflow-class-next__intro">
+          <strong>Continúa tu clase</strong>
+          <small>Cada recurso se crea con los datos que ya llenaste en esta sesión.</small>
+        </div>
+        <div className="workflow-class-next__cards">
+          {CLASS_CONTINUATIONS.map((item) => (
+            <button
+              key={item.path}
+              type="button"
+              className="workflow-class-next__card"
+              disabled={status === "saving"}
+              onClick={() => void continueClass(item.path)}
+            >
+              <span>{item.label}</span>
+              <small>{item.hint}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   const renderEmbeddedArtifact = (kind: NonNullable<WorkflowStep["kind"]> = "preview") => {
     if (!draft.artifact) return null;
     const showInteractive = kind === "interactive";
@@ -1281,6 +1390,7 @@ export function WorkflowTool() {
       </section> : null}
       {showInteractive && tool.id !== "tarea-extension-hogar" && draft.artifact.activity?.items.length ? <InteractiveArtifact activity={draft.artifact.activity} toolId={tool.id} values={draft.values} /> : null}
       {renderQualityPanel()}
+      {renderClassNext()}
       <StructuredArtifactPreview artifact={draft.artifact} artifactType={workflow.artifactType} toolId={tool.id} values={draft.values} workflowKey={workflow.key} onDownloadWord={downloadWord} editingResult={editingResult} onUpdateSection={updateArtifactSection} onUpdateTableCell={updateArtifactTableCell} onRegenerateSection={regenerateArtifactSection} regeneratingSection={regeneratingSection} onPrepareExactPreview={prepareExactPreview} />
     </div>;
   };
@@ -1347,6 +1457,7 @@ export function WorkflowTool() {
         {message ? <div className={`workflow-message ${status === "error" ? "workflow-message--error" : ""}`}>{message}</div> : null}
         {draft.artifact.activity?.items.length ? <InteractiveArtifact activity={draft.artifact.activity} toolId={tool.id} values={draft.values} /> : null}
         {renderQualityPanel()}
+        {renderClassNext()}
         <StructuredArtifactPreview artifact={draft.artifact} artifactType={workflow.artifactType} toolId={tool.id} values={draft.values} workflowKey={workflow.key} onDownloadWord={downloadWord} editingResult={editingResult} onUpdateSection={updateArtifactSection} onUpdateTableCell={updateArtifactTableCell} onRegenerateSection={regenerateArtifactSection} regeneratingSection={regeneratingSection} onPrepareExactPreview={prepareExactPreview} />
         <GenerationProgressOverlay open={status === "generating"} toolTitle={tool.title} family={tool.module} />
       </div></main>

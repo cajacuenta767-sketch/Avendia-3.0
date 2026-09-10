@@ -15,6 +15,7 @@ import {
   Table,
   TableOfContents,
   TableCell,
+  TableLayoutType,
   TableRow,
   TextRun,
   WidthType,
@@ -468,6 +469,20 @@ function createTableBlocks(tables: WorkflowArtifactTable[], options: { sectionTi
   });
 }
 
+/** Ancho útil de una página A4 vertical con los márgenes del documento, en twips. */
+const CONTENT_WIDTH_TWIPS = 9746;
+
+/** Tabla con anchos de columna fijos: sin esto Word y LibreOffice reparten el ancho por el contenido. */
+function createFixedTable(rows: TableRow[], percents: number[]): Table {
+  const total = percents.reduce((sum, value) => sum + value, 0) || 100;
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    columnWidths: percents.map((percent) => Math.round((percent / total) * CONTENT_WIDTH_TWIPS)),
+    rows,
+  });
+}
+
 function createStyledCell(
   content: string | Paragraph[],
   options: {
@@ -849,7 +864,7 @@ function createSignaturesTable(
                 alignment: AlignmentType.CENTER,
                 children: [
                   new TextRun({
-                    text: cleanText(leftName),
+                    text: cleanText(leftName) || "\u00A0",
                     bold: true,
                     color: COLOR_PRIMARY,
                     size: 20,
@@ -892,7 +907,7 @@ function createSignaturesTable(
                 alignment: AlignmentType.CENTER,
                 children: [
                   new TextRun({
-                    text: cleanText(rightName),
+                    text: cleanText(rightName) || "\u00A0",
                     bold: true,
                     color: COLOR_PRIMARY,
                     size: 20,
@@ -3522,7 +3537,11 @@ function createCoverBlocks(
   const rows: [string, string][] = ([
     ["INSTITUCIÓN EDUCATIVA", v.ie],
     ["DRE / UGEL", [v.dre, v.ugel].filter((part) => !isPlaceholder(part)).join(" / ")],
-    ["NIVEL / GRADO / SECCIÓN", isPlaceholder(v.grade) ? "" : `${v.level} / ${v.grade} "${v.section}"`],
+    ["NIVEL / GRADO / SECCIÓN", [
+      isPlaceholder(v.level) ? "" : v.level,
+      isPlaceholder(v.grade) ? "" : v.grade,
+      isPlaceholder(v.section) ? "" : `Sección "${v.section}"`,
+    ].filter(Boolean).join(" / ")],
     ["ÁREA CURRICULAR", v.area],
     ["DOCENTE RESPONSABLE", v.teacher],
     ["DIRECTOR(A)", v.director],
@@ -3642,7 +3661,11 @@ export function buildDocumentDocx(
     ["DRE", v.dre],
     ["UGEL", v.ugel],
     ["INSTITUCIÓN EDUCATIVA", v.ie],
-    ["NIVEL / GRADO / SECCIÓN", `${fill(v.level, 10)} / ${fill(v.grade, 10)} "${fill(v.section, 4)}"`],
+    ["NIVEL / GRADO / SECCIÓN", [
+      isPlaceholder(v.level) ? "" : v.level,
+      isPlaceholder(v.grade) ? "" : v.grade,
+      isPlaceholder(v.section) ? "" : `Sección "${v.section}"`,
+    ].filter(Boolean).join(" / ")],
     ["ÁREA CURRICULAR", v.area],
     ["DOCENTE RESPONSABLE", v.teacher],
     ["DIRECTOR(A)", v.director],
@@ -3721,7 +3744,7 @@ export function buildDocumentDocx(
         ],
       }),
     ];
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: momentsRows }));
+    children.push(createFixedTable(momentsRows, [20, 15, 65]));
     partNumber += 1;
   }
 
