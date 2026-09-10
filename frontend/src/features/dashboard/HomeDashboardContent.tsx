@@ -82,14 +82,16 @@ export function HomeDashboardContent({ user, activity, activityLoading, onNewCre
             <div className="home-welcome-card__copy">
               <span className="home-eyebrow">Tu espacio docente</span>
               <h1 id="home-welcome-title">¡Te damos la bienvenida, {firstName}!</h1>
-              <p>Visualiza tu avance, abre las herramientas que más utilizas y continúa tu planificación desde un solo lugar.</p>
+              <p>Crea tu clase completa y encadena desde ella el instrumento, la ficha y los materiales, sin volver a escribir los mismos datos.</p>
             </div>
             <Sparkles className="home-welcome-card__art" aria-hidden="true" />
             <footer>
               <span><Heart aria-hidden="true" /> {dailyPhrase}</span>
               <div className="home-welcome-card__actions">
                 <button type="button" className="home-welcome-card__preference" onClick={() => setPreferenceOpen(true)}>Cambiar preferencia</button>
-                <button type="button" className="home-welcome-card__create" onClick={onNewCreation}>Nueva creación <ArrowRight aria-hidden="true" /></button>
+                <button type="button" className="home-welcome-card__preference" onClick={onNewCreation}>Nueva creación</button>
+                {/* Crear la clase es la acción más usada: va directa a la sesión de aprendizaje. */}
+                <button type="button" className="home-welcome-card__create" onClick={() => navigate("/dashboard/planificamos/sesion-aprendizaje")}>Crear clase <ArrowRight aria-hidden="true" /></button>
               </div>
             </footer>
           </article>
