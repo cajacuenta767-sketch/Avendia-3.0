@@ -460,7 +460,10 @@ function createTableBlocks(tables: WorkflowArtifactTable[], options: { sectionTi
       ...(repeatsSectionTitle ? [] : [createHeading(table.title, HeadingLevel.HEADING_2)]),
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
-        columnWidths: widths.map((width) => Math.round((width / 100) * 9746)),
+        // Sin disposición fija, Word y LibreOffice reparten el ancho por el contenido
+        // y aplastan la columna con más texto.
+        layout: TableLayoutType.FIXED,
+        columnWidths: widths.map((width) => Math.round((width / 100) * CONTENT_WIDTH_TWIPS)),
         rows,
       }),
     ];
@@ -1165,7 +1168,7 @@ export function buildInstrumentDocx(
         })
       );
     });
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: rubricRows }));
+    children.push(createFixedTable(rubricRows, [20, 20, 20, 20, 20]));
   } else if (isChecklist) {
     children.push(createHeading("LISTA DE COTEJO Y DESEMPEÑOS OBSERVABLES", HeadingLevel.HEADING_1, "II."));
     const checklistRows: TableRow[] = [
@@ -1197,7 +1200,7 @@ export function buildInstrumentDocx(
         })
       );
     });
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: checklistRows }));
+    children.push(createFixedTable(checklistRows, [6, 54, 10, 10, 20]));
   } else if (isStandaloneExam) {
     // El examen conserva su matriz, sus reactivos y una clave docente separada.
     if ((artifact.tables?.length ?? 0) > 0) {
@@ -3084,10 +3087,10 @@ export function buildAnalyticsDocx(
       tableHeader: true,
       cantSplit: true,
       children: [
-        createStyledCell("Ámbito / Competencia", { isHeader: true, widthPercent: 25 }),
-        createStyledCell("Nivel de Riesgo", { isHeader: true, widthPercent: 15, alignment: AlignmentType.CENTER }),
-        createStyledCell("Hallazgo Pedagógico Observado", { isHeader: true, widthPercent: 35 }),
-        createStyledCell("Acción Remedial Prioritaria", { isHeader: true, widthPercent: 25 }),
+        createStyledCell("Ámbito / Competencia", { isHeader: true, widthPercent: 22 }),
+        createStyledCell("Nivel de Riesgo", { isHeader: true, widthPercent: 14, alignment: AlignmentType.CENTER }),
+        createStyledCell("Hallazgo Pedagógico Observado", { isHeader: true, widthPercent: 42 }),
+        createStyledCell("Acción Remedial Prioritaria", { isHeader: true, widthPercent: 22 }),
       ],
     }),
   ];
@@ -3101,20 +3104,20 @@ export function buildAnalyticsDocx(
       new TableRow({
         cantSplit: true,
         children: [
-          createStyledCell(sec.title, { bold: true, widthPercent: 25 }),
+          createStyledCell(sec.title, { bold: true, widthPercent: 22 }),
           createStyledCell(riskLabel, {
             bold: true,
             alignment: AlignmentType.CENTER,
-            widthPercent: 15,
+            widthPercent: 14,
             fillColor: riskFill,
           }),
-          createStyledCell(sec.narrative, { widthPercent: 35 }),
-          createStyledCell(sec.key_points[0] || "Acompañamiento personalizado en aula.", { widthPercent: 25 }),
+          createStyledCell(sec.narrative, { widthPercent: 42 }),
+          createStyledCell(sec.key_points[0] || "Acompañamiento personalizado en aula.", { widthPercent: 22 }),
         ],
       })
     );
   });
-  children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: analyticsRows }));
+  children.push(createFixedTable(analyticsRows, [22, 14, 42, 22]));
 
   // IV. Matrices generadas por la IA (indicadores, alertas, decisiones)
   let analyticsPart = 4;
