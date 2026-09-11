@@ -58,6 +58,26 @@ export function clearSession(): void {
   window.dispatchEvent(new Event("avendia-session-changed"));
 }
 
+// Prefijos de los borradores guardados en este dispositivo; pueden contener datos de estudiantes.
+const DEVICE_DRAFT_PREFIXES = ["avendia.draft.", "avendia.evaluations.", "avendia.workflow."];
+
+/** Borra los borradores locales del usuario en sesión (nombres de estudiantes, evidencias, retroalimentación). */
+export function clearDeviceDrafts(scope = sessionDraftScope()): void {
+  const suffix = `.${scope}`;
+  const keys: string[] = [];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key && key.endsWith(suffix) && DEVICE_DRAFT_PREFIXES.some((prefix) => key.startsWith(prefix))) keys.push(key);
+  }
+  keys.forEach((key) => localStorage.removeItem(key));
+}
+
+/** Cierre de sesión explícito: elimina los borradores del dispositivo y luego la sesión. */
+export function endSession(): void {
+  clearDeviceDrafts();
+  clearSession();
+}
+
 export function readSessionUser(): SessionUser {
   return readStoredSessionUser() ?? fallbackUser;
 }

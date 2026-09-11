@@ -71,10 +71,12 @@ Estado: aprobado para ejecución local
 
 ### Evidencias
 
-- `audit/phase-5-10-2026-08-31/pca-mobile-light-360x800.png`
-- `audit/phase-5-10-2026-08-31/pca-tablet-light-768x1024.png`
-- `audit/phase-5-10-2026-08-31/pca-desktop-dark-1366x768.png`
-- `audit/phase-5-10-2026-08-31/pca-wide-light-1920x1080.png`
+Capturas conservadas en el historial de git (commit `99d18ba`, carpeta `audit/`), retiradas del repositorio por la regla de no versionar capturas.
+
+- `phase-5-10-2026-08-31/pca-mobile-light-360x800.png`
+- `phase-5-10-2026-08-31/pca-tablet-light-768x1024.png`
+- `phase-5-10-2026-08-31/pca-desktop-dark-1366x768.png`
+- `phase-5-10-2026-08-31/pca-wide-light-1920x1080.png`
 
 ## Observación no bloqueante
 

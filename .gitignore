@@ -31,3 +31,6 @@ Thumbs.db
 *.log
 frontend/scratch/
 frontend/exports-qa-word/
+
+# Capturas y evidencias de auditoría (trabajo local; los docs de fases van en docs/archive/)
+audit/

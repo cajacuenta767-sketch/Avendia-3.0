@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, apiRequest } from "./api";
+import { ApiError, apiAssetAsDataUrl, apiRequest } from "./api";
 
 afterEach(() => {
   sessionStorage.clear();
@@ -63,5 +63,41 @@ describe("apiRequest", () => {
     await expect(apiRequest("/users/me")).rejects.toBeInstanceOf(ApiError);
     expect(sessionStorage.getItem("avendia.accessToken")).toBeNull();
     expect(sessionStorage.getItem("avendia.user")).toBeNull();
+  });
+});
+
+describe("apiAssetAsDataUrl", () => {
+  // jsdom no acepta el Blob de la Response nativa de Node en FileReader; se simula la respuesta mínima.
+  const pngBlob = () => ({
+    ok: true,
+    status: 200,
+    blob: async () => new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
+  }) as unknown as Response;
+
+  it("sends the session token only to the API's own assets", async () => {
+    sessionStorage.setItem("avendia.accessToken", "asset-token");
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const headers = new Headers(init?.headers);
+      if (url.includes("/api/v1/ai/tools/presentation-images/")) {
+        expect(headers.get("Authorization")).toBe("Bearer asset-token");
+      } else {
+        expect(headers.get("Authorization")).toBeNull();
+      }
+      return pngBlob();
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(apiAssetAsDataUrl("/api/v1/ai/tools/presentation-images/" + "a".repeat(40))).resolves.toMatch(/^data:image\/png;base64,/);
+    await expect(apiAssetAsDataUrl("https://blob.example.com/presentation-images/x.png")).resolves.toMatch(/^data:/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("expires the session when the API rejects the asset", async () => {
+    sessionStorage.setItem("avendia.accessToken", "stale-token");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 401 })));
+
+    await expect(apiAssetAsDataUrl("/api/v1/ai/tools/presentation-images/" + "b".repeat(40))).rejects.toBeInstanceOf(ApiError);
+    expect(sessionStorage.getItem("avendia.accessToken")).toBeNull();
   });
 });

@@ -30,7 +30,7 @@ import {
   type EducationLevel,
 } from "../../config/education";
 import { ApiError, apiRequest } from "../../lib/api";
-import { sessionDraftScope, readAccessToken } from "../../lib/session";
+import { readStoredSessionUser, sessionDraftScope, readAccessToken } from "../../lib/session";
 import { FormValidationSummary, type FormValidationItem } from "./FormValidationSummary";
 
 type EducationModality = (typeof educationModalities)[number]["value"];
@@ -84,22 +84,16 @@ const STEP_LABELS = [
 ] as const;
 
 function readProfile(): Partial<WordGroupingForm> {
-  try {
-    const profile = JSON.parse(sessionStorage.getItem("avendia.user") ?? "{}") as Record<
-      string,
-      unknown
-    >;
-    return {
-      teacherName: String(profile.full_name ?? ""),
-      institution: String(profile.school_name ?? ""),
-      modality: (String(profile.education_modality ?? "EBR") || "EBR") as EducationModality,
-      level: String(profile.education_level ?? "") as EducationLevel | "",
-      grade: String(profile.grade ?? ""),
-      curricularArea: String(profile.curricular_area ?? ""),
-    };
-  } catch {
-    return {};
-  }
+  const profile = readStoredSessionUser();
+  if (!profile) return {};
+  return {
+    teacherName: profile.full_name ?? "",
+    institution: profile.school_name ?? "",
+    modality: (profile.education_modality || "EBR") as EducationModality,
+    level: (profile.education_level ?? "") as EducationLevel | "",
+    grade: profile.grade ?? "",
+    curricularArea: profile.curricular_area ?? "",
+  };
 }
 
 function defaultForm(): WordGroupingForm {

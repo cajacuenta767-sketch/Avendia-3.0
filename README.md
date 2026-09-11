@@ -114,6 +114,9 @@ Hay dos caminos y ambos ejecutan el mismo código:
   `DATABASE_URL=... DATABASE_SCHEMA=... uv run python scripts/prepare_production.py`
   desde tu máquina o desde CI.
 
+En el frontend, `VITE_API_URL` es obligatoria al compilar para producción
+(`npm run build` falla si falta) y debe apuntar a la URL pública de la API.
+
 Variables obligatorias en producción: `ENVIRONMENT=production`, `DATABASE_URL`
 (PostgreSQL), `DATABASE_SCHEMA`, `JWT_SECRET_KEY` (32+ caracteres),
 `GEMINI_API_KEY`, `ALLOWED_ORIGINS` con el dominio del frontend,

@@ -1,14 +1,24 @@
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { readStoredJson } from "../../lib/storage";
 
 const labels = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+
+type StoredCalendarEvent = { id: string; title: string; date: string; time: string; type: string };
 
 export function WeeklyAgenda() {
   const navigate = useNavigate();
   const today = new Date();
   const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
   const days = Array.from({ length: 7 }, (_, index) => { const day = new Date(monday); day.setDate(monday.getDate() + index); return [labels[day.getDay()], String(day.getDate()), day.toDateString() === today.toDateString() ? "active" : ""] as const; });
-  const events = (JSON.parse(localStorage.getItem("avendia.calendar.events") ?? "[]") as { id: string; title: string; date: string; time: string; type: string }[]).filter((event) => { const date = new Date(`${event.date}T12:00:00`); const last = new Date(monday); last.setDate(monday.getDate() + 7); return date >= monday && date < last; }).slice(0, 3);
+  const weekEnd = new Date(monday);
+  weekEnd.setDate(monday.getDate() + 7);
+  const events = readStoredJson<StoredCalendarEvent[]>(localStorage, "avendia.calendar.events", [])
+    .filter((event) => {
+      const date = new Date(`${event.date}T12:00:00`);
+      return date >= monday && date < weekEnd;
+    })
+    .slice(0, 3);
   return (
     <aside className="agenda" aria-labelledby="agenda-title">
       <h2 id="agenda-title">Esta semana</h2>

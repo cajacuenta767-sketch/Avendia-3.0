@@ -1,5 +1,6 @@
 import { clearSession, readAccessToken } from "./session";
 
+// En producción `vite.config.ts` exige VITE_API_URL; el valor local solo aplica a desarrollo y pruebas.
 const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8001/api/v1";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -28,9 +29,46 @@ export function resolveApiAssetUrl(path: string): string {
   return `${API_URL.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 }
 
-export async function apiAssetAsDataUrl(path: string): Promise<string> {
-  const response = await fetch(resolveApiAssetUrl(path));
-  if (!response.ok) throw new ApiError("No se pudo cargar una imagen de la presentación", response.status);
+/** Un recurso servido por la API propia (requiere sesión), a diferencia de una URL externa o embebida. */
+export function isApiAssetPath(path: string): boolean {
+  if (!path) return false;
+  return !/^(https?:\/\/|data:|blob:)/i.test(path);
+}
+
+/**
+ * Descarga un recurso binario y lo devuelve como data URL.
+ * Los recursos de la API viajan con la sesión y respetan el tiempo máximo de espera;
+ * las URL externas se piden sin credenciales para no filtrar el token.
+ */
+export async function apiAssetAsDataUrl(path: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
+  const url = resolveApiAssetUrl(path);
+  if (!url) throw new ApiError("La imagen no tiene una ruta válida", 0, "invalid_asset");
+  if (url.startsWith("data:")) return url;
+  const ownAsset = isApiAssetPath(path);
+  const headers = new Headers();
+  const token = readAccessToken();
+  if (ownAsset && token) headers.set("Authorization", `Bearer ${token}`);
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(url, { headers, signal: controller.signal });
+  } catch {
+    const timedOut = controller.signal.aborted;
+    throw new ApiError(
+      timedOut ? "La imagen tardó demasiado en cargar." : "No se pudo cargar una imagen de la presentación",
+      0,
+      timedOut ? "request_timeout" : "network_unavailable",
+      undefined,
+      true,
+    );
+  } finally {
+    window.clearTimeout(timer);
+  }
+  if (!response.ok) {
+    if (ownAsset) expireSession(path, response.status);
+    throw new ApiError("No se pudo cargar una imagen de la presentación", response.status);
+  }
   const blob = await response.blob();
   return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();

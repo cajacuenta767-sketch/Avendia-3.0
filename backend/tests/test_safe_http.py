@@ -1,7 +1,13 @@
+import httpx
 import pytest
 
 from app.core import safe_http
-from app.core.safe_http import UnsafeUrlError, validate_public_https_url
+from app.core.safe_http import (
+    UnsafeUrlError,
+    fetch_public_https_async,
+    trusted_api_client,
+    validate_public_https_url,
+)
 
 
 @pytest.mark.parametrize(
@@ -46,3 +52,50 @@ def test_accepts_public_https_host(monkeypatch):
     )
     url = "https://upload.wikimedia.org/wikipedia/commons/a/ab/Example.jpg"
     assert validate_public_https_url(url) == url
+
+
+def _mock_transport(payload: bytes = b"ok") -> httpx.MockTransport:
+    return httpx.MockTransport(lambda request: httpx.Response(200, content=payload))
+
+
+@pytest.fixture
+def no_proxy(monkeypatch):
+    for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+        monkeypatch.delenv(name, raising=False)
+        monkeypatch.delenv(name.lower(), raising=False)
+
+
+@pytest.mark.asyncio
+async def test_trusted_client_rejects_hosts_outside_the_allowlist(no_proxy):
+    async with trusted_api_client(timeout=1.0, transport=_mock_transport()) as client:
+        with pytest.raises(UnsafeUrlError):
+            await client.get("https://evil.example.com/steal")
+        with pytest.raises(UnsafeUrlError):
+            await client.post("http://generativelanguage.googleapis.com/v1beta/models")
+
+
+@pytest.mark.asyncio
+async def test_trusted_client_accepts_allowlisted_hosts_and_limits_size(no_proxy):
+    small = trusted_api_client(timeout=1.0, max_bytes=3, transport=_mock_transport(b"ok"))
+    async with small as client:
+        response = await client.get("https://commons.wikimedia.org/w/api.php")
+        assert response.status_code == 200
+
+    large = trusted_api_client(timeout=1.0, max_bytes=3, transport=_mock_transport(b"demasiado"))
+    async with large as client:
+        with pytest.raises(UnsafeUrlError):
+            await client.get("https://commons.wikimedia.org/w/api.php")
+
+
+@pytest.mark.asyncio
+async def test_trusted_client_allows_validated_public_downloads(monkeypatch, no_proxy):
+    monkeypatch.setattr(
+        safe_http.socket,
+        "getaddrinfo",
+        lambda *args, **kwargs: [(None, None, None, None, ("93.184.216.34", 443))],
+    )
+    async with trusted_api_client(timeout=1.0, transport=_mock_transport(b"imagen")) as client:
+        response = await fetch_public_https_async(
+            client, "https://upload.wikimedia.org/wikipedia/commons/a/ab/Example.jpg"
+        )
+        assert response.content == b"imagen"

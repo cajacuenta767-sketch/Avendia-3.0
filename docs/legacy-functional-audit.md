@@ -58,4 +58,4 @@ Las rutas históricas `aulas`, `salas`, `chat`, `documentos`, `materiales`, `for
 - Los controles A−, A y A+ se comprobaron a 14, 16 y 18 píxeles base, equivalentes a 87,5 %, 100 % y 112,5 %.
 - El asistente “Generar con guía” se comprobó con modal contextual, preguntas, sugerencias rápidas, detalle libre y acción Gemini.
 - El calendario de agosto de 2026 se comprobó con días, eventos, concursos, bloques académicos, filtros y navegación mensual/anual.
-- Evidencia visual: `audit/avendia-pca-dark-final.png`.
+- Evidencia visual: `avendia-pca-dark-final.png`, conservada en el historial de git (commit `99d18ba`, carpeta `audit/`, retirada del repositorio por la regla de no versionar capturas).

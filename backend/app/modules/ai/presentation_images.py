@@ -17,13 +17,15 @@ import httpx
 from vercel.blob import AsyncBlobClient
 
 from app.core.config import Settings, get_settings
-from app.core.safe_http import UnsafeUrlError, fetch_public_https_async
+from app.core.safe_http import UnsafeUrlError, fetch_public_https_async, trusted_api_client
 from app.modules.ai.schemas import GeneratedPresentationSlide, PresentationGenerationRequest
 
 logger = logging.getLogger(__name__)
 
 _MEDIA_DIRECTORY = Path(__file__).resolve().parents[3] / "data" / "presentation-images"
 _ALLOWED_SUFFIXES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+# Las imágenes generadas llegan en base64 dentro del JSON: hasta 12 MB de imagen.
+_MAX_RESPONSE_BYTES = 20_000_000
 _HTML_TAG = re.compile(r"<[^>]+>")
 
 _STYLE_DIRECTION = {
@@ -198,13 +200,16 @@ async def _search_candidates(
     if settings.presentation_image_provider in {"auto", "google"}:
         try:
             candidates = await _search_google(client, query, settings)
-        except (httpx.HTTPError, ValueError, TypeError):
-            logger.info("Google image search was unavailable; using the licensed fallback")
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
+            logger.warning(
+                "Google image search was unavailable (%s); using the licensed fallback",
+                type(exc).__name__,
+            )
     if not candidates and settings.presentation_image_provider in {"auto", "wikimedia", "google"}:
         try:
             candidates = await _search_wikimedia(client, query)
-        except (httpx.HTTPError, ValueError, TypeError):
-            logger.info("Wikimedia image search was unavailable")
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
+            logger.warning("Wikimedia image search was unavailable (%s)", type(exc).__name__)
     return sorted(candidates, key=lambda item: _candidate_score(item, query), reverse=True)
 
 
@@ -367,7 +372,9 @@ async def enrich_presentation_slides(
         and (settings.google_custom_search_engine_id or "").strip()
     )
     try:
-        async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
+        async with trusted_api_client(
+            timeout=timeout, headers=headers, max_bytes=_MAX_RESPONSE_BYTES
+        ) as client:
             use_gemini = settings.presentation_image_provider == "gemini" or (
                 settings.presentation_image_provider == "auto" and not google_is_configured
             )
@@ -427,8 +434,11 @@ async def enrich_presentation_slides(
                 ],
                 return_exceptions=True,
             )
-    except (httpx.HTTPError, ValueError, OSError):
-        logger.info("Presentation image enrichment was unavailable")
+    except (httpx.HTTPError, ValueError, OSError) as exc:
+        logger.warning(
+            "Presentation image enrichment was unavailable; slides are returned without images: %s",
+            type(exc).__name__,
+        )
         return slides
 
     enriched: list[GeneratedPresentationSlide] = []
