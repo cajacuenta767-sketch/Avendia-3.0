@@ -6,6 +6,7 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  LevelFormat,
   Packer,
   PageBreak,
   PageNumber,
@@ -324,6 +325,27 @@ const documentStyles = {
   ],
 };
 
+/** Viñetas cuadradas en azul para listas y puntos clave de todos los documentos. */
+const documentNumbering = {
+  config: [
+    {
+      reference: "avendia-bullets",
+      levels: [
+        {
+          level: 0,
+          format: LevelFormat.BULLET,
+          text: "▪",
+          alignment: AlignmentType.LEFT,
+          style: {
+            run: { color: COLOR_SECONDARY, bold: true, size: 22 },
+            paragraph: { indent: { left: 440, hanging: 280 } },
+          },
+        },
+      ],
+    },
+  ],
+};
+
 type PageMode = "portrait" | "landscape";
 
 /** Tamaño A4 y márgenes homogéneos para todas las familias de documentos. */
@@ -392,6 +414,28 @@ function documentFooter() {
   };
 }
 
+/** Bloque de título compartido: lema discreto, título institucional y subtítulo con regla azul. */
+function createTitleBlock(title: string, subtitle: string): Paragraph[] {
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: "DOCUMENTO PEDAGÓGICO EDITABLE", size: 15, color: COLOR_MUTED, font: "Calibri", characterSpacing: 30 })],
+      spacing: { after: 90 },
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: cleanText(title), bold: true, color: COLOR_PRIMARY, size: 30, font: "Calibri" })],
+      spacing: { after: 50, line: 264 },
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: COLOR_PRIMARY, space: 6 } },
+      children: [new TextRun({ text: cleanText(subtitle), bold: true, color: COLOR_SECONDARY, size: 18, font: "Calibri", characterSpacing: 10 })],
+      spacing: { after: 200 },
+    }),
+  ];
+}
+
 /** Caja destacada para instrucciones u orientaciones: franja lateral azul y fondo suave. */
 function createCalloutBlock(title: string, text: string, options: { icon?: string } = {}): Table {
   const side = { style: BorderStyle.SINGLE, size: 4, color: COLOR_BORDER };
@@ -432,7 +476,7 @@ function labelRuns(text: string, size: number, color = COLOR_TEXT): TextRun[] {
 
 function createKeyPoint(text: string, options: { size?: number; after?: number } = {}): Paragraph {
   return new Paragraph({
-    bullet: { level: 0 },
+    numbering: { reference: "avendia-bullets", level: 0 },
     children: labelRuns(text, options.size ?? 20),
     spacing: { after: options.after ?? 50, line: 264 },
   });
@@ -557,7 +601,7 @@ function createStyledCell(
         const isBullet = line.startsWith("•") || line.startsWith("-");
         const cleanLine = line.replace(/^[-•]\s*/, "");
         return new Paragraph({
-          bullet: isBullet ? { level: 0 } : undefined,
+          numbering: isBullet ? { reference: "avendia-bullets", level: 0 } : undefined,
           alignment: options.alignment ?? (isHeader ? AlignmentType.CENTER : AlignmentType.LEFT),
           children: [
             new TextRun({
@@ -728,7 +772,10 @@ function createQuestionBlocks(question: DocumentQuestion, options: { showLevel?:
         new TextRun({ text: cleanText(question.prompt), bold: true, color: COLOR_TEXT, size: 20, font: "Calibri" }),
         new TextRun({ text: `   ${tag}`, bold: true, color: COLOR_SECONDARY, size: 15, font: "Calibri" }),
       ],
-      spacing: { before: 80, after: 80 },
+      shading: { type: ShadingType.CLEAR, fill: COLOR_ZEBRA_BG },
+      border: { left: { style: BorderStyle.SINGLE, size: 18, color: COLOR_SECONDARY, space: 4 } },
+      indent: { left: 100 },
+      spacing: { before: 100, after: 80 },
       keepNext: true,
     }),
   ];
@@ -901,7 +948,7 @@ function createSignaturesTable(
                 children: [
                   new TextRun({
                     text: "____________________________________________",
-                    color: "94A3B8",
+                    color: COLOR_SECONDARY,
                     size: 18,
                     font: "Calibri",
                   }),
@@ -944,7 +991,7 @@ function createSignaturesTable(
                 children: [
                   new TextRun({
                     text: "____________________________________________",
-                    color: "94A3B8",
+                    color: COLOR_SECONDARY,
                     size: 18,
                     font: "Calibri",
                   }),
@@ -1029,45 +1076,7 @@ export function buildInstrumentDocx(
 
   // Encabezado
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 120 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(artifact.document_title).toUpperCase(),
-          bold: true,
-          color: COLOR_HEADING,
-          size: 28,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: `INSTRUMENTO OFICIAL DE EVALUACIÓN FORMATIVA · ${v.area.toUpperCase()}`,
-          bold: true,
-          color: COLOR_HEADING,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 200 },
-    })
+    ...createTitleBlock(cleanText(artifact.document_title).toUpperCase(), `INSTRUMENTO OFICIAL DE EVALUACIÓN FORMATIVA · ${v.area.toUpperCase()}`)
   );
 
   // Si es Examen / Prueba
@@ -1113,25 +1122,25 @@ export function buildInstrumentDocx(
       rows: [
         new TableRow({
           children: [
-            createStyledCell("INSTITUCIÓN EDUCATIVA", { bold: true, widthPercent: 35 }),
+            createStyledCell("INSTITUCIÓN EDUCATIVA", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
             createStyledCell(v.ie, { widthPercent: 65 }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell("ÁREA CURRICULAR / GRADO", { bold: true, widthPercent: 35 }),
+            createStyledCell("ÁREA CURRICULAR / GRADO", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
             createStyledCell(`${fill(v.area, 14)} · ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 65 }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell("DOCENTE EVALUADOR(A)", { bold: true, widthPercent: 35 }),
+            createStyledCell("DOCENTE EVALUADOR(A)", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
             createStyledCell(v.teacher, { widthPercent: 65 }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell("PROPÓSITO DE LA EVALUACIÓN", { bold: true, widthPercent: 35 }),
+            createStyledCell("PROPÓSITO DE LA EVALUACIÓN", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
             createStyledCell(artifact.executive_summary, { widthPercent: 65 }),
           ],
         }),
@@ -1275,7 +1284,7 @@ export function buildInstrumentDocx(
     if (artifact.teacher_recommendations.length) {
       children.push(createHeading("Orientaciones para retroalimentar", HeadingLevel.HEADING_2));
       artifact.teacher_recommendations.forEach((recommendation) => children.push(new Paragraph({
-        bullet: { level: 0 },
+        numbering: { reference: "avendia-bullets", level: 0 },
         children: [new TextRun({ text: cleanText(recommendation), size: 19, font: "Calibri", color: COLOR_TEXT })],
         spacing: { after: 60 },
       })));
@@ -1343,7 +1352,7 @@ export function buildInstrumentDocx(
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
-          bullet: { level: 0 },
+          numbering: { reference: "avendia-bullets", level: 0 },
           children: [new TextRun({ text: cleanText(rec), size: 19, font: "Calibri", color: COLOR_TEXT })],
           spacing: { after: 60 },
         })
@@ -1357,6 +1366,7 @@ export function buildInstrumentDocx(
 
   return new Document({
     styles: documentStyles,
+    numbering: documentNumbering,
     sections: [
       {
         properties: {
@@ -1533,45 +1543,7 @@ export function buildActivityDocx(
   const children: (Paragraph | Table)[] = [];
 
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 120 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(artifact.document_title).toUpperCase(),
-          bold: true,
-          color: COLOR_HEADING,
-          size: 28,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: `FICHA DE APLICACIÓN Y TRABAJO ACTIVO · ${v.area.toUpperCase()}`,
-          bold: true,
-          color: COLOR_HEADING,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 180 },
-    })
+    ...createTitleBlock(cleanText(artifact.document_title).toUpperCase(), `FICHA DE APLICACIÓN Y TRABAJO ACTIVO · ${v.area.toUpperCase()}`)
   );
 
   // Encabezado del estudiante
@@ -2862,7 +2834,7 @@ export function buildActivityDocx(
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
-          bullet: { level: 0 },
+          numbering: { reference: "avendia-bullets", level: 0 },
           children: [new TextRun({ text: cleanText(rec), size: 18, color: COLOR_MUTED, font: "Calibri" })],
           spacing: { after: 40 },
         })
@@ -2872,6 +2844,7 @@ export function buildActivityDocx(
 
   return new Document({
     styles: documentStyles,
+    numbering: documentNumbering,
     sections: [
       {
         properties: pageProperties(isWordSearch || isCrossword ? "landscape" : "portrait"),
@@ -2894,45 +2867,7 @@ export function buildAnalyticsDocx(
   const children: (Paragraph | Table)[] = [];
 
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 120 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(artifact.document_title).toUpperCase(),
-          bold: true,
-          color: COLOR_HEADING,
-          size: 28,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "INFORME TÉCNICO PEDAGÓGICO DE SEGUIMIENTO Y ALERTAS",
-          bold: true,
-          color: COLOR_HEADING,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 200 },
-    })
+    ...createTitleBlock(cleanText(artifact.document_title).toUpperCase(), "INFORME TÉCNICO PEDAGÓGICO DE SEGUIMIENTO Y ALERTAS")
   );
 
   // I. Datos del informe
@@ -2942,25 +2877,25 @@ export function buildAnalyticsDocx(
     rows: [
       new TableRow({
         children: [
-          createStyledCell("INSTITUCIÓN EDUCATIVA", { bold: true, widthPercent: 35 }),
+          createStyledCell("INSTITUCIÓN EDUCATIVA", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(v.ie, { widthPercent: 65 }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell("GRADO Y SECCIÓN EVALUADA", { bold: true, widthPercent: 35 }),
+          createStyledCell("GRADO Y SECCIÓN EVALUADA", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(`${fill(v.grade, 10)} "${fill(v.section, 4)}" · ${fill(v.area, 14)}`, { widthPercent: 65 }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell("DOCENTE RESPONSABLE", { bold: true, widthPercent: 35 }),
+          createStyledCell("DOCENTE RESPONSABLE", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(v.teacher, { widthPercent: 65 }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell("FECHA DE EMISIÓN", { bold: true, widthPercent: 35 }),
+          createStyledCell("FECHA DE EMISIÓN", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" }), {
             widthPercent: 65,
           }),
@@ -3026,7 +2961,7 @@ export function buildAnalyticsDocx(
   artifact.teacher_recommendations.forEach((rec) => {
     children.push(
       new Paragraph({
-        bullet: { level: 0 },
+        numbering: { reference: "avendia-bullets", level: 0 },
         children: [new TextRun({ text: cleanText(rec), size: 19, font: "Calibri", color: COLOR_TEXT })],
         spacing: { after: 60 },
       })
@@ -3037,6 +2972,7 @@ export function buildAnalyticsDocx(
 
   return new Document({
     styles: documentStyles,
+    numbering: documentNumbering,
     sections: [
       {
         properties: pageProperties("portrait"),
@@ -3059,45 +2995,7 @@ export function buildCommunicationDocx(
   const children: (Paragraph | Table)[] = [];
 
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 100 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(v.ie).toUpperCase(),
-          bold: true,
-          color: COLOR_PRIMARY,
-          size: 26,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 40 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: `COMUNICADO OFICIAL A LA FAMILIA · CICLO ESCOLAR ${fill(v.year, 6)}`,
-          bold: true,
-          color: COLOR_SECONDARY,
-          size: 19,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 200 },
-    })
+    ...createTitleBlock(cleanText(v.ie).toUpperCase(), `COMUNICADO OFICIAL A LA FAMILIA · CICLO ESCOLAR ${fill(v.year, 6)}`)
   );
 
   // Destinatario
@@ -3106,14 +3004,14 @@ export function buildCommunicationDocx(
     rows: [
       new TableRow({
         children: [
-          createStyledCell(`Para: ${fill(v.guardian, 22)} (Padre, madre o tutor legal)`, { widthPercent: 60 }),
-          createStyledCell(`Fecha: ${new Date().toLocaleDateString("es-PE")}`, { widthPercent: 40 }),
+          createStyledCell(`Para: ${fill(v.guardian, 22)} (Padre, madre o tutor legal)`, { widthPercent: 60, fillColor: COLOR_ZEBRA_BG }),
+          createStyledCell(`Fecha: ${new Date().toLocaleDateString("es-PE")}`, { widthPercent: 40, fillColor: COLOR_ZEBRA_BG }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell(`Estudiante: ${fill(v.student, 22)} · ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 60 }),
-          createStyledCell(`Asunto: ${cleanText(artifact.document_title)}`, { bold: true, widthPercent: 40 }),
+          createStyledCell(`Estudiante: ${fill(v.student, 22)} · ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 60, fillColor: COLOR_ZEBRA_BG }),
+          createStyledCell(`Asunto: ${cleanText(artifact.document_title)}`, { bold: true, widthPercent: 40, fillColor: COLOR_ZEBRA_BG, color: COLOR_PRIMARY }),
         ],
       }),
     ],
@@ -3188,6 +3086,7 @@ export function buildCommunicationDocx(
 
   return new Document({
     styles: documentStyles,
+    numbering: documentNumbering,
     sections: [
       {
         properties: pageProperties("portrait"),
@@ -3290,14 +3189,14 @@ export function buildHomeworkDocx(
       rows: [
         new TableRow({
           children: [
-            createStyledCell("Estudiante: __________________________________________", { widthPercent: 60 }),
-            createStyledCell(`Grado y sección: ${fill(v.grade, 10)} — ${fill(v.section, 4)}`, { widthPercent: 40 }),
+            createStyledCell("Estudiante: __________________________________________", { widthPercent: 60, fillColor: COLOR_ZEBRA_BG }),
+            createStyledCell(`Grado y sección: ${fill(v.grade, 10)} — ${fill(v.section, 4)}`, { widthPercent: 40, fillColor: COLOR_ZEBRA_BG }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 60 }),
-            createStyledCell("Fecha: ____ / ____ / ______", { widthPercent: 40 }),
+            createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 60, fillColor: COLOR_ZEBRA_BG }),
+            createStyledCell("Fecha: ____ / ____ / ______", { widthPercent: 40, fillColor: COLOR_ZEBRA_BG }),
           ],
         }),
       ],
@@ -3400,6 +3299,7 @@ export function buildHomeworkDocx(
 
   return new Document({
     styles: documentStyles,
+    numbering: documentNumbering,
     sections: [{
       properties: {
         page: {
@@ -3479,7 +3379,7 @@ function createCoverBlocks(
     rows: rows.map(([label, value], index) => new TableRow({
       cantSplit: true,
       children: [
-        createStyledCell(label, { bold: true, widthPercent: 40, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+        createStyledCell(label, { bold: true, widthPercent: 40, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
         createStyledCell(value, { widthPercent: 60, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
       ],
     })),
@@ -3491,7 +3391,13 @@ function createCoverBlocks(
     spacing: { before: 120, after: 140 },
   });
   return [
-    new Paragraph({ spacing: { before: 2200 }, children: [] }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      shading: { type: ShadingType.CLEAR, fill: COLOR_BAND_BG },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: COLOR_PRIMARY, space: 4 } },
+      children: [new TextRun({ text: "PLANIFICACIÓN CURRICULAR · CURRÍCULO NACIONAL DE LA EDUCACIÓN BÁSICA", size: 15, color: COLOR_PRIMARY, bold: true, font: "Calibri", characterSpacing: 25 })],
+      spacing: { before: 60, after: 1900 },
+    }),
     line(isPlaceholder(v.ie) ? "Institución educativa" : v.ie, 24, true, COLOR_PRIMARY),
     band(kindLabel.toLocaleUpperCase("es"), 40, COLOR_PRIMARY, "FFFFFF"),
     line(artifact.document_title, 26, true),
@@ -3499,6 +3405,11 @@ function createCoverBlocks(
     ...(table ? [table] : []),
     new Paragraph({ spacing: { before: 700 }, children: [] }),
     band(`Año lectivo ${isPlaceholder(v.year) ? "________" : v.year}`, 22, COLOR_BAND_BG, COLOR_PRIMARY),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: "Documento editable elaborado con Avendia · Revisa, adapta y firma antes de su aplicación", size: 15, color: COLOR_MUTED, italics: true, font: "Calibri" })],
+      spacing: { before: 700 },
+    }),
     new Paragraph({ children: [new PageBreak()] }),
     createHeading("CONTENIDO", HeadingLevel.HEADING_1),
     new TableOfContents("Contenido", { hyperlink: true, headingStyleRange: "1-2", cachedEntries: entries }),
@@ -3541,49 +3452,11 @@ export function buildDocumentDocx(
   }
 
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 120 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(artifact.document_title).toUpperCase(),
-          bold: true,
-          color: COLOR_HEADING,
-          size: 28,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: [
+    ...createTitleBlock(cleanText(artifact.document_title).toUpperCase(), [
             isPlaceholder(v.area) ? "" : `ÁREA: ${v.area.toUpperCase()}`,
             isPlaceholder(v.level) ? "" : `NIVEL: ${v.level.toUpperCase()}`,
             isPlaceholder(v.grade) ? "" : `GRADO: ${v.grade.toUpperCase()}${isPlaceholder(v.section) ? "" : ` "${v.section}"`}`,
-          ].filter(Boolean).join(" · ") || "DOCUMENTO DE PLANIFICACIÓN CURRICULAR",
-          bold: true,
-          color: COLOR_HEADING,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 200 },
-    })
+          ].filter(Boolean).join(" · ") || "DOCUMENTO DE PLANIFICACIÓN CURRICULAR")
   );
 
   // I. Información General
@@ -3609,7 +3482,7 @@ export function buildDocumentDocx(
       new TableRow({
         cantSplit: true,
         children: [
-          createStyledCell(label, { bold: true, widthPercent: 35, fillColor: idx % 2 === 0 ? undefined : COLOR_ZEBRA_BG }),
+          createStyledCell(label, { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(val, { widthPercent: 65, fillColor: idx % 2 === 0 ? undefined : COLOR_ZEBRA_BG }),
         ],
       })
@@ -3691,7 +3564,7 @@ export function buildDocumentDocx(
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
-          bullet: { level: 0 },
+          numbering: { reference: "avendia-bullets", level: 0 },
           children: [new TextRun({ text: cleanText(rec), size: 19, font: "Calibri", color: COLOR_TEXT })],
           spacing: { after: 50 },
         })
@@ -3731,6 +3604,7 @@ export function buildDocumentDocx(
   return new Document({
     features: { updateFields: isLongDocument },
     styles: documentStyles,
+    numbering: documentNumbering,
     sections: [
       {
         properties: {
