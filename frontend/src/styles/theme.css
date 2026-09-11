@@ -166,11 +166,11 @@
 [data-theme="dark"] .home-school-calendar__tabs button[aria-pressed="true"] { color: #b9a8ff; background: #24334b; box-shadow: none; }
 [data-theme="dark"] .home-school-period small { background: rgba(10, 19, 34, .38); }
 [data-theme="dark"] .home-school-period--management { color: #c9b8ff; border-color: #4b3c78; background: #251f3b; }
-[data-theme="dark"] .home-school-period--green { color: #83dcc0; border-color: #28594d; background: #15322d; }
-[data-theme="dark"] .home-school-period--cyan { color: #86d7df; border-color: #285560; background: #153139; }
-[data-theme="dark"] .home-school-period--amber { color: #f1c879; border-color: #68502b; background: #382c1d; }
-[data-theme="dark"] .home-school-period--indigo { color: #aebcf5; border-color: #415184; background: #202b4a; }
-[data-theme="dark"] .home-school-calendar__days .school { color: #83dcc0; background: #15322d; }
+[data-theme="dark"] .home-school-period--green,
+[data-theme="dark"] .home-school-period--cyan,
+[data-theme="dark"] .home-school-period--amber,
+[data-theme="dark"] .home-school-period--indigo { color: #8cb9ff; border-color: #2f4f80; background: #172b48; }
+[data-theme="dark"] .home-school-calendar__days .school { color: #8cb9ff; background: #172b48; }
 [data-theme="dark"] .home-school-calendar__days .management { color: #c9b8ff; background: #251f3b; }
 [data-theme="dark"] .home-school-calendar__days .holiday { color: #ff9bb0; background: #3e202a; }
 [data-theme="dark"] .home-tool-card > button { color: #dce6f6; border-color: #394960; }
@@ -407,7 +407,7 @@
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 [data-theme="dark"] .word-preview-regeneration { border-color:#334155; background:#111827; color:#e5e7eb; }
-[data-theme="dark"] .home-class-banner { border-color: #244457; background: linear-gradient(110deg, #101f34 0%, #0f2a30 100%); box-shadow: none; }
+[data-theme="dark"] .home-class-banner { border-color: #29466f; background: linear-gradient(110deg, #101f34 0%, #1a1a3a 100%); box-shadow: none; }
 [data-theme="dark"] .home-class-banner__sheet { fill: #172338; stroke: #34445c; }
 [data-theme="dark"] .home-class-banner__sheet--back { fill: #111c2e; }
 [data-theme="dark"] .home-class-banner__line--soft { fill: #34445c; }

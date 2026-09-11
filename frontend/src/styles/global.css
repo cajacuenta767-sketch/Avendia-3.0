@@ -186,8 +186,8 @@ h1, h2 { font-family: Manrope, sans-serif; }
 .home-welcome h1 { margin: 0; color: var(--navy); font: 800 clamp(26px, 2.4vw, 38px)/1.12 Manrope, sans-serif; letter-spacing: -.04em; }
 .home-welcome__phrase { display: flex; align-items: center; gap: 9px; margin: 4px 0 0; color: var(--muted); font-size: 14px; font-weight: 600; line-height: 1.5; }
 .home-welcome__phrase svg { flex: 0 0 auto; width: 17px; color: var(--blue); fill: currentColor; }
-.home-class-banner { position: relative; display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; align-items: center; gap: 22px; padding: 22px 30px 22px 22px; overflow: hidden; border: 1px solid #c9e4ef; border-radius: 22px; background: linear-gradient(110deg, #eef4ff 0%, #e6f7fa 100%); box-shadow: 0 10px 30px rgba(6, 154, 156, .07); }
-.home-class-banner::after { position: absolute; top: -80px; right: 170px; width: 260px; height: 260px; content: ""; border-radius: 50%; background: radial-gradient(circle, rgba(6, 154, 156, .12), transparent 70%); pointer-events: none; }
+.home-class-banner { position: relative; display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; align-items: center; gap: 22px; padding: 22px 30px 22px 22px; overflow: hidden; border: 1px solid #c9dcfb; border-radius: 22px; background: linear-gradient(110deg, #eef4ff 0%, #f4f1ff 100%); box-shadow: 0 10px 30px rgba(7, 91, 232, .07); }
+.home-class-banner::after { position: absolute; top: -80px; right: 170px; width: 260px; height: 260px; content: ""; border-radius: 50%; background: radial-gradient(circle, rgba(123, 97, 209, .12), transparent 70%); pointer-events: none; }
 .home-class-banner__art { width: 200px; height: 150px; overflow: visible; }
 .home-class-banner__sheet { fill: white; stroke: #cfe0f6; stroke-width: 2; filter: drop-shadow(0 8px 14px rgba(11, 24, 54, .1)); }
 .home-class-banner__sheet--back { fill: #f3f7ff; }
@@ -196,7 +196,7 @@ h1, h2 { font-family: Manrope, sans-serif; }
 .home-class-banner__badge { fill: var(--blue); filter: drop-shadow(0 6px 12px rgba(7, 91, 232, .35)); }
 .home-class-banner__check { fill: none; stroke: white; stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
 .home-class-banner__spark { fill: var(--blue); opacity: .55; }
-.home-class-banner__spark--teal { fill: var(--teal); }
+.home-class-banner__spark--teal { fill: var(--violet); }
 .home-class-banner__copy { position: relative; z-index: 1; display: grid; gap: 8px; min-width: 0; }
 .home-class-banner h2 { margin: 0; color: var(--navy); font: 800 clamp(20px, 1.9vw, 27px)/1.15 Manrope, sans-serif; letter-spacing: -.03em; }
 .home-class-banner p { max-width: 520px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
@@ -204,8 +204,8 @@ h1, h2 { font-family: Manrope, sans-serif; }
 .home-class-banner__chips button { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 12px; border: 1px solid #cfe0f6; border-radius: 9px; color: var(--blue); background: rgba(255, 255, 255, .85); font-size: 11px; font-weight: 700; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
 .home-class-banner__chips button:hover { border-color: #adc8f5; background: white; }
 .home-class-banner__chips svg { width: 15px; }
-.home-class-banner__create { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 10px; min-height: 58px; padding: 0 28px; border: 0; border-radius: 999px; color: white; background: var(--teal); font: 750 17px/1 Manrope, sans-serif; white-space: nowrap; box-shadow: 0 12px 26px rgba(6, 154, 156, .32); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, background .15s ease; }
-.home-class-banner__create:hover { background: #058486; box-shadow: 0 14px 30px rgba(6, 154, 156, .4); transform: translateY(-2px); }
+.home-class-banner__create { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 10px; min-height: 58px; padding: 0 28px; border: 0; border-radius: 999px; color: white; background: var(--blue); font: 750 17px/1 Manrope, sans-serif; white-space: nowrap; box-shadow: 0 12px 26px rgba(7, 91, 232, .3); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, background .15s ease; }
+.home-class-banner__create:hover { background: #064fc8; box-shadow: 0 14px 30px rgba(7, 91, 232, .38); transform: translateY(-2px); }
 .home-class-banner__create svg { width: 20px; }
 .home-section-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin-left: auto; }
 .home-section-actions__secondary { min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 9px; color: var(--navy); background: white; font-size: 11px; font-weight: 750; line-height: 1.25; text-align: center; cursor: pointer; }
@@ -281,11 +281,8 @@ h1, h2 { font-family: Manrope, sans-serif; }
 .home-school-period strong { font-size: 11px; }
 .home-school-period small { flex: 0 0 auto; padding: 3px 6px; border-radius: 999px; background: rgba(255, 255, 255, .65); font-size: 8px; font-weight: 800; }
 .home-school-period p { margin: 4px 0 0; font-size: 9px; font-weight: 650; line-height: 1.4; }
-.home-school-period--management { color: #7041b2; border-color: #ddd0f8; background: #f6f1ff; }
-.home-school-period--green { color: #177352; border-color: #bfe8d8; background: #effaf6; }
-.home-school-period--cyan { color: #176a75; border-color: #bde7eb; background: #effafb; }
-.home-school-period--amber { color: #875312; border-color: #f2ddb9; background: #fff8eb; }
-.home-school-period--indigo { color: #3d52a0; border-color: #cbd5f4; background: #f2f5ff; }
+.home-school-period--management { color: var(--violet); border-color: #ddd0f8; background: #f4f1ff; }
+.home-school-period--green, .home-school-period--cyan, .home-school-period--amber, .home-school-period--indigo { color: var(--blue); border-color: #c9dcfb; background: #eef4ff; }
 .home-school-calendar__month { display: grid; gap: 8px; }
 .home-school-calendar__month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 9px; background: var(--soft); }
 .home-school-calendar__month-nav strong { font-size: 11px; }
@@ -297,13 +294,13 @@ h1, h2 { font-family: Manrope, sans-serif; }
 .home-school-calendar__days > * { min-height: 28px; }
 .home-school-calendar__days button { border: 0; border-radius: 7px; font-size: 10px; font-weight: 750; cursor: pointer; }
 .home-school-calendar__days button:hover { outline: 2px solid rgba(7, 91, 232, .22); }
-.home-school-calendar__days .school { color: #177352; background: #e9f8f2; }
-.home-school-calendar__days .management { color: #7041b2; background: #f2edff; }
+.home-school-calendar__days .school { color: var(--blue); background: #eef4ff; }
+.home-school-calendar__days .management { color: var(--violet); background: #f4f1ff; }
 .home-school-calendar__days .holiday { color: #a93851; background: #fff0f3; }
 .home-school-calendar > footer { display: flex; align-items: center; justify-content: space-between; gap: 7px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; font-weight: 700; }
 .home-school-calendar > footer span { display: flex; align-items: center; gap: 5px; }
 .home-school-calendar > footer i { width: 8px; height: 8px; border-radius: 50%; }
-.home-school-calendar > footer i.school { background: var(--teal); }
+.home-school-calendar > footer i.school { background: var(--blue); }
 .home-school-calendar > footer i.management { background: var(--violet); }
 .home-school-calendar > footer i.holiday { background: #e4516f; }
 .home-history { display: grid; gap: 14px; padding: 24px 26px 36px; border-top: 1px solid var(--line); }

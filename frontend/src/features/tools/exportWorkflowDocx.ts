@@ -1493,19 +1493,14 @@ function createFlashcardCell(card: FlashcardItem | null, index: number, side: "f
   });
 }
 
-/**
- * Hoja de tarjetas en cuadrícula de dos columnas. La hoja de reversos invierte
- * el orden de cada fila para que, impresa por la otra cara, cada respuesta caiga
- * detrás de su pregunta.
- */
+/** Hoja de tarjetas en cuadrícula de dos columnas; frentes y reversos llevan el mismo número. */
 function createFlashcardSheet(cards: FlashcardItem[], side: "front" | "back"): Table {
   const rows: TableRow[] = [];
   for (let index = 0; index < cards.length; index += 2) {
     const pair: Array<[FlashcardItem | null, number]> = [[cards[index] ?? null, index], [cards[index + 1] ?? null, index + 1]];
-    if (side === "back") pair.reverse();
     rows.push(new TableRow({
       cantSplit: true,
-      height: { value: 3200, rule: "atLeast" as const },
+      height: { value: 2500, rule: "atLeast" as const },
       children: pair.map(([card, cardIndex]) => createFlashcardCell(card, cardIndex, side)),
     }));
   }
@@ -1588,35 +1583,29 @@ export function buildActivityDocx(
           createStyledCell("Estudiante: __________________________________________________", {
             colSpan: 2,
             widthPercent: 75,
+            fillColor: COLOR_ZEBRA_BG,
           }),
-          createStyledCell(`Grado/Secc: ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 25 }),
+          createStyledCell(`Grado/Secc: ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 25, fillColor: COLOR_ZEBRA_BG }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 50 }),
-          createStyledCell(`Área: ${fill(v.area, 14)}`, { widthPercent: 25 }),
-          createStyledCell(`Fecha: ____/____/${fill(v.year, 6)}`, { widthPercent: 25 }),
+          createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 50, fillColor: COLOR_ZEBRA_BG }),
+          createStyledCell(`Área: ${fill(v.area, 14)}`, { widthPercent: 25, fillColor: COLOR_ZEBRA_BG }),
+          createStyledCell(`Fecha: ____/____/${fill(v.year, 6)}`, { widthPercent: 25, fillColor: COLOR_ZEBRA_BG }),
         ],
       }),
     ],
   });
   children.push(studentHeader);
 
-  children.push(
-    new Paragraph({
-      children: [
-        new TextRun({ text: "Instrucciones: ", bold: true, color: COLOR_PRIMARY, size: 20, font: "Calibri" }),
-        new TextRun({
-          text: cleanText(artifact.activity?.instructions || artifact.executive_summary) || "Lee con atención y completa los retos propuestos aplicando tus saberes.",
-          color: COLOR_TEXT,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { before: 140, after: 140 },
-    })
-  );
+  children.push(new Paragraph({ spacing: { after: 40 }, children: [] }));
+  children.push(createCalloutBlock(
+    "Instrucciones",
+    cleanText(artifact.activity?.instructions || artifact.executive_summary) || "Lee con atención y completa los retos propuestos aplicando tus saberes.",
+    { icon: "📝" },
+  ));
+  children.push(new Paragraph({ spacing: { after: 60 }, children: [] }));
 
   if ((artifact.tables?.length ?? 0) > 0 && !isDebate && !isCaseStudy) {
     children.push(createHeading("RUTA DE TRABAJO", HeadingLevel.HEADING_2));
@@ -1626,26 +1615,7 @@ export function buildActivityDocx(
   // Si es Sopa de Letras
   if (isWordSearch) {
     children.push(createHeading("CUADRÍCULA DE BÚSQUEDA DE PALABRAS", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Encuentra las palabras clave en la cuadrícula de letras (pueden estar en sentido horizontal, vertical o diagonal). Enciérralas con colores y escribe una oración breve para cada una en la tabla inferior.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 160 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Encuentra las palabras clave en la cuadrícula de letras (pueden estar en sentido horizontal, vertical o diagonal). Enciérralas con colores y escribe una oración breve para cada una en la tabla inferior.", { icon: "📝" }));
 
     const items = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items
@@ -1776,19 +1746,17 @@ export function buildActivityDocx(
 
     children.push(createHeading("TARJETAS DIDÁCTICAS RECORTABLES (FRENTE Y REVERSO)", HeadingLevel.HEADING_1, "I."));
     children.push(createCalloutBlock(
-      "Instrucciones de recorte y armado",
-      "1. Imprime la Hoja A (frentes) y, por el otro lado de la misma hoja, la Hoja B (reversos); si no puedes imprimir a doble cara, pega ambas hojas espalda con espalda.\n"
-      + "2. Recorta cada tarjeta por la línea punteada (✂). Los reversos están en espejo, así que cada pregunta queda exactamente detrás de su respuesta.\n"
-      + "3. Lee el frente, formula tu respuesta en voz alta o por escrito y voltea la tarjeta para comprobar con la pista formativa.\n"
-      + "Las hojas A y B empiezan en página nueva y comparten la misma cuadrícula: la Hoja B está invertida de izquierda a derecha para coincidir con la Hoja A.",
+      "Cómo armar las tarjetas",
+      "1. Recorta cada tarjeta por la línea punteada (✂): primero los frentes de la Hoja A y luego los reversos de la Hoja B, que llevan el mismo número.\n"
+      + "2. Pega cada frente con su reverso espalda con espalda (o imprime la Hoja B al dorso de la Hoja A si tu impresora lo permite).\n"
+      + "3. Lee la pregunta o concepto, formula tu respuesta en voz alta o por escrito y voltea la tarjeta para comprobar con la pista formativa.",
       { icon: "✂" },
     ));
-    // Cada hoja ocupa su propia página con idéntica estructura para que las caras coincidan al imprimir.
-    children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(new Paragraph({ spacing: { after: 40 }, children: [] }));
     children.push(createHeading("Hoja A · Frentes: pregunta o concepto", HeadingLevel.HEADING_2));
     children.push(createFlashcardSheet(cardItems, "front"));
-    children.push(new Paragraph({ children: [new PageBreak()] }));
-    children.push(createHeading("Hoja B · Reversos en espejo: respuesta y pista", HeadingLevel.HEADING_2));
+    children.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
+    children.push(createHeading("Hoja B · Reversos: respuesta y pista", HeadingLevel.HEADING_2));
     children.push(createFlashcardSheet(cardItems, "back"));
 
     // Solucionario de Tarjetas de Estudio en nueva página
@@ -1842,26 +1810,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: flashcardsSolutionRows }));
   } else if (isHangman) {
     children.push(createHeading("RETOS DE VOCABULARIO Y ADIVINANZAS: JUEGO DEL AHORCADO", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee con atención la pista o adivinanza de cada reto. Descubre la palabra secreta completando una letra en cada casilla cuadrada. Puedes tachar en el abecedario las letras que vayas probando. Tienes 4 vidas [♥] por palabra antes de equivocarte.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 180 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee con atención la pista o adivinanza de cada reto. Descubre la palabra secreta completando una letra en cada casilla cuadrada. Puedes tachar en el abecedario las letras que vayas probando. Tienes 4 vidas [♥] por palabra antes de equivocarte.", { icon: "📝" }));
 
     const hangmanItems = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items
@@ -2014,26 +1963,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isCompletion) {
     children.push(createHeading("FICHA DE APLICACIÓN: COMPLETA LA FRASE", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee con atención cada enunciado. Selecciona la palabra adecuada del Banco de Palabras y escríbela sobre la línea punteada para completar correctamente cada oración.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 140 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee con atención cada enunciado. Selecciona la palabra adecuada del Banco de Palabras y escríbela sobre la línea punteada para completar correctamente cada oración.", { icon: "📝" }));
 
     // Obtener los ítems de completación
     const completionItems = (artifact.activity?.items && artifact.activity.items.length > 0)
@@ -2185,26 +2115,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isMatching) {
     children.push(createHeading("FICHA DE APLICACIÓN: EMPAREJAR CONCEPTOS Y RELACIONES", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee con atención los conceptos de la Columna A y sus definiciones en la Columna B. Relaciona cada concepto escribiendo la letra mayúscula correspondiente dentro de los paréntesis vacíos (   ).",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 160 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee con atención los conceptos de la Columna A y sus definiciones en la Columna B. Relaciona cada concepto escribiendo la letra mayúscula correspondiente dentro de los paréntesis vacíos (   ).", { icon: "📝" }));
 
     const matchingItems = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items
@@ -2338,26 +2249,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isCrossword) {
     children.push(createHeading("CUADRÍCULA Y RETOS DEL CRUCIGRAMA EDUCATIVO", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee atentamente las pistas horizontales y verticales. Escribe una letra en cada casilla blanca según el número correspondiente. Las casillas sombreadas indican separación entre palabras.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 160 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee atentamente las pistas horizontales y verticales. Escribe una letra en cada casilla blanca según el número correspondiente. Las casillas sombreadas indican separación entre palabras.", { icon: "📝" }));
 
     const crosswordItems = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items
@@ -2511,26 +2403,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isGrouping) {
     children.push(createHeading("FICHA DE APLICACIÓN: AGRUPAR Y CATEGORIZAR CONCEPTOS", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Observa con atención el Banco de Términos desordenados. Clasifica y escribe cada elemento en la columna correspondiente según el criterio pedagógico indicado.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 140 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Observa con atención el Banco de Términos desordenados. Clasifica y escribe cada elemento en la columna correspondiente según el criterio pedagógico indicado.", { icon: "📝" }));
 
     const rawBank = (artifact.activity?.word_bank && artifact.activity.word_bank.length > 0)
       ? artifact.activity.word_bank
@@ -2681,26 +2554,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isSequence) {
     children.push(createHeading("FICHA DE APLICACIÓN: ORDENAR BLOQUES Y SECUENCIAS", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee con atención los bloques desordenados. Analiza la cronología o el procedimiento lógico y escribe el número de orden correspondiente en cada casilla.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 140 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee con atención los bloques desordenados. Analiza la cronología o el procedimiento lógico y escribe el número de orden correspondiente en cada casilla.", { icon: "📝" }));
 
     const sequenceItems = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items

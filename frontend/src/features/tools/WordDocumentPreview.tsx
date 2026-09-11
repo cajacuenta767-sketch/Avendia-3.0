@@ -850,11 +850,10 @@ export function WordDocumentPreview({
                   <section className="word-section">
                     <h2 className="word-section-h1">TARJETAS DIDÁCTICAS RECORTABLES (FRENTE Y REVERSO)</h2>
                     <div className="word-callout">
-                      <strong>✂ Instrucciones de recorte y armado</strong>
-                      <p>1. Imprime la Hoja A (frentes) y, por el otro lado de la misma hoja, la Hoja B (reversos); si no puedes imprimir a doble cara, pega ambas hojas espalda con espalda.</p>
-                      <p>2. Recorta cada tarjeta por la línea punteada (✂). Los reversos están en espejo, así que cada pregunta queda exactamente detrás de su respuesta.</p>
-                      <p>3. Lee el frente, formula tu respuesta y voltea la tarjeta para comprobar con la pista formativa.</p>
-                      <p>Las hojas A y B empiezan en página nueva y comparten la misma cuadrícula: la Hoja B está invertida de izquierda a derecha para coincidir con la Hoja A.</p>
+                      <strong>✂ Cómo armar las tarjetas</strong>
+                      <p>1. Recorta cada tarjeta por la línea punteada (✂): primero los frentes de la Hoja A y luego los reversos de la Hoja B, que llevan el mismo número.</p>
+                      <p>2. Pega cada frente con su reverso espalda con espalda (o imprime la Hoja B al dorso de la Hoja A si tu impresora lo permite).</p>
+                      <p>3. Lee la pregunta o concepto, formula tu respuesta y voltea la tarjeta para comprobar con la pista formativa.</p>
                     </div>
                     {(() => {
                       const cards = artifact.activity?.items && artifact.activity.items.length > 0
@@ -875,9 +874,9 @@ export function WordDocumentPreview({
                               </div>
                             ) : <div key={`front-empty-${index}`} className="word-flashcard-item word-flashcard-item--empty" aria-hidden="true" />)}
                           </div>
-                          <h3 className="word-section-h2">Hoja B · Reversos en espejo: respuesta y pista</h3>
+                          <h3 className="word-section-h2">Hoja B · Reversos: respuesta y pista</h3>
                           <div className="word-flashcards-sheet" aria-label="Hoja de reversos">
-                            {rows.flatMap((row) => [...row].reverse()).map(([card, index]) => card ? (
+                            {rows.flat().map(([card, index]) => card ? (
                               <div key={`back-${card.id || index}`} className="word-flashcard-item word-flashcard-item--back">
                                 <span className="word-flashcard-cut-label">Tarjeta N° {index + 1} · Reverso ✂</span>
                                 {card.answer ? (
