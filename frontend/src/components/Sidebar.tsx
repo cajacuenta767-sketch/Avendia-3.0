@@ -5,7 +5,7 @@ import { NavLink } from "react-router-dom";
 import { primaryNavigation, utilityNavigation } from "../config/tools";
 import { apiRequest } from "../lib/api";
 import {
-  clearSession,
+  endSession,
   readAccessToken,
   readSessionUser,
   sessionUserInitials,
@@ -67,7 +67,7 @@ export function Sidebar({ open, collapsed, onClose, onToggleCollapse }: SidebarP
         </NavLink>
         <div className="sidebar__account-actions">
           <NavLink to="/dashboard/configuracion" className="icon-button" aria-label="Configuración"><Settings /></NavLink>
-          <button className="icon-button" aria-label="Cerrar sesión" onClick={() => { clearSession(); location.assign("/login"); }}><LogOut /></button>
+          <button className="icon-button" aria-label="Cerrar sesión" onClick={() => { endSession(); location.assign("/login"); }}><LogOut /></button>
         </div>
       </div>
       {!collapsed ? <div className="sidebar-credits"><Coins /><span><small>Créditos IA</small><strong>{(user.ai_credits_balance ?? 0).toLocaleString("es-PE")}</strong></span>{user.role === "admin" ? <NavLink to="/admin" title="Abrir centro de administración"><ShieldCheck /></NavLink> : null}</div> : null}

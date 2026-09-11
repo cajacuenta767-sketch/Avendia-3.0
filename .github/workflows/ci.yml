@@ -75,6 +75,8 @@ jobs:
       - name: Pruebas
         run: npm run test
       - name: Typecheck y build
+        env:
+          VITE_API_URL: https://api.avendia.pe/api/v1
         run: npm run build
       - name: Auditoría de dependencias de producción
         run: npm audit --omit=dev --audit-level=high

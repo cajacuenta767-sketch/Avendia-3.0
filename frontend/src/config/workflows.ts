@@ -1,6 +1,7 @@
 import type { ModuleId, ToolDefinition } from "./tools";
 import { getDynamicEducationOptions, getEducationLevels, type DynamicEducationOptions } from "./education";
 import { LEGACY_WORKFLOW_SHAPES, type WorkflowStageKind } from "./legacyWorkflowShapes";
+import { readStoredSessionUser } from "../lib/session";
 
 export type WorkflowFieldType = "text" | "textarea" | "select" | "number" | "date" | "multiselect" | "repeater";
 
@@ -651,10 +652,7 @@ export function getWorkflow(tool: ToolDefinition | undefined) {
 }
 
 export function getInitialWorkflowValues(workflow: WorkflowDefinition) {
-  const profileValues = (() => {
-    try { return JSON.parse(sessionStorage.getItem("avendia.user") ?? "{}") as Record<string, unknown>; }
-    catch { return {}; }
-  })();
+  const profileValues = (readStoredSessionUser() ?? {}) as Record<string, unknown>;
   const profileFieldMap: Record<string, string> = {
     dre: "dre",
     ugel: "ugel",

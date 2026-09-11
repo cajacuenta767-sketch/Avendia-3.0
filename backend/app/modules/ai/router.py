@@ -106,7 +106,10 @@ async def record_field_assist_feedback(
 
 
 @router.get("/presentation-images/{asset_id}", response_class=FileResponse)
-async def read_presentation_image(asset_id: str) -> FileResponse:
+async def read_presentation_image(
+    asset_id: str,
+    _user: User = Depends(get_current_user),
+) -> FileResponse:
     image_path = find_presentation_image(asset_id)
     if image_path is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Imagen no encontrada")
@@ -114,7 +117,7 @@ async def read_presentation_image(asset_id: str) -> FileResponse:
     return FileResponse(
         image_path,
         media_type=media_types[image_path.suffix],
-        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        headers={"Cache-Control": "private, max-age=31536000, immutable"},
     )
 
 

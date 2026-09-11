@@ -132,3 +132,28 @@ async def test_presentation_rejects_unsupported_slide_count() -> None:
             json=payload,
         )
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_presentation_images_require_authentication(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
+    image = tmp_path / ("a" * 40 + ".png")
+    image.write_bytes(b"\x89PNG\r\n\x1a\n")
+    monkeypatch.setattr(
+        "app.modules.ai.router.find_presentation_image",
+        lambda asset_id: image if asset_id == "a" * 40 else None,
+    )
+    route = "/api/v1/ai/tools/presentation-images/"
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        anonymous = await client.get(route + "a" * 40)
+        assert anonymous.status_code == 401
+
+        token = await _teacher_token(client)
+        headers = {"Authorization": f"Bearer {token}"}
+        found = await client.get(route + "a" * 40, headers=headers)
+        missing = await client.get(route + "b" * 40, headers=headers)
+    assert found.status_code == 200
+    assert found.headers["content-type"] == "image/png"
+    assert found.headers["cache-control"].startswith("private")
+    assert missing.status_code == 404

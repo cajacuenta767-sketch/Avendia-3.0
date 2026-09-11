@@ -172,7 +172,10 @@ async def vote(
     try:
         await db.commit()
     except IntegrityError:
+        # Solo se tolera la carrera esperada: otra petición registró el mismo voto.
         await db.rollback()
+        if enabled and await db.get(IdeaVote, (idea_id, user.id)) is None:
+            raise
     return await idea_view(db, await find_idea(db, idea_id, user), user)
 
 

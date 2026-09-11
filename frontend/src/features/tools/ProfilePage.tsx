@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 import { areasByLevel, educationModalities, getEducationLevels, gradesByLevel } from "../../config/education";
 import { ApiError, apiRequest } from "../../lib/api";
-import { readSessionUser, sessionUserInitials, type SessionUser, readAccessToken } from "../../lib/session";
+import { readSessionUser, sessionUserInitials, type SessionUser, readAccessToken, updateStoredSessionUser } from "../../lib/session";
 import { useTeacherExperience } from "../../context/TeacherExperienceContext";
 
 type ProfileForm = Required<Pick<SessionUser, "full_name" | "dre" | "ugel" | "school_name" | "director_name" | "education_modality" | "education_level" | "grade" | "section" | "curricular_area">> & { school_year: number };
@@ -71,7 +71,7 @@ export function ProfilePage() {
         headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify(form),
       }) : { ...sessionUser, ...form };
-      sessionStorage.setItem("avendia.user", JSON.stringify(updated));
+      updateStoredSessionUser(updated);
       window.dispatchEvent(new Event("avendia-user-updated"));
       setMessage("Perfil actualizado. Estos datos se autocompletarán en las herramientas.");
     } catch (requestError) {

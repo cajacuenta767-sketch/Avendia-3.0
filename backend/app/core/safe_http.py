@@ -4,6 +4,10 @@ Solo se aceptan URLs ``https://`` cuyo host resuelve a direcciones públicas.
 Las redirecciones se siguen manualmente y cada salto se vuelve a validar, de
 modo que un destino público no pueda redirigir a la red interna ni al servicio
 de metadatos de la nube.
+
+Las llamadas a APIs externas de confianza (Gemini, Google Custom Search,
+Wikimedia) también pasan por aquí: ``trusted_api_client`` crea un cliente que
+rechaza cualquier host fuera de la lista y limita el tamaño de las respuestas.
 """
 
 from __future__ import annotations
@@ -17,6 +21,17 @@ import httpx
 DEFAULT_MAX_BYTES = 10_000_000
 DEFAULT_MAX_REDIRECTS = 3
 _USER_AGENT = "Avendia/3.0 (+https://avendia.pe)"
+
+# Únicos hosts a los que el servidor habla directamente sin validación por IP.
+TRUSTED_API_HOSTS = frozenset(
+    {
+        "generativelanguage.googleapis.com",
+        "customsearch.googleapis.com",
+        "commons.wikimedia.org",
+    }
+)
+# Marca de las descargas ya validadas por ``fetch_public_https_async``.
+_PUBLIC_DOWNLOAD_EXTENSION = "avendia_public_download"
 
 
 class UnsafeUrlError(ValueError):
@@ -52,12 +67,52 @@ def validate_public_https_url(url: str) -> str:
     return url
 
 
-def _check_size(response: httpx.Response, max_bytes: int) -> None:
+def _check_declared_size(response: httpx.Response, max_bytes: int) -> None:
     declared = response.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > max_bytes:
         raise UnsafeUrlError("El archivo remoto supera el tamaño permitido")
+
+
+def _check_size(response: httpx.Response, max_bytes: int) -> None:
+    _check_declared_size(response, max_bytes)
     if len(response.content) > max_bytes:
         raise UnsafeUrlError("El archivo remoto supera el tamaño permitido")
+
+
+def trusted_api_client(
+    *,
+    timeout: float | httpx.Timeout,
+    headers: dict[str, str] | None = None,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+    allowed_hosts: frozenset[str] = TRUSTED_API_HOSTS,
+    transport: httpx.AsyncBaseTransport | None = None,
+) -> httpx.AsyncClient:
+    """Cliente asíncrono para APIs externas de confianza.
+
+    Cada petición debe ir por HTTPS a un host de ``allowed_hosts``; las descargas
+    validadas con ``fetch_public_https_async`` sobre este mismo cliente quedan
+    exentas porque ya pasaron el control anti-SSRF. Toda respuesta se lee
+    completa y se rechaza si supera ``max_bytes``.
+    """
+
+    async def guard_request(request: httpx.Request) -> None:
+        if request.extensions.get(_PUBLIC_DOWNLOAD_EXTENSION):
+            return
+        if request.url.scheme != "https" or request.url.host not in allowed_hosts:
+            raise UnsafeUrlError(f"Host externo no autorizado: {request.url.host}")
+
+    async def guard_response(response: httpx.Response) -> None:
+        _check_declared_size(response, max_bytes)
+        await response.aread()
+        if len(response.content) > max_bytes:
+            raise UnsafeUrlError("El archivo remoto supera el tamaño permitido")
+
+    return httpx.AsyncClient(
+        timeout=timeout,
+        headers=headers,
+        transport=transport,
+        event_hooks={"request": [guard_request], "response": [guard_response]},
+    )
 
 
 def fetch_public_https(
@@ -99,6 +154,7 @@ async def fetch_public_https_async(
             current,
             follow_redirects=False,
             headers={"User-Agent": _USER_AGENT},
+            extensions={_PUBLIC_DOWNLOAD_EXTENSION: True},
         )
         if response.is_redirect and response.headers.get("location"):
             current = urljoin(current, response.headers["location"])

@@ -4,7 +4,7 @@
 **Fecha de auditoría:** 2 de septiembre de 2026  
 **Entorno auditado:** Local (`http://127.0.0.1:5173` | API: `http://127.0.0.1:8001/api/v1`)  
 **Metodología de prueba:** Navegador Headless (Puppeteer Core sobre Google Chrome, viewport 1280×800 px, DPR 1.0, inspección de estilos computados DOM y captura sección por sección).  
-**Evidencia gráfica:** `audit/design-color-audit-2026-09-02/` (11 capturas de alta resolución).  
+**Evidencia gráfica:** `design-color-audit-2026-09-02/` (11 capturas de alta resolución), conservada en el historial de git (commit `99d18ba`, carpeta `audit/`, retirada del repositorio por la regla de no versionar capturas).  
 **Estado:** Aprobado para certificación y congelamiento visual.
 
 ---
@@ -31,7 +31,7 @@ Se certifica que la aplicación implementa exclusivamente las variables CSS de i
 ## 2. Auditoría Detallada Sección por Sección
 
 ### Apartado A: Autenticación (`/login`)
-- **Evidencia:** `audit/design-color-audit-2026-09-02/01-login-light.png`
+- **Evidencia:** `design-color-audit-2026-09-02/01-login-light.png` (historial de git).
 - **Fidelidad:** Fondo base `#f4f7fb` con tarjeta centrada `#ffffff` y borde `#dce3ef`.
 - **Elementos clave:** Botón primario «Entrar a Avendia» en azul `#075be8` con hover accesible. Ilustración pedagógica con motivos azul y violeta. Botón flotante superior de cambio de tema claro/oscuro totalmente operativo.
 
@@ -103,13 +103,13 @@ Se certifica que la aplicación implementa exclusivamente las variables CSS de i
 Se certifica la resolución del defecto de navegación con doble botón de retroceso:
 - **Patrón Unificado Aprobado:** Se eliminaron todos los botones de retroceso locales situados en la cabecera de las herramientas (`.presentation-header > a`, `.workflow-back`, `.word-grouping-back`), conservando como único punto de retroceso canónico el botón de la barra superior (**Topbar** `topbar__back`), el cual ejecuta `navigate(-1)` con etiqueta ARIA accesible y título `Volver`.
 - **Alineación de Cabeceras:** Con la eliminación del botón redundante de 44 px, las cabeceras de todas las herramientas (`WorkflowTool`, `PresentationTool`, `WordGroupingTool`, `SequenceOrderingTool`) se ajustaron a una cuadrícula de dos columnas limpias (`minmax(0, 1fr) auto`), permitiendo que el kicker temático, el título `<h1>` en Manrope y la descripción pedagógica se alineen perfectamente con los paneles inferiores y el stepper.
-- **Evidencia Visual Archivada:**
-  - `audit/design-color-audit-2026-09-02/20-presentaciones-no-redundant-back-light.png` (Presentaciones tema claro sin botón redundante).
-  - `audit/design-color-audit-2026-09-02/21-presentaciones-no-redundant-back-dark.png` (Presentaciones tema oscuro sin botón redundante).
-  - `audit/design-color-audit-2026-09-02/22-planificamos-sesion-dark.png` (Sesión de aprendizaje tema oscuro sin botón redundante).
-  - `audit/design-color-audit-2026-09-02/23-planificamos-sesion-light.png` (Sesión de aprendizaje tema claro sin botón redundante).
-  - `audit/design-color-audit-2026-09-02/24-agrupar-palabras-verified-light.png` (Agrupar palabras verificado tema claro).
-  - `audit/design-color-audit-2026-09-02/25-agrupar-palabras-verified-dark.png` (Agrupar palabras verificado tema oscuro).
+- **Evidencia Visual Archivada** (historial de git, carpeta `audit/design-color-audit-2026-09-02/`):
+  - `20-presentaciones-no-redundant-back-light.png` (Presentaciones tema claro sin botón redundante).
+  - `21-presentaciones-no-redundant-back-dark.png` (Presentaciones tema oscuro sin botón redundante).
+  - `22-planificamos-sesion-dark.png` (Sesión de aprendizaje tema oscuro sin botón redundante).
+  - `23-planificamos-sesion-light.png` (Sesión de aprendizaje tema claro sin botón redundante).
+  - `24-agrupar-palabras-verified-light.png` (Agrupar palabras verificado tema claro).
+  - `25-agrupar-palabras-verified-dark.png` (Agrupar palabras verificado tema oscuro).
 
 ---
 

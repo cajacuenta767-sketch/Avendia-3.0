@@ -9,6 +9,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import get_settings
+from app.core.safe_http import trusted_api_client
 from app.modules.ai.formatting import formatting_rules, polish_artifact
 from app.modules.ai.presentation_images import enrich_presentation_slides
 from app.modules.ai.questions import derive_questions
@@ -177,7 +178,7 @@ async def _post_gemini(
         "x-goog-api-key": settings.gemini_api_key.get_secret_value(),
     }
     last_error: Exception | None = None
-    async with httpx.AsyncClient(timeout=settings.gemini_timeout_seconds) as client:
+    async with trusted_api_client(timeout=settings.gemini_timeout_seconds) as client:
         for attempt in range(1, attempts + 1):
             try:
                 response = await client.post(endpoint, headers=headers, json=request_body)

@@ -24,4 +24,4 @@ Fecha de cierre: 31 de agosto de 2026.
 
 ## Evidencia visual
 
-La captura `audit/avendia-pca-dark-final.png` muestra el PCA en modo oscuro con nueve pasos, botones de generación guiada y guardado, filtros institucionales y navegación completa.
+La captura `avendia-pca-dark-final.png`, conservada en el historial de git (commit `99d18ba`, carpeta `audit/`, retirada del repositorio por la regla de no versionar capturas), muestra el PCA en modo oscuro con nueve pasos, botones de generación guiada y guardado, filtros institucionales y navegación completa.

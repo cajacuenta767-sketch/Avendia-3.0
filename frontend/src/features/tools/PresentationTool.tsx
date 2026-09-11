@@ -37,7 +37,8 @@ import {
   type EducationLevel,
 } from "../../config/education";
 import { detectCurricularArea } from "../../config/toolDiscovery";
-import { ApiError, apiBlob, apiRequest, downloadApiBlob, resolveApiAssetUrl } from "../../lib/api";
+import { ApiError, apiBlob, apiRequest, downloadApiBlob } from "../../lib/api";
+import { useApiAsset } from "../../lib/useApiAsset";
 import { readSessionUser, sessionDraftScope, readAccessToken } from "../../lib/session";
 import { GenerationProgressOverlay } from "../../components/GenerationProgressOverlay";
 import { FormValidationSummary, type FormValidationItem } from "./FormValidationSummary";
@@ -133,13 +134,14 @@ const STYLE_OPTIONS: Array<{ value: VisualStyle; label: string; description: str
 
 function PresentationVisual({ slide }: { slide: PresentationSlide }) {
   const [failedUrl, setFailedUrl] = useState("");
-  const hasImage = Boolean(slide.image_url) && failedUrl !== slide.image_url;
+  const asset = useApiAsset(slide.image_url);
+  const hasImage = asset.status === "ready" && failedUrl !== slide.image_url;
 
   return (
     <figure className={`presentation-canvas__visual ${hasImage ? "has-image" : "is-fallback"}`}>
       {hasImage ? (
         <img
-          src={resolveApiAssetUrl(slide.image_url ?? "")}
+          src={asset.src}
           alt={slide.image_alt || slide.title}
           onError={() => setFailedUrl(slide.image_url ?? "")}
         />

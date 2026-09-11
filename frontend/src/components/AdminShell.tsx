@@ -16,7 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
-import { clearSession, readSessionUser, sessionUserInitials } from "../lib/session";
+import { endSession, readSessionUser, sessionUserInitials } from "../lib/session";
 import { useWorkspacePreferences } from "../context/WorkspacePreferencesContext";
 import { Brand } from "./Brand";
 
@@ -122,7 +122,7 @@ export function AdminShell() {
               className="icon-button"
               aria-label="Cerrar sesión"
               onClick={() => {
-                clearSession();
+                endSession();
                 location.assign("/login");
               }}
             >
