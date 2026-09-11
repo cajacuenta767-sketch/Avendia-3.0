@@ -202,6 +202,10 @@ export function WorkflowTool() {
   const [assistanceMode, setAssistanceMode] = useState<AssistanceMode>("complete");
   const [rememberAssistance, setRememberAssistance] = useState(false);
   const [fieldsToReview, setFieldsToReview] = useState<string[]>([]);
+  // Confirmaciones explícitas: el docente decide si continúa pese a un cambio de contexto o a un resultado con errores obligatorios.
+  const [pendingConfirm, setPendingConfirm] = useState<null | { kind: "context"; targetStep?: number } | { kind: "blocked-export" }>(null);
+  const skipContextReviewRef = useRef(false);
+  const allowBlockedExportRef = useRef(false);
   const [lastAppliedGuide, setLastAppliedGuide] = useState<{ fieldId: string; previous: FieldValue } | null>(null);
   const [editingResult, setEditingResult] = useState(false);
   const [regeneratingSection, setRegeneratingSection] = useState<number | null>(null);
@@ -588,11 +592,11 @@ export function WorkflowTool() {
 
   const downloadWord = async () => {
     if (!draft.artifact) return;
-    if (draft.artifact.quality_status === "blocked") {
-      setStatus("error");
-      setMessage("Este resultado tiene errores obligatorios. Regénéralo o corrígelo antes de exportar.");
+    if (draft.artifact.quality_status === "blocked" && !allowBlockedExportRef.current) {
+      setPendingConfirm({ kind: "blocked-export" });
       return;
     }
+    allowBlockedExportRef.current = false;
     setExportingWord(true);
     try {
       const persisted = await saveDocument(draft);
@@ -650,12 +654,11 @@ export function WorkflowTool() {
 
   const generate = async (event?: FormEvent, targetStep?: number) => {
     event?.preventDefault();
-    if (fieldsToReview.length) {
-      const field = allFields.find((candidate) => candidate.id === fieldsToReview[0]);
-      setMessage("Revisa los campos afectados por el cambio de contexto antes de generar.");
-      if (field) revealInvalidField(field);
+    if (fieldsToReview.length && !skipContextReviewRef.current) {
+      setPendingConfirm({ kind: "context", targetStep });
       return;
     }
+    skipContextReviewRef.current = false;
     const allMissing = allFields.filter((field) => fieldError(field, draft.values[field.id], resolvedFieldOptions(field, draft.values)));
     if (allMissing.length) {
       setMessage(`Faltan ${allMissing.length} campos obligatorios o válidos para generar un resultado confiable.`);
@@ -1222,6 +1225,23 @@ export function WorkflowTool() {
         {draft.artifact.activity?.items.length ? <InteractiveArtifact activity={draft.artifact.activity} toolId={tool.id} values={draft.values} /> : null}
         {renderQualityPanel()}
         <StructuredArtifactPreview artifact={draft.artifact} artifactType={workflow.artifactType} toolId={tool.id} values={draft.values} workflowKey={workflow.key} onDownloadWord={downloadWord} editingResult={editingResult} onUpdateSection={updateArtifactSection} onUpdateTableCell={updateArtifactTableCell} onRegenerateSection={regenerateArtifactSection} regeneratingSection={regeneratingSection} onPrepareExactPreview={prepareExactPreview} />
+        {pendingConfirm ? <div className="dialog-backdrop"><section className="workflow-confirm" role="dialog" aria-modal="true" aria-labelledby="workflow-confirm-title"><span><AlertTriangle /></span>
+          {pendingConfirm.kind === "context" ? <>
+            <h2 id="workflow-confirm-title">¿Generar con el contexto actual?</h2>
+            <p>{fieldsToReview.length === 1 ? "Un campo depende" : `${fieldsToReview.length} campos dependen`} de un dato que cambiaste: {fieldsToReview.map((id) => allFields.find((field) => field.id === id)?.label ?? id).join(", ")}. Puedes revisarlos o continuar tal como están.</p>
+            <div className="workflow-confirm__actions">
+              <button type="button" className="secondary-button" onClick={() => { const field = allFields.find((candidate) => candidate.id === fieldsToReview[0]); setPendingConfirm(null); if (field) revealInvalidField(field); }}>Revisar campos</button>
+              <button type="button" className="primary-button" onClick={() => { const target = pendingConfirm.targetStep; setPendingConfirm(null); setFieldsToReview([]); skipContextReviewRef.current = true; void generate(undefined, target); }}>Sí, continuar</button>
+            </div>
+          </> : <>
+            <h2 id="workflow-confirm-title">¿Descargar de todos modos?</h2>
+            <p>Este resultado no superó algunos controles obligatorios (los ves marcados en el control de calidad). Puedes regenerarlo o corregirlo, o descargarlo bajo tu revisión.</p>
+            <div className="workflow-confirm__actions">
+              <button type="button" className="secondary-button" onClick={() => setPendingConfirm(null)}>Volver a revisar</button>
+              <button type="button" className="primary-button" onClick={() => { setPendingConfirm(null); allowBlockedExportRef.current = true; void downloadWord(); }}>Sí, descargar</button>
+            </div>
+          </>}
+        </section></div> : null}
         <GenerationProgressOverlay open={status === "generating"} toolTitle={tool.title} family={tool.module} />
       </div></main>
     );
@@ -1309,7 +1329,24 @@ export function WorkflowTool() {
         onApply={applyGuide}
         onClose={() => { guideRequest.current?.abort(); setGuideOpen(false); }}
       /> : null}
-      <GenerationProgressOverlay open={status === "generating"} toolTitle={tool.title} family={tool.module} />
+      {pendingConfirm ? <div className="dialog-backdrop"><section className="workflow-confirm" role="dialog" aria-modal="true" aria-labelledby="workflow-confirm-title"><span><AlertTriangle /></span>
+          {pendingConfirm.kind === "context" ? <>
+            <h2 id="workflow-confirm-title">¿Generar con el contexto actual?</h2>
+            <p>{fieldsToReview.length === 1 ? "Un campo depende" : `${fieldsToReview.length} campos dependen`} de un dato que cambiaste: {fieldsToReview.map((id) => allFields.find((field) => field.id === id)?.label ?? id).join(", ")}. Puedes revisarlos o continuar tal como están.</p>
+            <div className="workflow-confirm__actions">
+              <button type="button" className="secondary-button" onClick={() => { const field = allFields.find((candidate) => candidate.id === fieldsToReview[0]); setPendingConfirm(null); if (field) revealInvalidField(field); }}>Revisar campos</button>
+              <button type="button" className="primary-button" onClick={() => { const target = pendingConfirm.targetStep; setPendingConfirm(null); setFieldsToReview([]); skipContextReviewRef.current = true; void generate(undefined, target); }}>Sí, continuar</button>
+            </div>
+          </> : <>
+            <h2 id="workflow-confirm-title">¿Descargar de todos modos?</h2>
+            <p>Este resultado no superó algunos controles obligatorios (los ves marcados en el control de calidad). Puedes regenerarlo o corregirlo, o descargarlo bajo tu revisión.</p>
+            <div className="workflow-confirm__actions">
+              <button type="button" className="secondary-button" onClick={() => setPendingConfirm(null)}>Volver a revisar</button>
+              <button type="button" className="primary-button" onClick={() => { setPendingConfirm(null); allowBlockedExportRef.current = true; void downloadWord(); }}>Sí, descargar</button>
+            </div>
+          </>}
+        </section></div> : null}
+        <GenerationProgressOverlay open={status === "generating"} toolTitle={tool.title} family={tool.module} />
     </div></main>
   );
 }

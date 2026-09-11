@@ -507,6 +507,13 @@ h1, h2 { font-family: Manrope, sans-serif; }
 .sidebar-backdrop { display: none; }
 
 .dialog-backdrop { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 22px; background: rgba(11, 24, 54, .38); }
+.workflow-confirm { width: min(460px, calc(100vw - 28px)); padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: white; text-align: center; box-shadow: 0 24px 70px rgba(12, 25, 46, .25); }
+.workflow-confirm > span { display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 50%; color: #9a6b00; background: #fff6df; }
+.workflow-confirm > span svg { width: 23px; }
+.workflow-confirm h2 { margin: 0 0 8px; font-size: 19px; }
+.workflow-confirm p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.workflow-confirm__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
+.workflow-confirm__actions button { min-height: 42px; padding-inline: 16px; }
 .creation-dialog { width: min(560px, 100%); overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: white; box-shadow: 0 24px 70px rgba(7, 25, 60, .2); }
 .creation-dialog__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 30px 32px 22px; }
 .creation-dialog__header h2 { margin: 0; font-size: 27px; letter-spacing: -.035em; }

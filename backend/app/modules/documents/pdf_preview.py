@@ -25,9 +25,13 @@ def _office_binary() -> str | None:
 
 
 def _word_fallback_enabled() -> bool:
-    """Solo en Windows y si el docente lo activa explícitamente (PREVIEW_WORD_FALLBACK=true)."""
-    enabled = os.getenv("PREVIEW_WORD_FALLBACK", "").strip().lower() in {"1", "true", "yes"}
-    return os.name == "nt" and enabled
+    """Word solo en Windows: activo fuera de producción salvo que se desactive por variable."""
+    if os.name != "nt":
+        return False
+    configured = os.getenv("PREVIEW_WORD_FALLBACK", "").strip().lower()
+    if configured:
+        return configured in {"1", "true", "yes"}
+    return os.getenv("ENVIRONMENT", "development").strip().lower() != "production"
 
 
 def _convert_with_word(source: Path, destination: Path, workspace: Path) -> bool:
@@ -115,7 +119,12 @@ def _convert_docx_to_pdf(docx_bytes: bytes, filename: str) -> bytes:
         else:
             converted = _convert_with_word(source, output, workspace)
         if not converted:
-            raise RuntimeError("LibreOffice no pudo crear el PDF")
+            if binary:
+                raise RuntimeError("LibreOffice no pudo convertir el documento a PDF")
+            raise RuntimeError(
+                "No hay un conversor disponible: instala LibreOffice (o Microsoft Word en "
+                "Windows) en el equipo donde corre la API"
+            )
         return output.read_bytes()
 
 
@@ -140,7 +149,7 @@ async def convert_upload_to_pdf(upload: UploadFile) -> tuple[bytes, str]:
     except RuntimeError as error:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "La vista exacta de Word no está disponible por el momento. "
+            f"La vista exacta de Word no está disponible: {error}. "
             "Puedes descargar el Word sin perder tu trabajo.",
         ) from error
     return pdf, Path(name).with_suffix(".pdf").name

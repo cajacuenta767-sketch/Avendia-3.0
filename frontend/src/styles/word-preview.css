@@ -1392,6 +1392,8 @@
   min-height: auto;
 }
 
+.word-exact-preview-status span small { display: block; margin-top: 0.35rem; color: #64748b; font-size: 0.8rem; font-weight: 500; }
+
 .word-exact-preview-status button {
   background: var(--bg-surface, #fff);
   border: 1px solid var(--blue, #1463f3);

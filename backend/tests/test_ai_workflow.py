@@ -1521,7 +1521,11 @@ async def test_workflow_does_not_retry_more_than_once_when_repair_still_fails(
         lambda *_args: ([failed], [failed.detail], "blocked"),
     )
 
-    with pytest.raises(AIGenerationError, match="reparación automática"):
-        await generate_workflow_artifact(payload)
+    result = await generate_workflow_artifact(payload)
 
+    # El resultado se entrega marcado, no se oculta: el docente decide con la alerta a la vista.
     assert candidate_mock.await_count == 2
+    assert result.quality_status == "blocked"
+    assert result.repair_attempted is True
+    assert result.repair_succeeded is False
+    assert result.warnings == [failed.detail]

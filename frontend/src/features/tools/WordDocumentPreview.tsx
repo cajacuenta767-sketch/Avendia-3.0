@@ -96,6 +96,7 @@ export function WordDocumentPreview({
   const [exactPreview, setExactPreview] = useState<Blob | null>(null);
   const [exactPreviewStatus, setExactPreviewStatus] = useState<"idle" | "loading" | "unavailable">("idle");
   const [exactPreviewAttempt, setExactPreviewAttempt] = useState(0);
+  const [exactPreviewError, setExactPreviewError] = useState("");
   const exactPreviewFailed = useCallback(() => {
     setExactPreview(null);
     setExactPreviewStatus("unavailable");
@@ -241,8 +242,12 @@ export function WordDocumentPreview({
       setExactPreviewStatus("loading");
     });
     void onPrepareExactPreview()
-      .then((file) => { if (!cancelled) setExactPreview(file); })
-      .catch(() => { if (!cancelled) setExactPreviewStatus("unavailable"); })
+      .then((file) => { if (!cancelled) { setExactPreview(file); setExactPreviewError(""); } })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setExactPreviewStatus("unavailable");
+        setExactPreviewError(error instanceof Error ? error.message : "");
+      })
       .finally(() => { if (!cancelled) setExactPreviewStatus((current) => current === "unavailable" ? current : "idle"); });
     return () => { cancelled = true; };
   }, [exactPreviewAttempt, onPrepareExactPreview, toolId, viewMode, workflowKey]);
@@ -2101,7 +2106,7 @@ export function WordDocumentPreview({
           </article>
           </div>
         </div>
-        {exactPreviewStatus === "unavailable" ? <div className="word-exact-preview-status"><span>La vista rápida está disponible, pero no se pudieron cargar las páginas reales.</span><button type="button" onClick={() => setExactPreviewAttempt((attempt) => attempt + 1)}>Reintentar páginas reales</button></div> : null}
+        {exactPreviewStatus === "unavailable" ? <div className="word-exact-preview-status"><span>La vista rápida está disponible, pero no se pudieron cargar las páginas reales.{exactPreviewError ? <small>{exactPreviewError}</small> : null}</span><button type="button" onClick={() => setExactPreviewAttempt((attempt) => attempt + 1)}>Reintentar páginas reales</button></div> : null}
         </>) : (
         <div className={`workflow-artifact__grid ${editingResult ? "is-editing" : ""}`}>
           {artifact.sections.map((sectionItem, index) => (

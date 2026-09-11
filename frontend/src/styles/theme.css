@@ -416,3 +416,5 @@
 [data-theme="dark"] .home-class-banner__chips button:hover { border-color: #477bc9; background: #172b48; }
 [data-theme="dark"] .home-section-actions__secondary:hover { color: #8cb9ff; border-color: #477bc9; background: #172b48; }
 [data-theme="dark"] .home-history__count { color: #8cb9ff; background: #172b48; }
+[data-theme="dark"] .workflow-confirm { color: #edf3ff; border-color: #2c3a50; background: #111c2e; }
+[data-theme="dark"] .workflow-confirm > span { color: #f1c879; background: #382c1d; }

@@ -2492,16 +2492,10 @@ async def generate_workflow_artifact(
     quality_checks, warnings, quality_status = _quality_report(
         normalized_artifact, payload, contract
     )
-    if quality_status == "blocked":
+    if quality_status == "blocked" and not repair_attempted:
         failed_p0 = [
             check for check in quality_checks if not check.passed and check.severity == "P0"
         ]
-        if repair_attempted:
-            failed_labels = ", ".join(check.label for check in failed_p0)
-            raise AIGenerationError(
-                "La generación y su reparación automática no superaron la validación "
-                f"pedagógica obligatoria: {failed_labels}"
-            )
         repair_attempted = True
         repair_notes = [check.detail for check in failed_p0]
         normalized_artifact, model = await _request_workflow_candidate(
@@ -2512,17 +2506,21 @@ async def generate_workflow_artifact(
         quality_checks, warnings, quality_status = _quality_report(
             normalized_artifact, payload, contract
         )
-        if quality_status == "blocked":
+        # Si la reparación tampoco supera los controles obligatorios, el resultado se
+        # entrega igualmente marcado como "blocked": el docente ve la alerta, decide si
+        # lo conserva y la interfaz le pide confirmación antes de exportarlo.
+        repair_succeeded = quality_status != "blocked"
+        if not repair_succeeded:
             failed_labels = ", ".join(
                 check.label
                 for check in quality_checks
                 if not check.passed and check.severity == "P0"
             )
-            raise AIGenerationError(
-                "La generación y su reparación automática no superaron la validación "
-                f"pedagógica obligatoria: {failed_labels}"
+            logger.warning(
+                "Workflow generation kept as blocked after repair (%s): %s",
+                payload.tool_id,
+                failed_labels,
             )
-        repair_succeeded = True
 
     normalized_sections = normalized_artifact.sections
     return WorkflowGenerationResponse(
