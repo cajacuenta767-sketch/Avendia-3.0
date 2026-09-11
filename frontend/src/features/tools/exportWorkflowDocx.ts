@@ -1055,6 +1055,239 @@ function extractCommonValues(values: Record<string, unknown> = {}, context: Reco
 }
 
 // ==========================================================================
+// BLOQUES DIDÁCTICOS COMPARTIDOS (registro, autoevaluación, verificación, seguimiento)
+// ==========================================================================
+
+function emptyLineCell(widthPercent: number, fill?: string): TableCell {
+  return createStyledCell(" ", { widthPercent, fillColor: fill });
+}
+
+/** Registro consolidado por estudiante para instrumentos con criterios observables. */
+function createStudentRecordBlocks(criteria: string[], options: { scaleNote: string; rows?: number }): (Paragraph | Table)[] {
+  const items = criteria.map((item) => cleanText(item)).filter(Boolean).slice(0, 8);
+  if (!items.length) return [];
+  const rows = options.rows ?? 12;
+  const criteriaWidth = Math.max(5, Math.floor(46 / items.length));
+  const nameWidth = 100 - 5 - criteriaWidth * items.length - 12 - 15;
+  const blocks: (Paragraph | Table)[] = [
+    createHeading("REGISTRO CONSOLIDADO POR ESTUDIANTE", HeadingLevel.HEADING_2),
+    createCalloutBlock("Cómo usar este registro", `${options.scaleNote} Cada columna C1, C2… corresponde a un criterio de la matriz; anota al final el nivel alcanzado y una observación breve para la retroalimentación.`, { icon: "📋" }),
+    ...items.map((item, index) => new Paragraph({
+      spacing: { after: 30 },
+      children: [
+        new TextRun({ text: `C${index + 1}: `, bold: true, color: COLOR_PRIMARY, size: 17, font: "Calibri" }),
+        new TextRun({ text: item, color: COLOR_TEXT, size: 17, font: "Calibri" }),
+      ],
+    })),
+    new Paragraph({ spacing: { after: 60 }, children: [] }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("N°", { isHeader: true, widthPercent: 5, alignment: AlignmentType.CENTER }),
+            createStyledCell("Apellidos y nombres", { isHeader: true, widthPercent: nameWidth }),
+            ...items.map((_, index) => createStyledCell(`C${index + 1}`, { isHeader: true, widthPercent: criteriaWidth, alignment: AlignmentType.CENTER })),
+            createStyledCell("Nivel / Total", { isHeader: true, widthPercent: 12, alignment: AlignmentType.CENTER }),
+            createStyledCell("Observación", { isHeader: true, widthPercent: 15 }),
+          ],
+        }),
+        ...Array.from({ length: rows }, (_, index) => new TableRow({
+          cantSplit: true,
+          height: { value: 360, rule: "atLeast" as const },
+          children: [
+            createStyledCell(String(index + 1), { widthPercent: 5, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            emptyLineCell(nameWidth, index % 2 ? COLOR_ZEBRA_BG : undefined),
+            ...items.map(() => emptyLineCell(criteriaWidth, index % 2 ? COLOR_ZEBRA_BG : undefined)),
+            emptyLineCell(12, index % 2 ? COLOR_ZEBRA_BG : undefined),
+            emptyLineCell(15, index % 2 ? COLOR_ZEBRA_BG : undefined),
+          ],
+        })),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 100 }, children: [] }),
+  ];
+  return blocks;
+}
+
+/** Resumen de puntaje y retroalimentación al pie de un examen. */
+function createScoreSummaryBlocks(questions: DocumentQuestion[]): (Paragraph | Table)[] {
+  if (!questions.length) return [];
+  const total = questions.reduce((sum, question) => sum + (Number(question.points) || 0), 0);
+  const cell = (text: string, widthPercent: number, options: { bold?: boolean; fill?: string; center?: boolean } = {}) =>
+    createStyledCell(text, { widthPercent, bold: options.bold, fillColor: options.fill, alignment: options.center ? AlignmentType.CENTER : undefined });
+  return [
+    createHeading("RESUMEN DE PUNTAJE Y RETROALIMENTACIÓN", HeadingLevel.HEADING_2),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("Pregunta", { isHeader: true, widthPercent: 16, alignment: AlignmentType.CENTER }),
+            ...questions.map((question) => createStyledCell(String(question.number), { isHeader: true, widthPercent: Math.floor(64 / questions.length), alignment: AlignmentType.CENTER })),
+            createStyledCell("Total", { isHeader: true, widthPercent: 20, alignment: AlignmentType.CENTER }),
+          ],
+        }),
+        new TableRow({
+          cantSplit: true,
+          children: [
+            cell("Puntaje máximo", 16, { bold: true, fill: COLOR_BAND_BG }),
+            ...questions.map((question) => cell(formatPoints(question.points) || "—", Math.floor(64 / questions.length), { center: true })),
+            cell(total ? `${total} pts` : "20 pts", 20, { bold: true, center: true }),
+          ],
+        }),
+        new TableRow({
+          cantSplit: true,
+          height: { value: 420, rule: "atLeast" as const },
+          children: [
+            cell("Puntaje obtenido", 16, { bold: true, fill: COLOR_BAND_BG }),
+            ...questions.map(() => cell(" ", Math.floor(64 / questions.length))),
+            cell(" ", 20),
+          ],
+        }),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 80 }, children: [] }),
+    createLabeledParagraph("Nota final:", "________ / 20", { size: 20 }),
+    createLabeledParagraph("Retroalimentación del docente:", "", { size: 20 }),
+    ...createAnswerLines(2),
+  ];
+}
+
+/** Ficha de autoevaluación y metacognición para el estudiante. */
+function createSelfAssessmentBlocks(): (Paragraph | Table)[] {
+  const statements = [
+    "Comprendí las instrucciones y el propósito de la actividad.",
+    "Resolví los retos aplicando lo que sabía y consultando cuando lo necesité.",
+    "Revisé mis respuestas y corregí mis errores.",
+    "Trabajé con orden, respeto y colaboración.",
+  ];
+  const levels = ["Lo logré", "Estoy en proceso", "Necesito apoyo"];
+  return [
+    createHeading("FICHA DE AUTOEVALUACIÓN DEL ESTUDIANTE", HeadingLevel.HEADING_1),
+    createBodyParagraph("Marca con una ✗ cómo te sentiste con cada afirmación y completa las preguntas de reflexión.", { italic: true, after: 80 }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("Afirmación", { isHeader: true, widthPercent: 58 }),
+            ...levels.map((level) => createStyledCell(level, { isHeader: true, widthPercent: 14, alignment: AlignmentType.CENTER })),
+          ],
+        }),
+        ...statements.map((statement, index) => new TableRow({
+          cantSplit: true,
+          children: [
+            createStyledCell(statement, { widthPercent: 58, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            ...levels.map(() => createStyledCell("[  ]", { widthPercent: 14, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined })),
+          ],
+        })),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 80 }, children: [] }),
+    createLabeledParagraph("¿Qué aprendí hoy?", "", { size: 20 }),
+    ...createAnswerLines(2),
+    createLabeledParagraph("¿Qué me resultó difícil y cómo lo superaré?", "", { size: 20 }),
+    ...createAnswerLines(2),
+  ];
+}
+
+/** Lista de verificación que el docente completa antes y después de aplicar el documento. */
+function createTeacherChecklistBlocks(items: string[]): (Paragraph | Table)[] {
+  return [
+    createHeading("LISTA DE VERIFICACIÓN PARA LA APLICACIÓN", HeadingLevel.HEADING_1),
+    createBodyParagraph("Marca cada punto al planificar y al cerrar la aplicación; registra la evidencia o la fecha en la columna derecha.", { italic: true, after: 80 }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("✓", { isHeader: true, widthPercent: 6, alignment: AlignmentType.CENTER }),
+            createStyledCell("Aspecto a verificar", { isHeader: true, widthPercent: 62 }),
+            createStyledCell("Evidencia / fecha", { isHeader: true, widthPercent: 32 }),
+          ],
+        }),
+        ...items.map((item, index) => new TableRow({
+          cantSplit: true,
+          children: [
+            createStyledCell("[  ]", { widthPercent: 6, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(item, { widthPercent: 62, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            emptyLineCell(32, index % 2 ? COLOR_ZEBRA_BG : undefined),
+          ],
+        })),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 120 }, children: [] }),
+  ];
+}
+
+/** Tabla de seguimiento de compromisos con responsable, plazo y estado. */
+function createFollowUpBlocks(commitments: string[], title = "SEGUIMIENTO DE COMPROMISOS"): (Paragraph | Table)[] {
+  const rows = commitments.map((item) => cleanText(item)).filter(Boolean).slice(0, 8);
+  const lines = rows.length ? rows : ["", "", "", ""];
+  return [
+    createHeading(title, HeadingLevel.HEADING_1),
+    createBodyParagraph("Registra el responsable, el plazo y el estado (Pendiente · En curso · Logrado) en cada revisión.", { italic: true, after: 80 }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("N°", { isHeader: true, widthPercent: 6, alignment: AlignmentType.CENTER }),
+            createStyledCell("Compromiso / acción", { isHeader: true, widthPercent: 46 }),
+            createStyledCell("Responsable", { isHeader: true, widthPercent: 18 }),
+            createStyledCell("Plazo", { isHeader: true, widthPercent: 14, alignment: AlignmentType.CENTER }),
+            createStyledCell("Estado", { isHeader: true, widthPercent: 16, alignment: AlignmentType.CENTER }),
+          ],
+        }),
+        ...lines.map((line, index) => new TableRow({
+          cantSplit: true,
+          height: { value: 420, rule: "atLeast" as const },
+          children: [
+            createStyledCell(String(index + 1), { widthPercent: 6, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(line || " ", { widthPercent: 46, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            emptyLineCell(18, index % 2 ? COLOR_ZEBRA_BG : undefined),
+            emptyLineCell(14, index % 2 ? COLOR_ZEBRA_BG : undefined),
+            emptyLineCell(16, index % 2 ? COLOR_ZEBRA_BG : undefined),
+          ],
+        })),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 120 }, children: [] }),
+  ];
+}
+
+/** Compromisos acordados entre familia, estudiante e institución en un comunicado. */
+function createFamilyAgreementBlocks(): (Paragraph | Table)[] {
+  const parties = ["Compromiso de la familia", "Compromiso del estudiante", "Compromiso de la institución educativa"];
+  return [
+    createHeading("COMPROMISOS ACORDADOS", HeadingLevel.HEADING_2),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: parties.map((party, index) => new TableRow({
+        cantSplit: true,
+        height: { value: 560, rule: "atLeast" as const },
+        children: [
+          createStyledCell(party, { widthPercent: 32, bold: true, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
+          emptyLineCell(68, index % 2 ? COLOR_ZEBRA_BG : undefined),
+        ],
+      })),
+    }),
+    new Paragraph({ spacing: { after: 120 }, children: [] }),
+  ];
+}
+
+// ==========================================================================
 // 1. BUILDER: INSTRUMENTOS DE EVALUACIÓN
 // ==========================================================================
 export function buildInstrumentDocx(
@@ -1261,6 +1494,7 @@ export function buildInstrumentDocx(
       });
     });
 
+    children.push(...createScoreSummaryBlocks(typedQuestions));
     children.push(new Paragraph({ children: [new PageBreak()] }));
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -1342,6 +1576,20 @@ export function buildInstrumentDocx(
         spacing: { before: 40, after: 60 },
       })));
     });
+  }
+
+  // Registro consolidado por estudiante para los instrumentos con criterios observables.
+  const isObservation = (context.workflowKey || "").includes("ficha-observacion");
+  if (isChecklist || isScale || isObservation || isRubric) {
+    const criteria = isRubric && artifact.tables?.[0]
+      ? artifact.tables[0].rows.map((row) => String(row[0] ?? ""))
+      : artifact.sections.flatMap((section) => section.key_points);
+    const scaleNote = isChecklist
+      ? "Marca ✓ cuando el desempeño se observa y ✗ cuando aún está en proceso."
+      : isRubric
+        ? "Anota en cada criterio el nivel alcanzado (C = inicio, B = en proceso, A = logro esperado, AD = logro destacado)."
+        : "Anota en cada criterio el valor de la escala del instrumento (por ejemplo 1 a 4) o el nivel observado.";
+    children.push(...createStudentRecordBlocks(criteria, { scaleNote, rows: isRubric ? 10 : 12 }));
   }
 
   // Orientaciones. Los instrumentos de evaluación se entregan listos para usar
@@ -2842,6 +3090,10 @@ export function buildActivityDocx(
     });
   }
 
+  // Anexo para el estudiante: autoevaluación y metacognición al cierre de la actividad.
+  children.push(new Paragraph({ children: [new PageBreak()] }));
+  children.push(...createSelfAssessmentBlocks());
+
   return new Document({
     styles: documentStyles,
     numbering: documentNumbering,
@@ -2968,6 +3220,7 @@ export function buildAnalyticsDocx(
     );
   });
 
+  children.push(...createFollowUpBlocks(artifact.teacher_recommendations));
   children.push(createSignaturesTable(displayValue(v.teacher, ""), "Docente Responsable del Análisis", displayValue(v.director, ""), "Dirección / Coordinación Pedagógica"));
 
   return new Document({
@@ -3045,6 +3298,7 @@ export function buildCommunicationDocx(
   children.push(createSignaturesTable(displayValue(v.teacher, ""), "Docente Tutor(a)", displayValue(v.director, ""), "Dirección General"));
 
   // Talón desglosable
+  children.push(...createFamilyAgreementBlocks());
   children.push(
     new Paragraph({
       children: [
@@ -3266,6 +3520,9 @@ export function buildHomeworkDocx(
         })),
       ],
     }),
+    new Paragraph({ spacing: { after: 120 }, children: [] }),
+    ...createSelfAssessmentBlocks(),
+    createLabeledParagraph("Firma del padre, madre o apoderado:", "______________________________    Fecha: ____ / ____ / ______", { size: 19 }),
     new Paragraph({ children: [new PageBreak()] }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -3590,6 +3847,27 @@ export function buildDocumentDocx(
   const shouldIncludeSignatures = institutionalDocuments.some((key) =>
     (context.workflowKey || "").includes(key)
   );
+  const workflowKey = context.workflowKey || "";
+  const isPlanOrReport = ["plan-", "informe-", "fichas-acompanamiento", "seguimiento", "alertas", "acompana"].some((key) => workflowKey.includes(key));
+  if (isSession) {
+    children.push(...createTeacherChecklistBlocks([
+      "Comuniqué el propósito de la sesión y los criterios de evaluación a los estudiantes.",
+      "Preparé los materiales y recursos previstos para cada momento didáctico.",
+      "Recogí evidencias de aprendizaje y las registré en el instrumento previsto.",
+      "Brindé retroalimentación oportuna y atendí a los estudiantes que requerían apoyo.",
+      "Anoté ajustes para la siguiente sesión a partir de lo observado.",
+    ]));
+  } else if (["unidad-aprendizaje", "proyectos-integrados", "carpeta-pedagogica"].some((key) => workflowKey.includes(key))) {
+    children.push(...createTeacherChecklistBlocks([
+      "Las competencias, capacidades y desempeños están alineados con el CNEB y la programación anual.",
+      "La situación significativa conecta con el contexto y los intereses de los estudiantes.",
+      "Las sesiones o actividades siguen una secuencia coherente y con tiempos realistas.",
+      "Los instrumentos de evaluación y las evidencias están definidos para cada producto.",
+      "El documento fue revisado y aprobado por la dirección o coordinación.",
+    ]));
+  } else if (isPlanOrReport) {
+    children.push(...createFollowUpBlocks(artifact.teacher_recommendations, "SEGUIMIENTO DE ACCIONES Y COMPROMISOS"));
+  }
   if (shouldIncludeSignatures) {
     children.push(
       createSignaturesTable(
