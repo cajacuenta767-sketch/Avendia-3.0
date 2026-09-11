@@ -489,12 +489,78 @@
 }
 
 /* Tarjetas de estudio / Flashcards recortables */
-.word-flashcards-grid {
+.word-flashcards-grid,
+.word-flashcards-sheet {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
   margin: 1.5rem 0;
 }
+
+.word-flashcards-sheet .word-flashcard-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  text-align: center;
+}
+
+.word-flashcard-item--back { background: #fffdf5; }
+.word-flashcard-item--empty { border-style: dashed; background: transparent; }
+.word-flashcard-prompt { margin: 0.35rem 0 0; color: #1f4d78; font-size: 1.05rem; font-weight: 800; line-height: 1.35; }
+.word-flashcard-kicker { display: block; margin: 0.3rem 0 0.25rem; color: #2e74b5; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.word-flashcard-answer { margin: 0; color: #1f2937; font-size: 0.9rem; line-height: 1.45; }
+.word-flashcard-hint { margin: 0.4rem 0 0; color: #64748b; font-size: 0.78rem; font-style: italic; line-height: 1.4; }
+.word-flashcard-lines { margin: 0; color: #b9cde5; font-size: 0.85rem; line-height: 1.9; }
+.word-flashcards-note { color: #64748b; font-size: 0.82rem; font-style: italic; }
+[data-theme="dark"] .word-flashcard-item--back { background: #1a1f2e; }
+[data-theme="dark"] .word-flashcard-prompt { color: #93c5fd; }
+[data-theme="dark"] .word-flashcard-answer { color: #e2e8f0; }
+
+/* Caja de instrucciones (equivale al recuadro azul del Word) */
+.word-callout {
+  margin: 0.75rem 0 1.25rem;
+  padding: 0.85rem 1rem 0.85rem 1.1rem;
+  border: 1px solid #bdd7ee;
+  border-left: 5px solid #2e74b5;
+  border-radius: 6px;
+  background: #f1f6fc;
+}
+.word-callout strong { display: block; margin-bottom: 0.35rem; color: #1f4d78; font-size: 0.9rem; }
+.word-callout p { margin: 0 0 0.25rem; color: #1f2937; font-size: 0.86rem; line-height: 1.5; }
+[data-theme="dark"] .word-callout { border-color: #334155; border-left-color: #60a5fa; background: #0f172a; }
+[data-theme="dark"] .word-callout strong { color: #93c5fd; }
+[data-theme="dark"] .word-callout p { color: #cbd5e1; }
+
+/* Marcadores de página en la vista apilada: todas las hojas visibles, sin recortes */
+.word-page-marker {
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  scroll-margin-top: 150px;
+  z-index: 2;
+}
+.word-page-marker::before {
+  border-top: 2px dashed #b6c6dc;
+  content: "";
+  display: block;
+}
+.word-page-marker--first::before { border-top-color: transparent; }
+.word-page-marker span {
+  background: #1f4d78;
+  border-radius: 0 0 6px 6px;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.55rem;
+  position: absolute;
+  right: 10px;
+  top: 0;
+}
+[data-theme="dark"] .word-page-marker::before { border-top-color: #3a4a63; }
 
 .word-flashcard-item {
   border: 1.5px dashed #94a3b8;
@@ -1222,7 +1288,7 @@
 }
 
 .word-document-stage--fit-width {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .word-pdf-preview {

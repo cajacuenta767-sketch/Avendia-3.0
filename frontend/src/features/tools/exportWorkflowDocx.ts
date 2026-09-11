@@ -17,6 +17,7 @@ import {
   TableCell,
   TableRow,
   TextRun,
+  VerticalAlign,
   WidthType,
 } from "docx";
 
@@ -89,11 +90,15 @@ export type ExportWorkflowDocxOptions = ExportPlanAnualContext;
 
 const COLOR_PRIMARY = "1F4D78"; // Azul institucional MINEDU oscuro
 const COLOR_SECONDARY = "2E74B5"; // Azul secundario encabezados
-const COLOR_HEADER_BG = "BDD7EE"; // Azul suave para cabeceras de tablas
 const COLOR_ZEBRA_BG = "F8FAFC"; // Fondo alterno sutil
 const COLOR_BORDER = "BDD7EE"; // Borde suave institucional
 const COLOR_TEXT = "1F2937"; // Texto oscuro legible
 const COLOR_MUTED = "64748B"; // Texto secundario
+const COLOR_BAND_BG = "EAF2FB"; // Banda suave detrás de los títulos principales
+const COLOR_CALLOUT_BG = "F1F6FC"; // Fondo de las cajas de instrucciones
+const COLOR_CARD_FRONT_BG = "F8FAFC"; // Frente de las tarjetas recortables
+const COLOR_CARD_BACK_BG = "FFFDF5"; // Reverso de las tarjetas recortables
+const COLOR_DASHED = "94A3B8"; // Líneas de recorte
 const COLOR_HEADING = "000000";
 
 function safeFileName(value: string) {
@@ -273,7 +278,12 @@ const documentStyles = {
         spacing: { before: 260, after: 100 },
         keepNext: true,
         outlineLevel: 0,
-        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: COLOR_BORDER, space: 2 } },
+        indent: { left: 100 },
+        shading: { type: ShadingType.CLEAR, fill: COLOR_BAND_BG },
+        border: {
+          left: { style: BorderStyle.SINGLE, size: 24, color: COLOR_PRIMARY, space: 4 },
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: COLOR_BORDER, space: 2 },
+        },
       },
     },
     {
@@ -283,7 +293,13 @@ const documentStyles = {
       next: "Normal",
       quickFormat: true,
       run: { font: "Calibri", size: 22, bold: true, color: COLOR_SECONDARY },
-      paragraph: { spacing: { before: 180, after: 80 }, keepNext: true, outlineLevel: 1 },
+      paragraph: {
+        spacing: { before: 180, after: 80 },
+        keepNext: true,
+        outlineLevel: 1,
+        indent: { left: 100 },
+        border: { left: { style: BorderStyle.SINGLE, size: 18, color: COLOR_SECONDARY, space: 4 } },
+      },
     },
     // Entradas del índice precargado (se ven en cualquier visor; Word las actualiza con páginas).
     {
@@ -332,37 +348,74 @@ function headerText(values: ReturnType<typeof extractCommonValues>, label: strin
   return [values.ie, label, values.year].filter((part) => !isPlaceholder(part)).join(" · ");
 }
 
+// Ancho útil de la hoja A4 vertical con los márgenes de pageProperties (twips).
+const CONTENT_WIDTH_TWIPS = 9746;
+
+/** Cabecera institucional: marca a la izquierda y datos del documento a la derecha, sobre una regla azul. */
 function documentHeader(text: string) {
   return {
     default: new Header({
       children: [
         new Paragraph({
-          alignment: AlignmentType.RIGHT,
-          border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BORDER, space: 4 } },
-          children: [new TextRun({ text: cleanText(text), size: 16, color: COLOR_MUTED, font: "Calibri" })],
+          tabStops: [{ type: "right" as const, position: CONTENT_WIDTH_TWIPS }],
+          border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: COLOR_SECONDARY, space: 4 } },
+          children: [
+            new TextRun({ text: "AVENDIA", bold: true, size: 16, color: COLOR_PRIMARY, font: "Calibri", characterSpacing: 20 }),
+            new TextRun({ text: " · Documento pedagógico", size: 16, color: COLOR_MUTED, font: "Calibri" }),
+            new TextRun({ text: `\t${cleanText(text)}`, size: 16, color: COLOR_MUTED, font: "Calibri" }),
+          ],
         }),
       ],
     }),
   };
 }
 
+/** Pie de página: leyenda a la izquierda y numeración "Página N de M" a la derecha. */
 function documentFooter() {
   const muted = { size: 16, color: COLOR_MUTED, font: "Calibri" };
   return {
     default: new Footer({
       children: [
         new Paragraph({
-          alignment: AlignmentType.RIGHT,
+          tabStops: [{ type: "right" as const, position: CONTENT_WIDTH_TWIPS }],
+          border: { top: { style: BorderStyle.SINGLE, size: 4, color: COLOR_BORDER, space: 4 } },
           children: [
-            new TextRun({ text: "Elaborado con Avendia · Página ", ...muted }),
-            new TextRun({ children: [PageNumber.CURRENT], ...muted }),
+            new TextRun({ text: "Elaborado con Avendia para el aula peruana", ...muted }),
+            new TextRun({ text: "\tPágina ", ...muted }),
+            new TextRun({ children: [PageNumber.CURRENT], ...muted, bold: true, color: COLOR_PRIMARY }),
             new TextRun({ text: " de ", ...muted }),
-            new TextRun({ children: [PageNumber.TOTAL_PAGES], ...muted }),
+            new TextRun({ children: [PageNumber.TOTAL_PAGES], ...muted, bold: true, color: COLOR_PRIMARY }),
           ],
         }),
       ],
     }),
   };
+}
+
+/** Caja destacada para instrucciones u orientaciones: franja lateral azul y fondo suave. */
+function createCalloutBlock(title: string, text: string, options: { icon?: string } = {}): Table {
+  const side = { style: BorderStyle.SINGLE, size: 4, color: COLOR_BORDER };
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [new TableRow({
+      cantSplit: true,
+      children: [new TableCell({
+        borders: {
+          left: { style: BorderStyle.SINGLE, size: 24, color: COLOR_SECONDARY },
+          top: side, bottom: side, right: side,
+        },
+        shading: { fill: COLOR_CALLOUT_BG, type: ShadingType.CLEAR },
+        margins: { top: 110, bottom: 110, left: 160, right: 160 },
+        children: [
+          new Paragraph({
+            spacing: { after: 40 },
+            children: [new TextRun({ text: `${options.icon ? `${options.icon} ` : ""}${cleanText(title)}`, bold: true, size: 19, color: COLOR_PRIMARY, font: "Calibri" })],
+          }),
+          ...createBodyParagraphs(text, { size: 19, after: 0 }),
+        ],
+      })],
+    })],
+  });
 }
 
 /** Texto en negrita para "Etiqueta: contenido" (etiqueta de una a cuatro palabras). */
@@ -483,7 +536,9 @@ function createStyledCell(
   } = {}
 ): TableCell {
   const isHeader = options.isHeader ?? false;
-  const fillColor = options.fillColor ?? (isHeader ? COLOR_HEADER_BG : undefined);
+  const fillColor = options.fillColor ?? (isHeader ? COLOR_PRIMARY : undefined);
+  // Cabecera sólida azul con texto blanco; si la herramienta pide otro fondo, conserva el texto oscuro.
+  const headerTextColor = isHeader && !options.fillColor ? "FFFFFF" : COLOR_PRIMARY;
   const fontSize = options.fontSize ?? (isHeader ? 19 : 18);
 
   let paragraphs: Paragraph[];
@@ -508,7 +563,7 @@ function createStyledCell(
             new TextRun({
               text: cleanText(cleanLine),
               bold: options.bold ?? isHeader,
-              color: options.color ?? (isHeader ? COLOR_PRIMARY : COLOR_TEXT),
+              color: options.color ?? (isHeader ? headerTextColor : COLOR_TEXT),
               italics: options.italics,
               size: fontSize,
               font: "Calibri",
@@ -525,7 +580,7 @@ function createStyledCell(
             new TextRun({
               text: cleanText(raw),
               bold: options.bold ?? isHeader,
-              color: options.color ?? (isHeader ? COLOR_PRIMARY : COLOR_TEXT),
+              color: options.color ?? (isHeader ? headerTextColor : COLOR_TEXT),
               italics: options.italics,
               size: fontSize,
               font: "Calibri",
@@ -545,6 +600,7 @@ function createStyledCell(
     margins: { top: 70, bottom: 70, left: 90, right: 90 },
     borders: cellBorders(),
     shading: fillColor ? { fill: fillColor, type: ShadingType.CLEAR } : undefined,
+    verticalAlign: isHeader ? VerticalAlign.CENTER : undefined,
     children: paragraphs,
   });
 }
@@ -568,7 +624,14 @@ function createHeading(
         font: "Calibri",
       }),
     ],
-    border: isH1 ? { bottom: { style: BorderStyle.SINGLE, size: 6, color: COLOR_BORDER, space: 2 } } : undefined,
+    indent: { left: 100 },
+    shading: isH1 ? { type: ShadingType.CLEAR, fill: COLOR_BAND_BG } : undefined,
+    border: isH1
+      ? {
+          left: { style: BorderStyle.SINGLE, size: 24, color: COLOR_PRIMARY, space: 4 },
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: COLOR_BORDER, space: 2 },
+        }
+      : { left: { style: BorderStyle.SINGLE, size: 18, color: COLOR_SECONDARY, space: 4 } },
     spacing: { before: isH1 ? 260 : 180, after: isH1 ? 100 : 80 },
   });
 }
@@ -1364,8 +1427,97 @@ export function buildInstrumentDocx(
   });
 }
 
+type FlashcardItem = { id?: string; prompt: string; answer?: string; hint?: string };
+
+/** Celda de una tarjeta recortable: bordes punteados, altura fija y contenido centrado. */
+function createFlashcardCell(card: FlashcardItem | null, index: number, side: "front" | "back"): TableCell {
+  const dashed = { style: BorderStyle.DASHED, size: 8, color: COLOR_DASHED };
+  const borders = { top: dashed, bottom: dashed, left: dashed, right: dashed };
+  if (!card) {
+    return new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders, children: [new Paragraph({ children: [] })] });
+  }
+  const label = new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 90 },
+    children: [new TextRun({
+      text: side === "front" ? `✂  TARJETA N° ${index + 1}` : `TARJETA N° ${index + 1} · REVERSO  ✂`,
+      bold: true, size: 15, color: COLOR_MUTED, font: "Calibri", characterSpacing: 15,
+    })],
+  });
+  const body: Paragraph[] = side === "front"
+    ? [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 60, after: 60, line: 276 },
+        children: [new TextRun({ text: cleanText(card.prompt), bold: true, size: 24, color: COLOR_PRIMARY, font: "Calibri" })],
+      })]
+    : cleanText(card.answer ?? "")
+      ? [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 40 },
+            children: [new TextRun({ text: "¿QUÉ SIGNIFICA?", bold: true, size: 15, color: COLOR_SECONDARY, font: "Calibri" })],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 60, line: 264 },
+            children: [new TextRun({ text: cleanText(card.answer ?? ""), size: 19, color: COLOR_TEXT, font: "Calibri" })],
+          }),
+          ...(cleanText(card.hint ?? "") ? [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 20 },
+            children: [
+              new TextRun({ text: "💡 Pista: ", bold: true, size: 17, color: COLOR_SECONDARY, font: "Calibri" }),
+              new TextRun({ text: cleanText(card.hint ?? ""), italics: true, size: 17, color: COLOR_MUTED, font: "Calibri" }),
+            ],
+          })] : []),
+        ]
+      : [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 80 },
+            children: [new TextRun({ text: "Escribe el significado con tus palabras:", bold: true, size: 17, color: COLOR_SECONDARY, font: "Calibri" })],
+          }),
+          ...Array.from({ length: 3 }, () => new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 70 },
+            children: [new TextRun({ text: "______________________________________", size: 18, color: "B9CDE5", font: "Calibri" })],
+          })),
+        ];
+  return new TableCell({
+    width: { size: 50, type: WidthType.PERCENTAGE },
+    borders,
+    shading: { fill: side === "front" ? COLOR_CARD_FRONT_BG : COLOR_CARD_BACK_BG, type: ShadingType.CLEAR },
+    margins: { top: 140, bottom: 140, left: 180, right: 180 },
+    verticalAlign: VerticalAlign.CENTER,
+    children: [label, ...body],
+  });
+}
+
+/**
+ * Hoja de tarjetas en cuadrícula de dos columnas. La hoja de reversos invierte
+ * el orden de cada fila para que, impresa por la otra cara, cada respuesta caiga
+ * detrás de su pregunta.
+ */
+function createFlashcardSheet(cards: FlashcardItem[], side: "front" | "back"): Table {
+  const rows: TableRow[] = [];
+  for (let index = 0; index < cards.length; index += 2) {
+    const pair: Array<[FlashcardItem | null, number]> = [[cards[index] ?? null, index], [cards[index + 1] ?? null, index + 1]];
+    if (side === "back") pair.reverse();
+    rows.push(new TableRow({
+      cantSplit: true,
+      height: { value: 3200, rule: "atLeast" as const },
+      children: pair.map(([card, cardIndex]) => createFlashcardCell(card, cardIndex, side)),
+    }));
+  }
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [Math.round(CONTENT_WIDTH_TWIPS / 2), Math.round(CONTENT_WIDTH_TWIPS / 2)],
+    rows,
+  });
+}
+
 // ==========================================================================
-// 2. BUILDER: ACTIVIDADES PRÁCTICAS Y JUEGOS DIDÁCTICOS
+// 2. BUILDER: ACTIVIDADES Y RECURSOS
 // ==========================================================================
 export function buildActivityDocx(
   artifact: WorkflowArtifact,
@@ -1612,84 +1764,32 @@ export function buildActivityDocx(
 
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isFlashcards) {
+    const cardItems = (artifact.activity?.items && artifact.activity.items.length > 0)
+      ? artifact.activity.items
+      : artifact.sections.flatMap((s) => s.key_points).map((p, i) => ({
+          id: String(i + 1),
+          prompt: p,
+          answer: "",
+          hint: "",
+          options: [],
+        }));
+
     children.push(createHeading("TARJETAS DIDÁCTICAS RECORTABLES (FRENTE Y REVERSO)", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones de recorte y armado: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Recorta cada tarjeta por la línea punteada (✂). Lee el concepto o pregunta del frente, formula tu respuesta y comprueba con el reverso.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 120 },
-      })
-    );
-
-    const cardsRows: TableRow[] = [
-      new TableRow({
-        tableHeader: true,
-        cantSplit: true,
-        children: [
-          createStyledCell("✂ FRENTE (Anverso / Pregunta o Concepto)", { isHeader: true, widthPercent: 50, alignment: AlignmentType.CENTER }),
-          createStyledCell("✂ REVERSO (Dorso / ¿Qué significa? y Pista)", { isHeader: true, widthPercent: 50, alignment: AlignmentType.CENTER }),
-        ],
-      }),
-    ];
-
-    if (artifact.activity && artifact.activity.items && artifact.activity.items.length > 0) {
-      artifact.activity.items.forEach((item, idx) => {
-        const frontText = `TARJETA N° ${idx + 1}\n\n${item.prompt}`;
-        let backText = `¿QUÉ SIGNIFICA?\n${item.answer}`;
-        if (item.hint) {
-          backText += `\n\n💡 Pista formativa: ${item.hint}`;
-        }
-        cardsRows.push(
-          new TableRow({
-            cantSplit: true,
-            children: [
-              createStyledCell(frontText, {
-                bold: true,
-                alignment: AlignmentType.CENTER,
-                widthPercent: 50,
-                fillColor: "F8FAFC",
-                fontSize: 22,
-              }),
-              createStyledCell(backText, {
-                widthPercent: 50,
-                fillColor: "FFFFFF",
-                fontSize: 19,
-              }),
-            ],
-          })
-        );
-      });
-    } else {
-      const points = artifact.sections.flatMap((s) => s.key_points);
-      for (let i = 0; i < points.length; i += 2) {
-        cardsRows.push(
-          new TableRow({
-            cantSplit: true,
-            children: [
-              createStyledCell(`✂ TARJETA N° ${i + 1}\n\n${points[i]}`, { widthPercent: 50, bold: true, alignment: AlignmentType.CENTER }),
-              createStyledCell(
-                points[i + 1] ? `✂ TARJETA N° ${i + 2}\n\n${points[i + 1]}` : "",
-                { widthPercent: 50, bold: true, alignment: AlignmentType.CENTER }
-              ),
-            ],
-          })
-        );
-      }
-    }
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: cardsRows }));
+    children.push(createCalloutBlock(
+      "Instrucciones de recorte y armado",
+      "1. Imprime la Hoja A (frentes) y, por el otro lado de la misma hoja, la Hoja B (reversos); si no puedes imprimir a doble cara, pega ambas hojas espalda con espalda.\n"
+      + "2. Recorta cada tarjeta por la línea punteada (✂). Los reversos están en espejo, así que cada pregunta queda exactamente detrás de su respuesta.\n"
+      + "3. Lee el frente, formula tu respuesta en voz alta o por escrito y voltea la tarjeta para comprobar con la pista formativa.\n"
+      + "Las hojas A y B empiezan en página nueva y comparten la misma cuadrícula: la Hoja B está invertida de izquierda a derecha para coincidir con la Hoja A.",
+      { icon: "✂" },
+    ));
+    // Cada hoja ocupa su propia página con idéntica estructura para que las caras coincidan al imprimir.
+    children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(createHeading("Hoja A · Frentes: pregunta o concepto", HeadingLevel.HEADING_2));
+    children.push(createFlashcardSheet(cardItems, "front"));
+    children.push(new Paragraph({ children: [new PageBreak()] }));
+    children.push(createHeading("Hoja B · Reversos en espejo: respuesta y pista", HeadingLevel.HEADING_2));
+    children.push(createFlashcardSheet(cardItems, "back"));
 
     // Solucionario de Tarjetas de Estudio en nueva página
     children.push(
@@ -1725,25 +1825,15 @@ export function buildActivityDocx(
       }),
     ];
 
-    const cardItems = (artifact.activity?.items && artifact.activity.items.length > 0)
-      ? artifact.activity.items
-      : artifact.sections.flatMap((s) => s.key_points).map((p, i) => ({
-          id: String(i + 1),
-          prompt: `Tarjeta #${i + 1}`,
-          answer: p,
-          hint: "Profundizar en clase",
-          options: [],
-        }));
-
     cardItems.forEach((card, idx) => {
       flashcardsSolutionRows.push(
         new TableRow({
           cantSplit: true,
           children: [
-            createStyledCell(String(idx + 1), { widthPercent: 8, alignment: AlignmentType.CENTER, bold: true }),
-            createStyledCell(cleanText(card.prompt), { widthPercent: 32, bold: true }),
-            createStyledCell(cleanText(card.answer), { widthPercent: 40 }),
-            createStyledCell(cleanText(card.hint) || "Verificar comprensión activa.", { widthPercent: 20, italics: true }),
+            createStyledCell(String(idx + 1), { widthPercent: 8, alignment: AlignmentType.CENTER, bold: true, fillColor: idx % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(cleanText(card.prompt), { widthPercent: 32, bold: true, fillColor: idx % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(cleanText(card.answer) || "Respuesta construida por el estudiante con sus propias palabras.", { widthPercent: 40, fillColor: idx % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(cleanText(card.hint) || "Verificar comprensión activa.", { widthPercent: 20, italics: true, fillColor: idx % 2 ? COLOR_ZEBRA_BG : undefined }),
           ],
         })
       );
@@ -3540,15 +3630,21 @@ function createCoverBlocks(
       ],
     })),
   }) : null;
+  const band = (text: string, size: number, fill: string, color: string) => new Paragraph({
+    alignment: AlignmentType.CENTER,
+    shading: { type: ShadingType.CLEAR, fill },
+    children: [new TextRun({ text: cleanText(text), bold: true, color, size, font: "Calibri" })],
+    spacing: { before: 120, after: 140 },
+  });
   return [
     new Paragraph({ spacing: { before: 2200 }, children: [] }),
     line(isPlaceholder(v.ie) ? "Institución educativa" : v.ie, 24, true, COLOR_PRIMARY),
-    line(kindLabel.toLocaleUpperCase("es"), 40, true, COLOR_PRIMARY),
+    band(kindLabel.toLocaleUpperCase("es"), 40, COLOR_PRIMARY, "FFFFFF"),
     line(artifact.document_title, 26, true),
     new Paragraph({ spacing: { before: 500 }, children: [] }),
     ...(table ? [table] : []),
     new Paragraph({ spacing: { before: 700 }, children: [] }),
-    line(`Año lectivo ${isPlaceholder(v.year) ? "________" : v.year}`, 22, true, COLOR_SECONDARY),
+    band(`Año lectivo ${isPlaceholder(v.year) ? "________" : v.year}`, 22, COLOR_BAND_BG, COLOR_PRIMARY),
     new Paragraph({ children: [new PageBreak()] }),
     createHeading("CONTENIDO", HeadingLevel.HEADING_1),
     new TableOfContents("Contenido", { hyperlink: true, headingStyleRange: "1-2", cachedEntries: entries }),

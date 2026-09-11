@@ -84,8 +84,7 @@
 [data-theme="dark"] .agenda-event { background: transparent; }
 [data-theme="dark"] .home-dashboard { color: #edf3ff; background: #09111f; }
 [data-theme="dark"] .home-profile-strip,
-[data-theme="dark"] .home-welcome-card,
-[data-theme="dark"] .home-status-card,
+[data-theme="dark"] .home-section-actions__secondary,
 [data-theme="dark"] .home-tool-card,
 [data-theme="dark"] .home-context,
 [data-theme="dark"] .home-school-calendar,
@@ -98,8 +97,8 @@
 [data-theme="dark"] .home-school-calendar__month-nav,
 [data-theme="dark"] .home-plan-dialog header button,
 [data-theme="dark"] .home-plan-dialog dl div { color: #dce6f6; border-color: #34445c; background: #172338; }
-[data-theme="dark"] .home-welcome-card h1,
-[data-theme="dark"] .home-status-card strong,
+[data-theme="dark"] .home-welcome h1,
+[data-theme="dark"] .home-class-banner h2,
 [data-theme="dark"] .home-tool-card h3,
 [data-theme="dark"] .home-referral h2,
 [data-theme="dark"] .home-history h2,
@@ -107,14 +106,11 @@
 [data-theme="dark"] .home-school-calendar h2,
 [data-theme="dark"] .home-plan-dialog h2,
 [data-theme="dark"] .home-plan-dialog dd { color: #edf3ff; }
-[data-theme="dark"] .home-status-card__icon,
 [data-theme="dark"] .home-section-heading__icon,
 [data-theme="dark"] .home-tool-card__icon,
 [data-theme="dark"] .home-plan-dialog header > span { background: #1c2940; }
-[data-theme="dark"] .home-status-card--teal .home-status-card__icon,
 [data-theme="dark"] .home-tool-card--evaluamos .home-tool-card__icon,
 [data-theme="dark"] .home-tool-card--acompanamos .home-tool-card__icon { background: #12313a; }
-[data-theme="dark"] .home-welcome-card footer,
 [data-theme="dark"] .home-section-heading,
 [data-theme="dark"] .home-history,
 [data-theme="dark"] .home-context-toolbar,
@@ -411,3 +407,12 @@
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 [data-theme="dark"] .word-preview-regeneration { border-color:#334155; background:#111827; color:#e5e7eb; }
+[data-theme="dark"] .home-class-banner { border-color: #244457; background: linear-gradient(110deg, #101f34 0%, #0f2a30 100%); box-shadow: none; }
+[data-theme="dark"] .home-class-banner__sheet { fill: #172338; stroke: #34445c; }
+[data-theme="dark"] .home-class-banner__sheet--back { fill: #111c2e; }
+[data-theme="dark"] .home-class-banner__line--soft { fill: #34445c; }
+[data-theme="dark"] .home-class-banner p, [data-theme="dark"] .home-welcome__phrase { color: #a7b4c9; }
+[data-theme="dark"] .home-class-banner__chips button { color: #8cb9ff; border-color: #34445c; background: rgba(23, 35, 56, .85); }
+[data-theme="dark"] .home-class-banner__chips button:hover { border-color: #477bc9; background: #172b48; }
+[data-theme="dark"] .home-section-actions__secondary:hover { color: #8cb9ff; border-color: #477bc9; background: #172b48; }
+[data-theme="dark"] .home-history__count { color: #8cb9ff; background: #172b48; }

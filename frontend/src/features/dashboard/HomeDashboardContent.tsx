@@ -1,8 +1,8 @@
 import {
-  ArrowRight, Check, ChevronLeft, ChevronRight, Crown, FileText, GraduationCap, Heart, History,
+  ArrowRight, Check, ChevronLeft, ChevronRight, ClipboardCheck, Crown, FileText, FolderOpen, Heart, History,
   Layers, Sparkles, Star, UsersRound, X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { modules, tools, type ModuleId, type ToolDefinition } from "../../config/tools";
@@ -17,6 +17,19 @@ const MOST_USED_IDS = [
 ];
 
 const ACADEMIC_LEVELS = ["Inicial", "Primaria", "Secundaria", "EBA", "EBE"];
+
+function toolPath(module: ModuleId, id: string, fallback: string): { title: string; path: string } {
+  const tool = tools.find((item) => item.module === module && item.id === id);
+  return { title: tool?.title ?? fallback, path: tool?.path ?? `/dashboard/${module}` };
+}
+
+const CLASS_SESSION = toolPath("planificamos", "sesion-aprendizaje", "Sesión de aprendizaje");
+const CLASS_PATH = CLASS_SESSION.path;
+const CLASS_PARTS = [
+  { label: "Sesión de aprendizaje", icon: FileText, ...CLASS_SESSION },
+  { label: "Instrumento de evaluación", icon: ClipboardCheck, ...toolPath("evaluamos", "rubrica-evaluacion", "Rúbrica de evaluación") },
+  { label: "Materiales", icon: FolderOpen, title: "Recursos", path: "/dashboard/recursos" },
+];
 const PREFERENCE_OPTIONS = ["Planificar con calma", "Crear recursos", "Evaluar avances", "Acompañar a mi aula"];
 
 type HomeDashboardContentProps = {
@@ -46,7 +59,6 @@ export function HomeDashboardContent({ user, activity, activityLoading, onNewCre
   const visibleTools = activeModule === "all" ? tools : tools.filter((item) => item.module === activeModule);
   const favoriteTools = useMemo(() => tools.filter((tool) => favoriteKeys.includes(`${tool.module}/${tool.id}`)), [favoriteKeys]);
   const firstName = user.full_name.trim().split(/\s+/)[0] || "profe";
-  const area = user.curricular_area || "Área curricular por completar";
 
   const updateLevel = (value: string) => {
     void updateWorkspacePreferences({ home_academic_level: value });
@@ -77,33 +89,25 @@ export function HomeDashboardContent({ user, activity, activityLoading, onNewCre
           </label>
         </section>
 
-        <section className="home-welcome-grid" aria-labelledby="home-welcome-title">
-          <article className="home-welcome-card">
-            <div className="home-welcome-card__copy">
-              <span className="home-eyebrow">Tu espacio docente</span>
-              <h1 id="home-welcome-title">¡Te damos la bienvenida, {firstName}!</h1>
-              <p>Visualiza tu avance, abre las herramientas que más utilizas y continúa tu planificación desde un solo lugar.</p>
-            </div>
-            <Sparkles className="home-welcome-card__art" aria-hidden="true" />
-            <footer>
-              <span><Heart aria-hidden="true" /> {dailyPhrase}</span>
-              <div className="home-welcome-card__actions">
-                <button type="button" className="home-welcome-card__preference" onClick={() => setPreferenceOpen(true)}>Cambiar preferencia</button>
-                <button type="button" className="home-welcome-card__create" onClick={onNewCreation}>Nueva creación <ArrowRight aria-hidden="true" /></button>
-              </div>
-            </footer>
-          </article>
+        <section className="home-welcome" aria-labelledby="home-welcome-title">
+          <span className="home-eyebrow">Tu espacio docente</span>
+          <h1 id="home-welcome-title">¡Te damos la bienvenida, {firstName}!</h1>
+          <p className="home-welcome__phrase"><Heart aria-hidden="true" /> {dailyPhrase}</p>
+        </section>
 
-          <div className="home-status-stack">
-            <article className="home-status-card home-status-card--violet">
-              <span className="home-status-card__icon"><GraduationCap aria-hidden="true" /></span>
-              <div><small>Nivel y área registrada</small><strong>{academicLevel}</strong><p>{area}</p></div>
-            </article>
-            <article className="home-status-card home-status-card--teal">
-              <span className="home-status-card__icon"><FileText aria-hidden="true" /></span>
-              <div><small>Documentos creados</small><strong>{activityLoading ? "—" : activity.documentCount}</strong><p>Disponibles en tu historial</p></div>
-            </article>
+        <section className="home-class-banner" aria-labelledby="home-class-banner-title">
+          <ClassBannerArt />
+          <div className="home-class-banner__copy">
+            <h2 id="home-class-banner-title">Crea tu clase completa</h2>
+            <p>Organiza tu sesión de aprendizaje, instrumento de evaluación y materiales en un solo lugar.</p>
+            <div className="home-class-banner__chips" aria-label="Partes de la clase completa">
+              {CLASS_PARTS.map((part) => {
+                const Icon = part.icon;
+                return <button key={part.label} type="button" onClick={() => navigate(part.path)} title={`Abrir ${part.title}`}><Icon aria-hidden="true" /> {part.label}</button>;
+              })}
+            </div>
           </div>
+          <button type="button" className="home-class-banner__create" onClick={() => navigate(CLASS_PATH)}>Crear mi clase <ArrowRight aria-hidden="true" /></button>
         </section>
 
         <ToolSection
@@ -114,6 +118,12 @@ export function HomeDashboardContent({ user, activity, activityLoading, onNewCre
           favoriteKeys={favoriteKeys}
           onToggleFavorite={toggleFavorite}
           className="home-tool-grid--featured"
+          actions={(
+            <div className="home-section-actions">
+              <button type="button" className="home-section-actions__secondary" onClick={() => setPreferenceOpen(true)}>Cambiar preferencia</button>
+              <button type="button" className="home-section-actions__primary" onClick={onNewCreation}>Nueva creación <ArrowRight aria-hidden="true" /></button>
+            </div>
+          )}
         />
 
         {favoriteTools.length ? <ToolSection
@@ -160,7 +170,7 @@ export function HomeDashboardContent({ user, activity, activityLoading, onNewCre
         <div className="home-context-toolbar"><span>Panel lateral</span><button type="button" onClick={() => setContextOpen(false)} aria-label="Ocultar panel lateral"><ChevronRight aria-hidden="true" /></button></div>
         <HomePedagogicalCalendar />
         <section className="home-history" aria-labelledby="home-history-title">
-          <header><span><History aria-hidden="true" /><h2 id="home-history-title">Historial reciente</h2></span><button type="button" onClick={() => navigate("/dashboard/historial")}>Ver todo</button></header>
+          <header><span><History aria-hidden="true" /><h2 id="home-history-title">Historial reciente</h2>{!activityLoading && activity.documentCount ? <em className="home-history__count" title="Documentos creados">{activity.documentCount}</em> : null}</span><button type="button" onClick={() => navigate("/dashboard/historial")}>Ver todo</button></header>
           <div>
             {activity.recentDocuments.map((document) => (
               <button key={document.id} type="button" className="home-history__item" onClick={() => navigate(`${document.path}?document=${document.id}`)}>
@@ -175,6 +185,31 @@ export function HomeDashboardContent({ user, activity, activityLoading, onNewCre
       {planOpen ? <ProfessionalPlanDialog user={user} onClose={() => setPlanOpen(false)} onOpenProfile={() => navigate("/dashboard/perfil")} /> : null}
       {preferenceOpen ? <PreferenceDialog onClose={() => setPreferenceOpen(false)} onSelect={updatePreference} /> : null}
     </main>
+  );
+}
+
+/** Ilustración del banner: fichas de documento apiladas con sello de listo. */
+function ClassBannerArt() {
+  return (
+    <svg className="home-class-banner__art" viewBox="0 0 200 150" aria-hidden="true" focusable="false">
+      <g className="home-class-banner__spark"><path d="M168 18l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" /><path d="M186 46l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" /></g>
+      <g className="home-class-banner__spark home-class-banner__spark--teal"><path d="M22 112l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" /></g>
+      <g transform="rotate(-9 96 84)">
+        <rect x="74" y="34" width="86" height="104" rx="10" className="home-class-banner__sheet home-class-banner__sheet--back" />
+        <rect x="83" y="46" width="52" height="7" rx="3.5" className="home-class-banner__line" />
+        <rect x="83" y="60" width="66" height="5" rx="2.5" className="home-class-banner__line home-class-banner__line--soft" />
+        <rect x="83" y="71" width="58" height="5" rx="2.5" className="home-class-banner__line home-class-banner__line--soft" />
+      </g>
+      <g transform="rotate(4 88 84)">
+        <rect x="42" y="30" width="86" height="104" rx="10" className="home-class-banner__sheet" />
+        <rect x="52" y="42" width="48" height="7" rx="3.5" className="home-class-banner__line" />
+        <rect x="52" y="56" width="66" height="5" rx="2.5" className="home-class-banner__line home-class-banner__line--soft" />
+        <rect x="52" y="67" width="60" height="5" rx="2.5" className="home-class-banner__line home-class-banner__line--soft" />
+        <rect x="52" y="78" width="40" height="5" rx="2.5" className="home-class-banner__line home-class-banner__line--soft" />
+      </g>
+      <circle cx="118" cy="120" r="17" className="home-class-banner__badge" />
+      <path d="M110 120l6 6 11-12" className="home-class-banner__check" />
+    </svg>
   );
 }
 
@@ -195,14 +230,15 @@ function PreferenceDialog({ onClose, onSelect }: { onClose: () => void; onSelect
   );
 }
 
-function ToolSection({ title, description, tools: sectionTools, onOpen, favoriteKeys, onToggleFavorite, className }: {
-  title: string; description: string; tools: ToolDefinition[]; onOpen: (path: string) => void; favoriteKeys: string[]; onToggleFavorite: (tool: ToolDefinition) => void; className?: string;
+function ToolSection({ title, description, tools: sectionTools, onOpen, favoriteKeys, onToggleFavorite, className, actions }: {
+  title: string; description: string; tools: ToolDefinition[]; onOpen: (path: string) => void; favoriteKeys: string[]; onToggleFavorite: (tool: ToolDefinition) => void; className?: string; actions?: ReactNode;
 }) {
   return (
     <section className="home-tools" aria-labelledby="home-tools-title">
-      <header className="home-section-heading">
+      <header className={`home-section-heading${actions ? " home-section-heading--with-actions" : ""}`}>
         <span className="home-section-heading__icon"><Sparkles aria-hidden="true" /></span>
         <span><h2 id="home-tools-title">{title}</h2><p>{description}</p></span>
+        {actions}
       </header>
       <div className={`home-tool-grid ${className ?? ""}`}>
         {sectionTools.map((tool) => <HomeToolCard key={`${tool.module}-${tool.id}`} tool={tool} onOpen={() => onOpen(tool.path)} favorite={favoriteKeys.includes(`${tool.module}/${tool.id}`)} onToggleFavorite={() => onToggleFavorite(tool)} />)}
