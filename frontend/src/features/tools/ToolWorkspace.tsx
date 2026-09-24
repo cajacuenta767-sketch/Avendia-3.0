@@ -22,9 +22,14 @@ export function ToolWorkspace() {
   if (moduleId === "planificamos" && toolId === "sesion-aprendizaje" && !searchParams.get("document")) {
     return <Suspense fallback={<div className="admin-state" role="status">Preparando la sesión…</div>}><CreateClassPage mode="sesion" /></Suspense>;
   }
-  if (moduleId !== "evaluamos") return <WorkflowTool />;
+  // La clave fuerza un montaje por herramienta: sin ella, al cambiar de herramienta
+  // sin recargar se conservaba el borrador de la anterior y sus pasos.
+  const toolKey = `${moduleId ?? ""}/${toolId ?? ""}`;
+  if (moduleId !== "evaluamos") return <WorkflowTool key={toolKey} />;
 
   const instrumentId = searchParams.get("document")?.trim() || undefined;
+  // "?desde=" llega desde "Continúa tu clase": el documento de origen precarga el encuadre.
+  const fromDocumentId = searchParams.get("desde")?.trim() || undefined;
   const handleInstrumentIdChange = (nextInstrumentId: string) => {
     const next = new URLSearchParams(searchParams);
     if (nextInstrumentId) next.set("document", nextInstrumentId);
@@ -33,7 +38,7 @@ export function ToolWorkspace() {
   };
 
   let content = null;
-  const instrumentProps = { instrumentId, onInstrumentIdChange: handleInstrumentIdChange };
+  const instrumentProps = { instrumentId, onInstrumentIdChange: handleInstrumentIdChange, fromDocumentId };
   if (toolId === "lista-cotejo") content = <ChecklistTool {...instrumentProps} />;
   if (toolId === "rubrica-evaluacion" || toolId === "rubrica") content = <RubricTool variant="builder" {...instrumentProps} />;
   if (toolId === "calificador-rubrica" || toolId === "calificador") content = <RubricTool variant="grader" {...instrumentProps} />;
@@ -43,6 +48,6 @@ export function ToolWorkspace() {
   if (toolId === "carpetas-recuperacion") content = <RecoveryFolderTool {...instrumentProps} />;
   if (toolId === "registros-auxiliares") content = <AuxiliaryRegisterTool {...instrumentProps} />;
 
-  if (!content) return <WorkflowTool />;
+  if (!content) return <WorkflowTool key={toolKey} />;
   return <Suspense fallback={<EvaluationLoadingState />}>{content}</Suspense>;
 }

@@ -11,4 +11,8 @@ import type { FieldValue } from "../domain/fieldValue";
 export type DraftStorage = {
   read(initialValues: Record<string, FieldValue>): Draft;
   write(draft: Draft): Draft;
+  /** Si hay un borrador con contenido propio (no solo datos del perfil), cuándo se guardó y si tiene resultado. */
+  meta(initialValues: Record<string, FieldValue>): { updatedAt: string; hasArtifact: boolean } | null;
+  /** Borra el borrador guardado para empezar de cero. */
+  clear(): void;
 };

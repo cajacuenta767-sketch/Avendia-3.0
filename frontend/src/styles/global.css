@@ -1359,3 +1359,30 @@ textarea { padding: 12px; line-height: 1.55; resize: vertical; }
 .generation-quality-details { border: 1px dashed var(--line); border-radius: 12px; padding: 6px 14px; background: #fbfcff; }
 .generation-quality-details > summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--muted); padding: 8px 0; }
 .generation-quality-details[open] > summary { margin-bottom: 8px; }
+
+/* Elección al abrir una herramienta con borrador guardado */
+.workflow-draft-choice { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:18px; padding:14px 18px; border:1px solid #cddcf5; border-radius:16px; background:linear-gradient(135deg,#f4f8ff,#fbfdff); }
+.workflow-draft-choice__text { display:grid; gap:2px; min-width:0; }
+.workflow-draft-choice__text strong { font-size:0.95rem; color:#1f4d78; }
+.workflow-draft-choice__text small { color:var(--muted); }
+.workflow-draft-choice__actions { display:flex; flex-wrap:wrap; gap:10px; }
+@media (max-width:720px) {
+  .workflow-draft-choice { align-items:stretch; flex-direction:column; }
+  .workflow-draft-choice__actions { flex-direction:column; }
+  .workflow-draft-choice__actions button { width:100%; }
+}
+
+/* Continuación de la clase desde la sesión de aprendizaje */
+.workflow-class-next { margin:18px 0; padding:16px 18px; border:1px solid #cddcf5; border-radius:16px; background:linear-gradient(135deg,#f4f8ff,#fbfdff); }
+.workflow-class-next__intro { display:grid; gap:2px; margin-bottom:12px; }
+.workflow-class-next__intro strong { font-size:0.95rem; color:#1f4d78; }
+.workflow-class-next__intro small { color:var(--muted); }
+.workflow-class-next__cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; }
+.workflow-class-next__card { display:grid; gap:4px; padding:12px 14px; text-align:left; border:1px solid #cddcf5; border-radius:12px; background:#ffffff; cursor:pointer; transition:border-color .15s ease, box-shadow .15s ease; }
+.workflow-class-next__card:hover:not(:disabled) { border-color:#2e74b5; box-shadow:0 4px 12px rgba(31,77,120,.12); }
+.workflow-class-next__card:disabled { cursor:progress; opacity:.6; }
+.workflow-class-next__card span { font-weight:600; color:#1f4d78; }
+.workflow-class-next__card small { color:var(--muted); line-height:1.35; }
+[data-theme="dark"] .workflow-class-next { border-color:#25406b; background:linear-gradient(135deg,#111c33,#0e1526); }
+[data-theme="dark"] .workflow-class-next__card { border-color:#25406b; background:#141f36; }
+[data-theme="dark"] .workflow-class-next__card span { color:#93c5fd; }

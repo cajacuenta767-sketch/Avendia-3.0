@@ -12,6 +12,7 @@ import {
   type ReferenceDocument,
 } from "../../../../lib/curricularReference";
 import type { WorkflowArtifact } from "../../exportWorkflowDocx";
+import type { CompatibleDocument } from "../../documentReference";
 import type {
   DocumentToSave,
   GenerationRequest,
@@ -93,6 +94,12 @@ export function httpWorkflowGateway(): WorkflowGateway {
       if (!headers) return [];
       const documents = await apiRequest<ReferenceDocument[]>("/documents", { headers, signal });
       return referencesFromDocuments(documents);
+    },
+
+    async listCompatibleDocuments(targetType: string): Promise<CompatibleDocument[] | null> {
+      const headers = authHeaders();
+      if (!headers) return null;
+      return apiRequest<CompatibleDocument[]>(`/documents/compatible/${targetType}`, { headers });
     },
   };
 }

@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { readSessionContext } from "../sessionContext";
+
 import { StudentSelector, type StudentSelection } from "../../../components/students/StudentSelector";
 import {
   areasByLevel,
@@ -238,9 +240,10 @@ function checklistDraftFromInstrument(instrument: EvaluationInstrumentDetail): C
 export type ChecklistToolProps = {
   instrumentId?: string;
   onInstrumentIdChange?: (instrumentId: string) => void;
+  fromDocumentId?: string;
 };
 
-export function ChecklistTool({ instrumentId, onInstrumentIdChange }: ChecklistToolProps = {}) {
+export function ChecklistTool({ instrumentId, onInstrumentIdChange, fromDocumentId }: ChecklistToolProps = {}) {
   const storageKey = `avendia.evaluations.checklist.v1.${sessionDraftScope()}`;
   const [draft, setDraft] = useState<ChecklistDraft>(() => readDraft(storageKey));
   const [students, setStudents] = useState<Student[]>([]);
@@ -275,6 +278,39 @@ export function ChecklistTool({ instrumentId, onInstrumentIdChange }: ChecklistT
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify({ ...draft, updatedAt: new Date().toISOString() }));
   }, [draft, storageKey]);
+
+  // Continuación de una sesión de clase: el encuadre llega ya completado.
+  useEffect(() => {
+    if (!fromDocumentId || instrumentId) return;
+    const controller = new AbortController();
+    void readSessionContext(fromDocumentId, "lista-cotejo", controller.signal)
+      .then((context) => {
+        if (!context) {
+          setMessage("El documento de origen ya no está disponible. Completa el encuadre a mano.");
+          return;
+        }
+        setDraft((current) => ({
+          ...current,
+          general: {
+            ...current.general,
+            teacherName: context.teacherName || current.general.teacherName,
+            directorName: context.directorName || current.general.directorName,
+            institution: context.institution || current.general.institution,
+            modality: context.modality,
+            level: context.level || current.general.level,
+            grade: context.grade || current.general.grade,
+            area: context.area || current.general.area,
+            activity: context.topic || current.general.activity,
+          },
+        }));
+        setMessage(`Encuadre tomado de «${context.title}». Revisa los datos y define los criterios.`);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setMessage("No se pudo leer el documento de origen. Completa el encuadre a mano.");
+      });
+    return () => controller.abort();
+  }, [fromDocumentId, instrumentId]);
 
   useEffect(() => {
     if (!instrumentId) return;

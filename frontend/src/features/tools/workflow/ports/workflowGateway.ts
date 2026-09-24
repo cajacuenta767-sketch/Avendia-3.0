@@ -9,6 +9,7 @@
 import type { WorkflowArtifact } from "../../exportWorkflowDocx";
 import type { CurricularReference } from "../../../../lib/curricularReference";
 import type { FieldValue } from "../domain/fieldValue";
+import type { CompatibleDocument } from "../../documentReference";
 
 export type SavedDocument = { id: string; serverVersion: number };
 
@@ -54,6 +55,8 @@ export type WorkflowGateway = {
   linkDocument(relation: RelationToSave): Promise<void>;
   generate(request: GenerationRequest): Promise<WorkflowArtifact>;
   listCurricularReferences(signal?: AbortSignal): Promise<CurricularReference[]>;
+  /** Documentos del historial que pueden alimentar esta herramienta; `null` sin sesión. */
+  listCompatibleDocuments(targetType: string): Promise<CompatibleDocument[] | null>;
 };
 
 export type { FieldValue };

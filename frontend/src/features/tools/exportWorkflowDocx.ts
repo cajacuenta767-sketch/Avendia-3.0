@@ -4,6 +4,7 @@ import {
   BorderStyle,
   Document,
   HeadingLevel,
+  LevelFormat,
   Packer,
   PageBreak,
   Paragraph,
@@ -11,6 +12,7 @@ import {
   Table,
   TableOfContents,
   TableCell,
+  TableLayoutType,
   TableRow,
   TextRun,
   WidthType,
@@ -291,7 +293,7 @@ function labelRuns(text: string, size: number, color = COLOR_TEXT): TextRun[] {
 
 function createKeyPoint(text: string, options: { size?: number; after?: number } = {}): Paragraph {
   return new Paragraph({
-    bullet: { level: 0 },
+    numbering: { reference: "vinetas", level: 0 },
     children: labelRuns(text, options.size ?? 20),
     spacing: { after: options.after ?? 50, line: 264 },
   });
@@ -370,13 +372,59 @@ function createTableBlocks(tables: WorkflowArtifactTable[], options: { sectionTi
       ...(repeatsSectionTitle ? [] : [createHeading(table.title, HeadingLevel.HEADING_2)]),
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
-        columnWidths: widths.map((width) => Math.round((width / 100) * 9746)),
+        // Sin disposición fija, Word y LibreOffice reparten el ancho por el contenido
+        // y aplastan la columna con más texto.
+        layout: TableLayoutType.FIXED,
+        columnWidths: widths.map((width) => Math.round((width / 100) * CONTENT_WIDTH_TWIPS)),
         rows,
       }),
     ];
     if (table.note) blocks.push(createBodyParagraph(table.note, { italic: true, after: 120 }));
     else blocks.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
     return blocks;
+  });
+}
+
+/**
+ * Viñetas propias: la viñeta por defecto de Word se ve gruesa y con sangría ancha.
+ * "vinetas" se usa en el cuerpo y "vinetas-celda" dentro de las tablas, más ajustada.
+ */
+const AVENDIA_NUMBERING = {
+  config: [
+    {
+      reference: "vinetas",
+      levels: [{
+        level: 0,
+        format: LevelFormat.BULLET,
+        text: "\u2022",
+        alignment: AlignmentType.LEFT,
+        style: { paragraph: { indent: { left: 284, hanging: 170 } }, run: { font: "Calibri" } },
+      }],
+    },
+    {
+      reference: "vinetas-celda",
+      levels: [{
+        level: 0,
+        format: LevelFormat.BULLET,
+        text: "\u2022",
+        alignment: AlignmentType.LEFT,
+        style: { paragraph: { indent: { left: 227, hanging: 170 } }, run: { font: "Calibri" } },
+      }],
+    },
+  ],
+};
+
+/** Ancho útil de una página A4 vertical con los márgenes del documento, en twips. */
+const CONTENT_WIDTH_TWIPS = 9746;
+
+/** Tabla con anchos de columna fijos: sin esto Word y LibreOffice reparten el ancho por el contenido. */
+function createFixedTable(rows: TableRow[], percents: number[]): Table {
+  const total = percents.reduce((sum, value) => sum + value, 0) || 100;
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.FIXED,
+    columnWidths: percents.map((percent) => Math.round((percent / total) * CONTENT_WIDTH_TWIPS)),
+    rows,
   });
 }
 
@@ -414,7 +462,7 @@ function createStyledCell(
         const isBullet = line.startsWith("•") || line.startsWith("-");
         const cleanLine = line.replace(/^[-•]\s*/, "");
         return new Paragraph({
-          bullet: isBullet ? { level: 0 } : undefined,
+          numbering: isBullet ? { reference: "vinetas-celda", level: 0 } : undefined,
           alignment: options.alignment ?? (isHeader ? AlignmentType.CENTER : AlignmentType.LEFT),
           children: [
             new TextRun({
@@ -950,7 +998,7 @@ export function buildInstrumentDocx(
         })
       );
     });
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: rubricRows }));
+    children.push(createFixedTable(rubricRows, [20, 20, 20, 20, 20]));
   } else if (isChecklist) {
     children.push(createHeading("LISTA DE COTEJO Y DESEMPEÑOS OBSERVABLES", HeadingLevel.HEADING_1, "II."));
     const checklistRows: TableRow[] = [
@@ -982,7 +1030,7 @@ export function buildInstrumentDocx(
         })
       );
     });
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: checklistRows }));
+    children.push(createFixedTable(checklistRows, [6, 54, 10, 10, 20]));
   } else if (isStandaloneExam) {
     // El examen conserva su matriz, sus reactivos y una clave docente separada.
     if ((artifact.tables?.length ?? 0) > 0) {
@@ -998,7 +1046,7 @@ export function buildInstrumentDocx(
       .sort((left, right) => examSectionPriority(left.section.title) - examSectionPriority(right.section.title) || left.index - right.index)
       .map(({ section }) => section);
     studentSections.forEach((sec, idx) => {
-      children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
+      children.push(createHeading(`${idx + 1}. ${stripNumbering(sec.title)}`, HeadingLevel.HEADING_2));
       if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       if (/preguntas/i.test(sec.title)) {
         const questions = typedQuestions.length
@@ -1029,7 +1077,7 @@ export function buildInstrumentDocx(
     const typedKey = createAnswerKeyBlocks(typedQuestions);
     children.push(...typedKey);
     teacherSections.filter((sec) => !(typedKey.length && /clave/i.test(sec.title))).forEach((sec, idx) => {
-      children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
+      children.push(createHeading(`${idx + 1}. ${stripNumbering(sec.title)}`, HeadingLevel.HEADING_2));
       if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
       sec.key_points.forEach((point, pointIndex) => children.push(new Paragraph({
         children: [
@@ -1042,7 +1090,7 @@ export function buildInstrumentDocx(
     if (artifact.teacher_recommendations.length) {
       children.push(createHeading("Orientaciones para retroalimentar", HeadingLevel.HEADING_2));
       artifact.teacher_recommendations.forEach((recommendation) => children.push(new Paragraph({
-        bullet: { level: 0 },
+        numbering: { reference: "vinetas", level: 0 },
         children: [new TextRun({ text: cleanText(recommendation), size: 19, font: "Calibri", color: COLOR_TEXT })],
         spacing: { after: 60 },
       })));
@@ -1093,12 +1141,20 @@ export function buildInstrumentDocx(
     // Otros instrumentos genéricos
     children.push(createHeading("REACTIVOS Y CONSIGNAS DE EVALUACIÓN", HeadingLevel.HEADING_1, "II."));
     artifact.sections.forEach((sec, idx) => {
-      children.push(createHeading(`${idx + 1}. ${sec.title}`, HeadingLevel.HEADING_2));
+      children.push(createHeading(`${idx + 1}. ${stripNumbering(sec.title)}`, HeadingLevel.HEADING_2));
       if (sec.narrative) children.push(...createBodyParagraphs(sec.narrative));
-      sec.key_points.forEach((point) => children.push(new Paragraph({
-        children: [new TextRun({ text: `[  ] ${cleanText(point)}`, size: 20, font: "Calibri", color: COLOR_TEXT })],
-        spacing: { before: 40, after: 60 },
-      })));
+      // La casilla solo corresponde a un desempeño observable. Los puntos con
+      // etiqueta ("Periodo lectivo: ...") son datos del instrumento, no algo que marcar.
+      sec.key_points.forEach((point) => {
+        if (splitLabel(cleanText(point)).label) {
+          children.push(createKeyPoint(point));
+          return;
+        }
+        children.push(new Paragraph({
+          children: [new TextRun({ text: `[  ] ${cleanText(point)}`, size: 20, font: "Calibri", color: COLOR_TEXT })],
+          spacing: { before: 40, after: 60 },
+        }));
+      });
     });
   }
 
@@ -1110,7 +1166,7 @@ export function buildInstrumentDocx(
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
-          bullet: { level: 0 },
+          numbering: { reference: "vinetas", level: 0 },
           children: [new TextRun({ text: cleanText(rec), size: 19, font: "Calibri", color: COLOR_TEXT })],
           spacing: { after: 60 },
         })
@@ -1123,6 +1179,7 @@ export function buildInstrumentDocx(
     || (context.workflowKey || "").includes("registros-auxiliares");
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [
       {
@@ -2689,7 +2746,7 @@ export function buildActivityDocx(
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
-          bullet: { level: 0 },
+          numbering: { reference: "vinetas", level: 0 },
           children: [new TextRun({ text: cleanText(rec), size: 18, color: COLOR_MUTED, font: "Calibri" })],
           spacing: { after: 40 },
         })
@@ -2698,6 +2755,7 @@ export function buildActivityDocx(
   }
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [
       {
@@ -2808,10 +2866,10 @@ export function buildAnalyticsDocx(
       tableHeader: true,
       cantSplit: true,
       children: [
-        createStyledCell("Ámbito / Competencia", { isHeader: true, widthPercent: 25 }),
-        createStyledCell("Nivel de Riesgo", { isHeader: true, widthPercent: 15, alignment: AlignmentType.CENTER }),
-        createStyledCell("Hallazgo Pedagógico Observado", { isHeader: true, widthPercent: 35 }),
-        createStyledCell("Acción Remedial Prioritaria", { isHeader: true, widthPercent: 25 }),
+        createStyledCell("Ámbito / Competencia", { isHeader: true, widthPercent: 22 }),
+        createStyledCell("Nivel de Riesgo", { isHeader: true, widthPercent: 14, alignment: AlignmentType.CENTER }),
+        createStyledCell("Hallazgo Pedagógico Observado", { isHeader: true, widthPercent: 42 }),
+        createStyledCell("Acción Remedial Prioritaria", { isHeader: true, widthPercent: 22 }),
       ],
     }),
   ];
@@ -2825,20 +2883,20 @@ export function buildAnalyticsDocx(
       new TableRow({
         cantSplit: true,
         children: [
-          createStyledCell(sec.title, { bold: true, widthPercent: 25 }),
+          createStyledCell(sec.title, { bold: true, widthPercent: 22 }),
           createStyledCell(riskLabel, {
             bold: true,
             alignment: AlignmentType.CENTER,
-            widthPercent: 15,
+            widthPercent: 14,
             fillColor: riskFill,
           }),
-          createStyledCell(sec.narrative, { widthPercent: 35 }),
-          createStyledCell(sec.key_points[0] || "Acompañamiento personalizado en aula.", { widthPercent: 25 }),
+          createStyledCell(sec.narrative, { widthPercent: 42 }),
+          createStyledCell(sec.key_points[0] || "Acompañamiento personalizado en aula.", { widthPercent: 22 }),
         ],
       })
     );
   });
-  children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: analyticsRows }));
+  children.push(createFixedTable(analyticsRows, [22, 14, 42, 22]));
 
   // IV. Matrices generadas por la IA (indicadores, alertas, decisiones)
   let analyticsPart = 4;
@@ -2853,7 +2911,7 @@ export function buildAnalyticsDocx(
   artifact.teacher_recommendations.forEach((rec) => {
     children.push(
       new Paragraph({
-        bullet: { level: 0 },
+        numbering: { reference: "vinetas", level: 0 },
         children: [new TextRun({ text: cleanText(rec), size: 19, font: "Calibri", color: COLOR_TEXT })],
         spacing: { after: 60 },
       })
@@ -2863,6 +2921,7 @@ export function buildAnalyticsDocx(
   children.push(createSignaturesTable(displayValue(v.teacher, ""), "Docente Responsable del Análisis", displayValue(v.director, ""), "Dirección / Coordinación Pedagógica"));
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [
       {
@@ -2948,11 +3007,14 @@ export function buildCommunicationDocx(
   children.push(commTable);
 
   const institution = isPlaceholder(v.ie) ? "de nuestra institución educativa" : `de la I.E. "${v.ie}"`;
+  // Si la carta ya trae su propio saludo, el de plantilla sobra: saludar dos veces
+  // en el mismo comunicado se lee como un descuido.
+  const traeSaludo = artifact.sections.some((section) => /saludo|salutaci[oó]n/i.test(section.title));
   children.push(
     createBodyParagraph(isPlaceholder(v.guardian) ? "Estimada familia:" : `Estimada familia ${v.guardian}:`, { bold: true }),
-    createBodyParagraph(
+    ...(traeSaludo ? [] : [createBodyParagraph(
       `Reciban un cordial saludo institucional de parte del equipo directivo y docente ${institution}. Por medio de la presente nos dirigimos a ustedes para informarles lo siguiente:`
-    ),
+    )]),
     ...createBodyParagraphs(artifact.executive_summary)
   );
 
@@ -3014,6 +3076,7 @@ export function buildCommunicationDocx(
   );
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [
       {
@@ -3031,15 +3094,12 @@ export function buildCommunicationDocx(
 // ========================================================================== 
 function createHomeworkResponseBlocks(responseType = "texto_breve"): (Paragraph | Table)[] {
   if (responseType === "tabla") {
+    // Cuadrícula en blanco: rotular las columnas con "Dato 1, 2, 3" ensucia la ficha
+    // y no describe lo que el estudiante debe anotar; el enunciado ya lo indica.
     return [new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: Array.from({ length: 4 }, (_, rowIndex) => new TableRow({
-        children: Array.from({ length: 3 }, (_, columnIndex) =>
-          createStyledCell(
-            rowIndex === 0 ? `Dato ${columnIndex + 1}` : " ",
-            { isHeader: rowIndex === 0, widthPercent: 33 }
-          )
-        ),
+      rows: Array.from({ length: 5 }, () => new TableRow({
+        children: Array.from({ length: 3 }, () => createStyledCell(" ", { widthPercent: 33 })),
       })),
     })];
   }
@@ -3226,6 +3286,7 @@ export function buildHomeworkDocx(
   );
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
     sections: [{
       properties: pageProperties("portrait"),
@@ -3265,7 +3326,11 @@ function createCoverBlocks(
   const rows: [string, string][] = ([
     ["INSTITUCIÓN EDUCATIVA", v.ie],
     ["DRE / UGEL", [v.dre, v.ugel].filter((part) => !isPlaceholder(part)).join(" / ")],
-    ["NIVEL / GRADO / SECCIÓN", isPlaceholder(v.grade) ? "" : `${v.level} / ${v.grade} "${v.section}"`],
+    ["NIVEL / GRADO / SECCIÓN", [
+      isPlaceholder(v.level) ? "" : v.level,
+      isPlaceholder(v.grade) ? "" : v.grade,
+      isPlaceholder(v.section) ? "" : `Sección "${v.section}"`,
+    ].filter(Boolean).join(" / ")],
     ["ÁREA CURRICULAR", v.area],
     ["DOCENTE RESPONSABLE", v.teacher],
     ["DIRECTOR(A)", v.director],
@@ -3385,7 +3450,11 @@ export function buildDocumentDocx(
     ["DRE", v.dre],
     ["UGEL", v.ugel],
     ["INSTITUCIÓN EDUCATIVA", v.ie],
-    ["NIVEL / GRADO / SECCIÓN", `${fill(v.level, 10)} / ${fill(v.grade, 10)} "${fill(v.section, 4)}"`],
+    ["NIVEL / GRADO / SECCIÓN", [
+      isPlaceholder(v.level) ? "" : v.level,
+      isPlaceholder(v.grade) ? "" : v.grade,
+      isPlaceholder(v.section) ? "" : `Sección "${v.section}"`,
+    ].filter(Boolean).join(" / ")],
     ["ÁREA CURRICULAR", v.area],
     ["DOCENTE RESPONSABLE", v.teacher],
     ["DIRECTOR(A)", v.director],
@@ -3464,7 +3533,7 @@ export function buildDocumentDocx(
         ],
       }),
     ];
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: momentsRows }));
+    children.push(createFixedTable(momentsRows, [20, 15, 65]));
     partNumber += 1;
   }
 
@@ -3484,7 +3553,7 @@ export function buildDocumentDocx(
     artifact.teacher_recommendations.forEach((rec) => {
       children.push(
         new Paragraph({
-          bullet: { level: 0 },
+          numbering: { reference: "vinetas", level: 0 },
           children: [new TextRun({ text: cleanText(rec), size: 19, font: "Calibri", color: COLOR_TEXT })],
           spacing: { after: 50 },
         })
@@ -3522,6 +3591,7 @@ export function buildDocumentDocx(
   }
 
   return new Document({
+    numbering: AVENDIA_NUMBERING,
     features: { updateFields: isLongDocument },
     styles: documentStyles,
     sections: [

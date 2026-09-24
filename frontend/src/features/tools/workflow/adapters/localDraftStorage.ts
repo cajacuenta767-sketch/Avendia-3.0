@@ -8,7 +8,7 @@
  */
 import { workflowModalities } from "../../../../config/workflows";
 import { DRAFT_VERSION, emptyDraft, type Draft } from "../domain/draft";
-import type { FieldValue } from "../domain/fieldValue";
+import { displayValue, type FieldValue } from "../domain/fieldValue";
 import type { DraftStorage } from "../ports/draftStorage";
 
 export function localDraftStorage(storageKey: string, legacyStorageKey: string): DraftStorage {
@@ -42,6 +42,32 @@ export function localDraftStorage(storageKey: string, legacyStorageKey: string):
       const saved: Draft = { ...draft, version: DRAFT_VERSION, updatedAt: new Date().toISOString() };
       localStorage.setItem(storageKey, JSON.stringify(saved));
       return saved;
+    },
+    meta(initialValues) {
+      for (const key of [storageKey, legacyStorageKey]) {
+        try {
+          const saved = JSON.parse(localStorage.getItem(key) ?? "null") as Partial<Draft> | null;
+          if (!saved) continue;
+          const hasArtifact = Boolean(saved.artifact);
+          const hasOwnValues = Object.entries(saved.values ?? {}).some(([id, value]) => {
+            const text = displayValue(value).trim();
+            return text && text !== displayValue(initialValues[id] ?? "").trim();
+          });
+          if (!hasArtifact && !hasOwnValues) continue;
+          return { updatedAt: String(saved.updatedAt ?? ""), hasArtifact };
+        } catch {
+          // Un borrador ilegible se ignora y se prueba con el siguiente.
+        }
+      }
+      return null;
+    },
+    clear() {
+      try {
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(legacyStorageKey);
+      } catch {
+        // Sin almacenamiento disponible basta con limpiar el estado en pantalla.
+      }
     },
   };
 }

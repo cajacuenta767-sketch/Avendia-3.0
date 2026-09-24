@@ -1,9 +1,10 @@
 import { Download, Sparkles } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { GenerationProgressOverlay } from "../../../components/GenerationProgressOverlay";
 import type { WorkflowArtifact } from "../../tools/exportWorkflowDocx";
 import { apiRequest } from "../../../lib/api";
+import { readSessionContext } from "../sessionContext";
 import { EducationFrameFields } from "./EducationFrameFields";
 import { educationFrameFromProfile } from "./educationFrameProfile";
 import { EvaluationPreviewSection, EvaluationWizard, type EvaluationWizardStep } from "./EvaluationWizard";
@@ -148,10 +149,12 @@ export function SourceDocumentTool({
   kind,
   instrumentId,
   onInstrumentIdChange,
+  fromDocumentId,
 }: {
   kind: SourceDocumentToolKind;
   instrumentId?: string;
   onInstrumentIdChange?: (instrumentId: string) => void;
+  fromDocumentId?: string;
 }) {
   const [state, setState] = useState<SourceToolState>(initialState);
   const [currentStep, setCurrentStep] = useState(0);
@@ -159,6 +162,33 @@ export function SourceDocumentTool({
   const [generating, setGenerating] = useState(false);
   const [generationError, setGenerationError] = useState("");
   const [exporting, setExporting] = useState(false);
+  // Continuación de una sesión de clase: el encuadre y el tema llegan completados.
+  useEffect(() => {
+    if (!fromDocumentId || instrumentId) return;
+    const controller = new AbortController();
+    const targetType = kind === "learning_sheet" ? "ficha-aprendizaje" : "preguntas-texto";
+    void readSessionContext(fromDocumentId, targetType, controller.signal)
+      .then((context) => {
+        if (!context) return;
+        setState((current) => ({
+          ...current,
+          title: current.title || context.topic,
+          frame: {
+            ...current.frame,
+            teacher_name: context.teacherName || current.frame.teacher_name,
+            institution_name: context.institution || current.frame.institution_name,
+            modality: context.modality,
+            education_level: context.level || current.frame.education_level,
+            grade_or_cycle: context.grade || current.frame.grade_or_cycle,
+            section: context.section || current.frame.section,
+            curricular_area: context.area || current.frame.curricular_area,
+          },
+        }));
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [fromDocumentId, instrumentId, kind]);
+
   const onLoaded = useCallback((instrument: EvaluationInstrument) => {
     const restored = draftFromInstrument(instrument);
     setState(restored);
