@@ -24,6 +24,66 @@ def _office_binary() -> str | None:
     return shutil.which("soffice") or shutil.which("libreoffice")
 
 
+def _word_fallback_enabled() -> bool:
+    """Word solo en Windows: activo fuera de producción salvo que se desactive por variable."""
+    if os.name != "nt":
+        return False
+    configured = os.getenv("PREVIEW_WORD_FALLBACK", "").strip().lower()
+    if configured:
+        return configured in {"1", "true", "yes"}
+    return os.getenv("ENVIRONMENT", "development").strip().lower() != "production"
+
+
+def _convert_with_word(source: Path, destination: Path, workspace: Path) -> bool:
+    """Alternativa de desarrollo local en Windows cuando no hay LibreOffice: usa Word instalado.
+
+    Producción usa siempre LibreOffice en el contenedor; esta vía es opcional y
+    desactivada por defecto.
+    """
+    word_executable = Path(r"C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE")
+    if not _word_fallback_enabled() or not word_executable.exists():
+        return False
+    script = workspace / "convertir-word.ps1"
+    script.write_text(
+        """
+param([string]$Source, [string]$Destination)
+$ErrorActionPreference = 'Stop'
+$word = $null
+$document = $null
+try {
+  $word = New-Object -ComObject Word.Application
+  $word.Visible = $false
+  $word.DisplayAlerts = 0
+  $document = $word.Documents.Open($Source, $false, $true)
+  $document.ExportAsFixedFormat($Destination, 17)
+} finally {
+  if ($document) { $document.Close([ref]$false) }
+  if ($word) { $word.Quit() }
+}
+""".strip(),
+        encoding="utf-8",
+    )
+    completed = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script),
+            "-Source",
+            str(source),
+            "-Destination",
+            str(destination),
+        ],
+        check=False,
+        capture_output=True,
+        timeout=CONVERSION_TIMEOUT_SECONDS,
+    )
+    return completed.returncode == 0 and destination.exists() and destination.stat().st_size > 0
+
+
 def _is_docx(content: bytes) -> bool:
     try:
         with ZipFile(BytesIO(content)) as archive:
@@ -40,25 +100,31 @@ def _convert_docx_to_pdf(docx_bytes: bytes, filename: str) -> bytes:
         source = workspace / filename
         source.write_bytes(docx_bytes)
         output = workspace / f"{source.stem}.pdf"
-        if not binary:
-            raise RuntimeError("LibreOffice no está disponible")
-        completed = subprocess.run(
-            [
-                binary,
-                "--headless",
-                "--convert-to",
-                "pdf:writer_pdf_Export",
-                "--outdir",
-                str(workspace),
-                str(source),
-            ],
-            check=False,
-            capture_output=True,
-            timeout=CONVERSION_TIMEOUT_SECONDS,
-        )
-        converted = completed.returncode == 0 and output.exists() and output.stat().st_size > 0
+        if binary:
+            completed = subprocess.run(
+                [
+                    binary,
+                    "--headless",
+                    "--convert-to",
+                    "pdf:writer_pdf_Export",
+                    "--outdir",
+                    str(workspace),
+                    str(source),
+                ],
+                check=False,
+                capture_output=True,
+                timeout=CONVERSION_TIMEOUT_SECONDS,
+            )
+            converted = completed.returncode == 0 and output.exists() and output.stat().st_size > 0
+        else:
+            converted = _convert_with_word(source, output, workspace)
         if not converted:
-            raise RuntimeError("LibreOffice no pudo crear el PDF")
+            if binary:
+                raise RuntimeError("LibreOffice no pudo convertir el documento a PDF")
+            raise RuntimeError(
+                "No hay un conversor disponible: instala LibreOffice (o Microsoft Word en "
+                "Windows) en el equipo donde corre la API"
+            )
         return output.read_bytes()
 
 
@@ -83,7 +149,7 @@ async def convert_upload_to_pdf(upload: UploadFile) -> tuple[bytes, str]:
     except RuntimeError as error:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "La vista exacta de Word no está disponible por el momento. "
+            f"La vista exacta de Word no está disponible: {error}. "
             "Puedes descargar el Word sin perder tu trabajo.",
         ) from error
     return pdf, Path(name).with_suffix(".pdf").name

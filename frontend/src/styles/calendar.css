@@ -9,7 +9,7 @@
 .calendar-heading__actions .secondary-button { min-height: 52px; }
 .calendar-heading__actions svg { width: 18px; }
 
-.calendar-summary { display: grid; grid-template-columns: .75fr 1fr 1.5fr; gap: 12px; margin-bottom: 16px; }
+.calendar-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 .calendar-summary article { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 13px; background: white; box-shadow: 0 7px 20px rgba(21, 47, 86, .04); }
 .calendar-summary article > span { display: grid; flex: 0 0 auto; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: #694de0; background: #f0edff; }
 .calendar-summary article > span svg { width: 19px; }

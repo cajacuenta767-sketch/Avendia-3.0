@@ -15,6 +15,7 @@ import {
   TableLayoutType,
   TableRow,
   TextRun,
+  VerticalAlign,
   WidthType,
 } from "docx";
 
@@ -99,6 +100,11 @@ export type StructuredArtifact = WorkflowArtifact;
 export type ExportWorkflowDocxOptions = ExportPlanAnualContext;
 
 const COLOR_HEADING = COLORS.heading;
+const COLOR_BAND_BG = COLORS.softBg; // Banda suave detrás de los títulos y rótulos
+const COLOR_CALLOUT_BG = "F1F6FC"; // Fondo de las cajas de instrucciones
+const COLOR_CARD_FRONT_BG = "F8FAFC"; // Frente de las tarjetas recortables
+const COLOR_CARD_BACK_BG = "FFFDF5"; // Reverso de las tarjetas recortables
+const COLOR_DASHED = "94A3B8"; // Líneas de recorte
 
 function safeFileName(value: string) {
   return (
@@ -271,12 +277,64 @@ function headerText(values: ReturnType<typeof extractCommonValues>, label: strin
   return [values.ie, label, values.year].filter((part) => !isPlaceholder(part)).join(" · ");
 }
 
+// Ancho útil de la hoja A4 vertical con los márgenes de pageProperties (twips).
+const CONTENT_WIDTH_TWIPS = 9746;
+
+/** Cabecera institucional: marca a la izquierda y datos del documento a la derecha, sobre una regla azul. */
 function documentHeader(text: string) {
   return themeHeader({ headerRight: cleanText(text) });
 }
 
 function documentFooter(text = "") {
   return themeFooter(text);
+}
+
+/** Bloque de título compartido: lema discreto, título institucional y subtítulo con regla azul. */
+function createTitleBlock(title: string, subtitle: string): Paragraph[] {
+  return [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: "DOCUMENTO PEDAGÓGICO EDITABLE", size: 15, color: COLOR_MUTED, font: "Calibri", characterSpacing: 30 })],
+      spacing: { after: 90 },
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: cleanText(title), bold: true, color: COLOR_PRIMARY, size: 30, font: "Calibri" })],
+      spacing: { after: 50, line: 264 },
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: COLOR_PRIMARY, space: 6 } },
+      children: [new TextRun({ text: cleanText(subtitle), bold: true, color: COLOR_SECONDARY, size: 18, font: "Calibri", characterSpacing: 10 })],
+      spacing: { after: 200 },
+    }),
+  ];
+}
+
+/** Caja destacada para instrucciones u orientaciones: franja lateral azul y fondo suave. */
+function createCalloutBlock(title: string, text: string, options: { icon?: string } = {}): Table {
+  const side = { style: BorderStyle.SINGLE, size: 4, color: COLOR_BORDER };
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [new TableRow({
+      cantSplit: true,
+      children: [new TableCell({
+        borders: {
+          left: { style: BorderStyle.SINGLE, size: 24, color: COLOR_SECONDARY },
+          top: side, bottom: side, right: side,
+        },
+        shading: { fill: COLOR_CALLOUT_BG, type: ShadingType.CLEAR },
+        margins: { top: 110, bottom: 110, left: 160, right: 160 },
+        children: [
+          new Paragraph({
+            spacing: { after: 40 },
+            children: [new TextRun({ text: `${options.icon ? `${options.icon} ` : ""}${cleanText(title)}`, bold: true, size: 19, color: COLOR_PRIMARY, font: "Calibri" })],
+          }),
+          ...createBodyParagraphs(text, { size: 19, after: 0 }),
+        ],
+      })],
+    })],
+  });
 }
 
 /** Texto en negrita para "Etiqueta: contenido" (etiqueta de una a cuatro palabras). */
@@ -414,9 +472,6 @@ const AVENDIA_NUMBERING = {
   ],
 };
 
-/** Ancho útil de una página A4 vertical con los márgenes del documento, en twips. */
-const CONTENT_WIDTH_TWIPS = 9746;
-
 /** Tabla con anchos de columna fijos: sin esto Word y LibreOffice reparten el ancho por el contenido. */
 function createFixedTable(rows: TableRow[], percents: number[]): Table {
   const total = percents.reduce((sum, value) => sum + value, 0) || 100;
@@ -505,6 +560,7 @@ function createStyledCell(
     margins: { top: 70, bottom: 70, left: 90, right: 90 },
     borders: cellBorders(),
     shading: fillColor ? { fill: fillColor, type: ShadingType.CLEAR } : undefined,
+    verticalAlign: isHeader ? VerticalAlign.CENTER : undefined,
     children: paragraphs,
   });
 }
@@ -642,7 +698,10 @@ function createQuestionBlocks(question: DocumentQuestion, options: { showLevel?:
         new TextRun({ text: cleanText(question.prompt), bold: true, color: COLOR_TEXT, size: 20, font: "Calibri" }),
         new TextRun({ text: `   ${tag}`, bold: true, color: COLOR_SECONDARY, size: 15, font: "Calibri" }),
       ],
-      spacing: { before: 80, after: 80 },
+      shading: { type: ShadingType.CLEAR, fill: COLOR_ZEBRA_BG },
+      border: { left: { style: BorderStyle.SINGLE, size: 18, color: COLOR_SECONDARY, space: 4 } },
+      indent: { left: 100 },
+      spacing: { before: 100, after: 80 },
       keepNext: true,
     }),
   ];
@@ -823,6 +882,239 @@ function extractCommonValues(values: Record<string, unknown> = {}, context: Reco
 }
 
 // ==========================================================================
+// BLOQUES DIDÁCTICOS COMPARTIDOS (registro, autoevaluación, verificación, seguimiento)
+// ==========================================================================
+
+function emptyLineCell(widthPercent: number, fill?: string): TableCell {
+  return createStyledCell(" ", { widthPercent, fillColor: fill });
+}
+
+/** Registro consolidado por estudiante para instrumentos con criterios observables. */
+function createStudentRecordBlocks(criteria: string[], options: { scaleNote: string; rows?: number }): (Paragraph | Table)[] {
+  const items = criteria.map((item) => cleanText(item)).filter(Boolean).slice(0, 8);
+  if (!items.length) return [];
+  const rows = options.rows ?? 12;
+  const criteriaWidth = Math.max(5, Math.floor(46 / items.length));
+  const nameWidth = 100 - 5 - criteriaWidth * items.length - 12 - 15;
+  const blocks: (Paragraph | Table)[] = [
+    createHeading("REGISTRO CONSOLIDADO POR ESTUDIANTE", HeadingLevel.HEADING_2),
+    createCalloutBlock("Cómo usar este registro", `${options.scaleNote} Cada columna C1, C2… corresponde a un criterio de la matriz; anota al final el nivel alcanzado y una observación breve para la retroalimentación.`, { icon: "📋" }),
+    ...items.map((item, index) => new Paragraph({
+      spacing: { after: 30 },
+      children: [
+        new TextRun({ text: `C${index + 1}: `, bold: true, color: COLOR_PRIMARY, size: 17, font: "Calibri" }),
+        new TextRun({ text: item, color: COLOR_TEXT, size: 17, font: "Calibri" }),
+      ],
+    })),
+    new Paragraph({ spacing: { after: 60 }, children: [] }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("N°", { isHeader: true, widthPercent: 5, alignment: AlignmentType.CENTER }),
+            createStyledCell("Apellidos y nombres", { isHeader: true, widthPercent: nameWidth }),
+            ...items.map((_, index) => createStyledCell(`C${index + 1}`, { isHeader: true, widthPercent: criteriaWidth, alignment: AlignmentType.CENTER })),
+            createStyledCell("Nivel / Total", { isHeader: true, widthPercent: 12, alignment: AlignmentType.CENTER }),
+            createStyledCell("Observación", { isHeader: true, widthPercent: 15 }),
+          ],
+        }),
+        ...Array.from({ length: rows }, (_, index) => new TableRow({
+          cantSplit: true,
+          height: { value: 360, rule: "atLeast" as const },
+          children: [
+            createStyledCell(String(index + 1), { widthPercent: 5, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            emptyLineCell(nameWidth, index % 2 ? COLOR_ZEBRA_BG : undefined),
+            ...items.map(() => emptyLineCell(criteriaWidth, index % 2 ? COLOR_ZEBRA_BG : undefined)),
+            emptyLineCell(12, index % 2 ? COLOR_ZEBRA_BG : undefined),
+            emptyLineCell(15, index % 2 ? COLOR_ZEBRA_BG : undefined),
+          ],
+        })),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 100 }, children: [] }),
+  ];
+  return blocks;
+}
+
+/** Resumen de puntaje y retroalimentación al pie de un examen. */
+function createScoreSummaryBlocks(questions: DocumentQuestion[]): (Paragraph | Table)[] {
+  if (!questions.length) return [];
+  const total = questions.reduce((sum, question) => sum + (Number(question.points) || 0), 0);
+  const cell = (text: string, widthPercent: number, options: { bold?: boolean; fill?: string; center?: boolean } = {}) =>
+    createStyledCell(text, { widthPercent, bold: options.bold, fillColor: options.fill, alignment: options.center ? AlignmentType.CENTER : undefined });
+  return [
+    createHeading("RESUMEN DE PUNTAJE Y RETROALIMENTACIÓN", HeadingLevel.HEADING_2),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("Pregunta", { isHeader: true, widthPercent: 16, alignment: AlignmentType.CENTER }),
+            ...questions.map((question) => createStyledCell(String(question.number), { isHeader: true, widthPercent: Math.floor(64 / questions.length), alignment: AlignmentType.CENTER })),
+            createStyledCell("Total", { isHeader: true, widthPercent: 20, alignment: AlignmentType.CENTER }),
+          ],
+        }),
+        new TableRow({
+          cantSplit: true,
+          children: [
+            cell("Puntaje máximo", 16, { bold: true, fill: COLOR_BAND_BG }),
+            ...questions.map((question) => cell(formatPoints(question.points) || "—", Math.floor(64 / questions.length), { center: true })),
+            cell(total ? `${total} pts` : "20 pts", 20, { bold: true, center: true }),
+          ],
+        }),
+        new TableRow({
+          cantSplit: true,
+          height: { value: 420, rule: "atLeast" as const },
+          children: [
+            cell("Puntaje obtenido", 16, { bold: true, fill: COLOR_BAND_BG }),
+            ...questions.map(() => cell(" ", Math.floor(64 / questions.length))),
+            cell(" ", 20),
+          ],
+        }),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 80 }, children: [] }),
+    createLabeledParagraph("Nota final:", "________ / 20", { size: 20 }),
+    createLabeledParagraph("Retroalimentación del docente:", "", { size: 20 }),
+    ...createAnswerLines(2),
+  ];
+}
+
+/** Ficha de autoevaluación y metacognición para el estudiante. */
+function createSelfAssessmentBlocks(): (Paragraph | Table)[] {
+  const statements = [
+    "Comprendí las instrucciones y el propósito de la actividad.",
+    "Resolví los retos aplicando lo que sabía y consultando cuando lo necesité.",
+    "Revisé mis respuestas y corregí mis errores.",
+    "Trabajé con orden, respeto y colaboración.",
+  ];
+  const levels = ["Lo logré", "Estoy en proceso", "Necesito apoyo"];
+  return [
+    createHeading("FICHA DE AUTOEVALUACIÓN DEL ESTUDIANTE", HeadingLevel.HEADING_1),
+    createBodyParagraph("Marca con una ✗ cómo te sentiste con cada afirmación y completa las preguntas de reflexión.", { italic: true, after: 80 }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("Afirmación", { isHeader: true, widthPercent: 58 }),
+            ...levels.map((level) => createStyledCell(level, { isHeader: true, widthPercent: 14, alignment: AlignmentType.CENTER })),
+          ],
+        }),
+        ...statements.map((statement, index) => new TableRow({
+          cantSplit: true,
+          children: [
+            createStyledCell(statement, { widthPercent: 58, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            ...levels.map(() => createStyledCell("[  ]", { widthPercent: 14, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined })),
+          ],
+        })),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 80 }, children: [] }),
+    createLabeledParagraph("¿Qué aprendí hoy?", "", { size: 20 }),
+    ...createAnswerLines(2),
+    createLabeledParagraph("¿Qué me resultó difícil y cómo lo superaré?", "", { size: 20 }),
+    ...createAnswerLines(2),
+  ];
+}
+
+/** Lista de verificación que el docente completa antes y después de aplicar el documento. */
+function createTeacherChecklistBlocks(items: string[]): (Paragraph | Table)[] {
+  return [
+    createHeading("LISTA DE VERIFICACIÓN PARA LA APLICACIÓN", HeadingLevel.HEADING_1),
+    createBodyParagraph("Marca cada punto al planificar y al cerrar la aplicación; registra la evidencia o la fecha en la columna derecha.", { italic: true, after: 80 }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("✓", { isHeader: true, widthPercent: 6, alignment: AlignmentType.CENTER }),
+            createStyledCell("Aspecto a verificar", { isHeader: true, widthPercent: 62 }),
+            createStyledCell("Evidencia / fecha", { isHeader: true, widthPercent: 32 }),
+          ],
+        }),
+        ...items.map((item, index) => new TableRow({
+          cantSplit: true,
+          children: [
+            createStyledCell("[  ]", { widthPercent: 6, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(item, { widthPercent: 62, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            emptyLineCell(32, index % 2 ? COLOR_ZEBRA_BG : undefined),
+          ],
+        })),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 120 }, children: [] }),
+  ];
+}
+
+/** Tabla de seguimiento de compromisos con responsable, plazo y estado. */
+function createFollowUpBlocks(commitments: string[], title = "SEGUIMIENTO DE COMPROMISOS"): (Paragraph | Table)[] {
+  const rows = commitments.map((item) => cleanText(item)).filter(Boolean).slice(0, 8);
+  const lines = rows.length ? rows : ["", "", "", ""];
+  return [
+    createHeading(title, HeadingLevel.HEADING_1),
+    createBodyParagraph("Registra el responsable, el plazo y el estado (Pendiente · En curso · Logrado) en cada revisión.", { italic: true, after: 80 }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          cantSplit: true,
+          children: [
+            createStyledCell("N°", { isHeader: true, widthPercent: 6, alignment: AlignmentType.CENTER }),
+            createStyledCell("Compromiso / acción", { isHeader: true, widthPercent: 46 }),
+            createStyledCell("Responsable", { isHeader: true, widthPercent: 18 }),
+            createStyledCell("Plazo", { isHeader: true, widthPercent: 14, alignment: AlignmentType.CENTER }),
+            createStyledCell("Estado", { isHeader: true, widthPercent: 16, alignment: AlignmentType.CENTER }),
+          ],
+        }),
+        ...lines.map((line, index) => new TableRow({
+          cantSplit: true,
+          height: { value: 420, rule: "atLeast" as const },
+          children: [
+            createStyledCell(String(index + 1), { widthPercent: 6, alignment: AlignmentType.CENTER, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(line || " ", { widthPercent: 46, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+            emptyLineCell(18, index % 2 ? COLOR_ZEBRA_BG : undefined),
+            emptyLineCell(14, index % 2 ? COLOR_ZEBRA_BG : undefined),
+            emptyLineCell(16, index % 2 ? COLOR_ZEBRA_BG : undefined),
+          ],
+        })),
+      ],
+    }),
+    new Paragraph({ spacing: { after: 120 }, children: [] }),
+  ];
+}
+
+/** Compromisos acordados entre familia, estudiante e institución en un comunicado. */
+function createFamilyAgreementBlocks(): (Paragraph | Table)[] {
+  const parties = ["Compromiso de la familia", "Compromiso del estudiante", "Compromiso de la institución educativa"];
+  return [
+    createHeading("COMPROMISOS ACORDADOS", HeadingLevel.HEADING_2),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: parties.map((party, index) => new TableRow({
+        cantSplit: true,
+        height: { value: 560, rule: "atLeast" as const },
+        children: [
+          createStyledCell(party, { widthPercent: 32, bold: true, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
+          emptyLineCell(68, index % 2 ? COLOR_ZEBRA_BG : undefined),
+        ],
+      })),
+    }),
+    new Paragraph({ spacing: { after: 120 }, children: [] }),
+  ];
+}
+
+// ==========================================================================
 // 1. BUILDER: INSTRUMENTOS DE EVALUACIÓN
 // ==========================================================================
 export function buildInstrumentDocx(
@@ -844,45 +1136,7 @@ export function buildInstrumentDocx(
 
   // Encabezado
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 120 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(artifact.document_title).toUpperCase(),
-          bold: true,
-          color: COLOR_HEADING,
-          size: 28,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: `INSTRUMENTO OFICIAL DE EVALUACIÓN FORMATIVA · ${v.area.toUpperCase()}`,
-          bold: true,
-          color: COLOR_HEADING,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 200 },
-    })
+    ...createTitleBlock(cleanText(artifact.document_title).toUpperCase(), `INSTRUMENTO OFICIAL DE EVALUACIÓN FORMATIVA · ${v.area.toUpperCase()}`)
   );
 
   // Si es Examen / Prueba
@@ -928,25 +1182,25 @@ export function buildInstrumentDocx(
       rows: [
         new TableRow({
           children: [
-            createStyledCell("INSTITUCIÓN EDUCATIVA", { bold: true, widthPercent: 35 }),
+            createStyledCell("INSTITUCIÓN EDUCATIVA", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
             createStyledCell(v.ie, { widthPercent: 65 }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell("ÁREA CURRICULAR / GRADO", { bold: true, widthPercent: 35 }),
+            createStyledCell("ÁREA CURRICULAR / GRADO", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
             createStyledCell(`${fill(v.area, 14)} · ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 65 }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell("DOCENTE EVALUADOR(A)", { bold: true, widthPercent: 35 }),
+            createStyledCell("DOCENTE EVALUADOR(A)", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
             createStyledCell(v.teacher, { widthPercent: 65 }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell("PROPÓSITO DE LA EVALUACIÓN", { bold: true, widthPercent: 35 }),
+            createStyledCell("PROPÓSITO DE LA EVALUACIÓN", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
             createStyledCell(artifact.executive_summary, { widthPercent: 65 }),
           ],
         }),
@@ -1067,6 +1321,7 @@ export function buildInstrumentDocx(
       });
     });
 
+    children.push(...createScoreSummaryBlocks(typedQuestions));
     children.push(new Paragraph({ children: [new PageBreak()] }));
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -1158,6 +1413,20 @@ export function buildInstrumentDocx(
     });
   }
 
+  // Registro consolidado por estudiante para los instrumentos con criterios observables.
+  const isObservation = (context.workflowKey || "").includes("ficha-observacion");
+  if (isChecklist || isScale || isObservation || isRubric) {
+    const criteria = isRubric && artifact.tables?.[0]
+      ? artifact.tables[0].rows.map((row) => String(row[0] ?? ""))
+      : artifact.sections.flatMap((section) => section.key_points);
+    const scaleNote = isChecklist
+      ? "Marca ✓ cuando el desempeño se observa y ✗ cuando aún está en proceso."
+      : isRubric
+        ? "Anota en cada criterio el nivel alcanzado (C = inicio, B = en proceso, A = logro esperado, AD = logro destacado)."
+        : "Anota en cada criterio el valor de la escala del instrumento (por ejemplo 1 a 4) o el nivel observado.";
+    children.push(...createStudentRecordBlocks(criteria, { scaleNote, rows: isRubric ? 10 : 12 }));
+  }
+
   // Orientaciones. Los instrumentos de evaluación se entregan listos para usar
   // y no fuerzan una hoja adicional únicamente para firmas. Las validaciones
   // institucionales se conservan en los documentos que realmente las requieren.
@@ -1192,8 +1461,92 @@ export function buildInstrumentDocx(
   });
 }
 
+type FlashcardItem = { id?: string; prompt: string; answer?: string; hint?: string };
+
+/** Celda de una tarjeta recortable: bordes punteados, altura fija y contenido centrado. */
+function createFlashcardCell(card: FlashcardItem | null, index: number, side: "front" | "back"): TableCell {
+  const dashed = { style: BorderStyle.DASHED, size: 8, color: COLOR_DASHED };
+  const borders = { top: dashed, bottom: dashed, left: dashed, right: dashed };
+  if (!card) {
+    return new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders, children: [new Paragraph({ children: [] })] });
+  }
+  const label = new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 90 },
+    children: [new TextRun({
+      text: side === "front" ? `✂  TARJETA N° ${index + 1}` : `TARJETA N° ${index + 1} · REVERSO  ✂`,
+      bold: true, size: 15, color: COLOR_MUTED, font: "Calibri", characterSpacing: 15,
+    })],
+  });
+  const body: Paragraph[] = side === "front"
+    ? [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 60, after: 60, line: 276 },
+        children: [new TextRun({ text: cleanText(card.prompt), bold: true, size: 24, color: COLOR_PRIMARY, font: "Calibri" })],
+      })]
+    : cleanText(card.answer ?? "")
+      ? [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 40 },
+            children: [new TextRun({ text: "¿QUÉ SIGNIFICA?", bold: true, size: 15, color: COLOR_SECONDARY, font: "Calibri" })],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 60, line: 264 },
+            children: [new TextRun({ text: cleanText(card.answer ?? ""), size: 19, color: COLOR_TEXT, font: "Calibri" })],
+          }),
+          ...(cleanText(card.hint ?? "") ? [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 20 },
+            children: [
+              new TextRun({ text: "💡 Pista: ", bold: true, size: 17, color: COLOR_SECONDARY, font: "Calibri" }),
+              new TextRun({ text: cleanText(card.hint ?? ""), italics: true, size: 17, color: COLOR_MUTED, font: "Calibri" }),
+            ],
+          })] : []),
+        ]
+      : [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 80 },
+            children: [new TextRun({ text: "Escribe el significado con tus palabras:", bold: true, size: 17, color: COLOR_SECONDARY, font: "Calibri" })],
+          }),
+          ...Array.from({ length: 3 }, () => new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 70 },
+            children: [new TextRun({ text: "______________________________________", size: 18, color: "B9CDE5", font: "Calibri" })],
+          })),
+        ];
+  return new TableCell({
+    width: { size: 50, type: WidthType.PERCENTAGE },
+    borders,
+    shading: { fill: side === "front" ? COLOR_CARD_FRONT_BG : COLOR_CARD_BACK_BG, type: ShadingType.CLEAR },
+    margins: { top: 140, bottom: 140, left: 180, right: 180 },
+    verticalAlign: VerticalAlign.CENTER,
+    children: [label, ...body],
+  });
+}
+
+/** Hoja de tarjetas en cuadrícula de dos columnas; frentes y reversos llevan el mismo número. */
+function createFlashcardSheet(cards: FlashcardItem[], side: "front" | "back"): Table {
+  const rows: TableRow[] = [];
+  for (let index = 0; index < cards.length; index += 2) {
+    const pair: Array<[FlashcardItem | null, number]> = [[cards[index] ?? null, index], [cards[index + 1] ?? null, index + 1]];
+    rows.push(new TableRow({
+      cantSplit: true,
+      height: { value: 2500, rule: "atLeast" as const },
+      children: pair.map(([card, cardIndex]) => createFlashcardCell(card, cardIndex, side)),
+    }));
+  }
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: [Math.round(CONTENT_WIDTH_TWIPS / 2), Math.round(CONTENT_WIDTH_TWIPS / 2)],
+    rows,
+  });
+}
+
 // ==========================================================================
-// 2. BUILDER: ACTIVIDADES PRÁCTICAS Y JUEGOS DIDÁCTICOS
+// 2. BUILDER: ACTIVIDADES Y RECURSOS
 // ==========================================================================
 export function buildActivityDocx(
   artifact: WorkflowArtifact,
@@ -1214,45 +1567,7 @@ export function buildActivityDocx(
   const children: (Paragraph | Table)[] = [];
 
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 120 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(artifact.document_title).toUpperCase(),
-          bold: true,
-          color: COLOR_HEADING,
-          size: 28,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: `FICHA DE APLICACIÓN Y TRABAJO ACTIVO · ${v.area.toUpperCase()}`,
-          bold: true,
-          color: COLOR_HEADING,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 180 },
-    })
+    ...createTitleBlock(cleanText(artifact.document_title).toUpperCase(), `FICHA DE APLICACIÓN Y TRABAJO ACTIVO · ${v.area.toUpperCase()}`)
   );
 
   // Encabezado del estudiante
@@ -1264,35 +1579,29 @@ export function buildActivityDocx(
           createStyledCell("Estudiante: __________________________________________________", {
             colSpan: 2,
             widthPercent: 75,
+            fillColor: COLOR_ZEBRA_BG,
           }),
-          createStyledCell(`Grado/Secc: ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 25 }),
+          createStyledCell(`Grado/Secc: ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 25, fillColor: COLOR_ZEBRA_BG }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 50 }),
-          createStyledCell(`Área: ${fill(v.area, 14)}`, { widthPercent: 25 }),
-          createStyledCell(`Fecha: ____/____/${fill(v.year, 6)}`, { widthPercent: 25 }),
+          createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 50, fillColor: COLOR_ZEBRA_BG }),
+          createStyledCell(`Área: ${fill(v.area, 14)}`, { widthPercent: 25, fillColor: COLOR_ZEBRA_BG }),
+          createStyledCell(`Fecha: ____/____/${fill(v.year, 6)}`, { widthPercent: 25, fillColor: COLOR_ZEBRA_BG }),
         ],
       }),
     ],
   });
   children.push(studentHeader);
 
-  children.push(
-    new Paragraph({
-      children: [
-        new TextRun({ text: "Instrucciones: ", bold: true, color: COLOR_PRIMARY, size: 20, font: "Calibri" }),
-        new TextRun({
-          text: cleanText(artifact.activity?.instructions || artifact.executive_summary) || "Lee con atención y completa los retos propuestos aplicando tus saberes.",
-          color: COLOR_TEXT,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { before: 140, after: 140 },
-    })
-  );
+  children.push(new Paragraph({ spacing: { after: 40 }, children: [] }));
+  children.push(createCalloutBlock(
+    "Instrucciones",
+    cleanText(artifact.activity?.instructions || artifact.executive_summary) || "Lee con atención y completa los retos propuestos aplicando tus saberes.",
+    { icon: "📝" },
+  ));
+  children.push(new Paragraph({ spacing: { after: 60 }, children: [] }));
 
   if ((artifact.tables?.length ?? 0) > 0 && !isDebate && !isCaseStudy) {
     children.push(createHeading("RUTA DE TRABAJO", HeadingLevel.HEADING_2));
@@ -1302,26 +1611,7 @@ export function buildActivityDocx(
   // Si es Sopa de Letras
   if (isWordSearch) {
     children.push(createHeading("CUADRÍCULA DE BÚSQUEDA DE PALABRAS", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Encuentra las palabras clave en la cuadrícula de letras (pueden estar en sentido horizontal, vertical o diagonal). Enciérralas con colores y escribe una oración breve para cada una en la tabla inferior.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 160 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Encuentra las palabras clave en la cuadrícula de letras (pueden estar en sentido horizontal, vertical o diagonal). Enciérralas con colores y escribe una oración breve para cada una en la tabla inferior.", { icon: "📝" }));
 
     const items = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items
@@ -1440,84 +1730,30 @@ export function buildActivityDocx(
 
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isFlashcards) {
+    const cardItems = (artifact.activity?.items && artifact.activity.items.length > 0)
+      ? artifact.activity.items
+      : artifact.sections.flatMap((s) => s.key_points).map((p, i) => ({
+          id: String(i + 1),
+          prompt: p,
+          answer: "",
+          hint: "",
+          options: [],
+        }));
+
     children.push(createHeading("TARJETAS DIDÁCTICAS RECORTABLES (FRENTE Y REVERSO)", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones de recorte y armado: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Recorta cada tarjeta por la línea punteada (✂). Lee el concepto o pregunta del frente, formula tu respuesta y comprueba con el reverso.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 120 },
-      })
-    );
-
-    const cardsRows: TableRow[] = [
-      new TableRow({
-        tableHeader: true,
-        cantSplit: true,
-        children: [
-          createStyledCell("✂ FRENTE (Anverso / Pregunta o Concepto)", { isHeader: true, widthPercent: 50, alignment: AlignmentType.CENTER }),
-          createStyledCell("✂ REVERSO (Dorso / ¿Qué significa? y Pista)", { isHeader: true, widthPercent: 50, alignment: AlignmentType.CENTER }),
-        ],
-      }),
-    ];
-
-    if (artifact.activity && artifact.activity.items && artifact.activity.items.length > 0) {
-      artifact.activity.items.forEach((item, idx) => {
-        const frontText = `TARJETA N° ${idx + 1}\n\n${item.prompt}`;
-        let backText = `¿QUÉ SIGNIFICA?\n${item.answer}`;
-        if (item.hint) {
-          backText += `\n\n💡 Pista formativa: ${item.hint}`;
-        }
-        cardsRows.push(
-          new TableRow({
-            cantSplit: true,
-            children: [
-              createStyledCell(frontText, {
-                bold: true,
-                alignment: AlignmentType.CENTER,
-                widthPercent: 50,
-                fillColor: "F8FAFC",
-                fontSize: 22,
-              }),
-              createStyledCell(backText, {
-                widthPercent: 50,
-                fillColor: "FFFFFF",
-                fontSize: 19,
-              }),
-            ],
-          })
-        );
-      });
-    } else {
-      const points = artifact.sections.flatMap((s) => s.key_points);
-      for (let i = 0; i < points.length; i += 2) {
-        cardsRows.push(
-          new TableRow({
-            cantSplit: true,
-            children: [
-              createStyledCell(`✂ TARJETA N° ${i + 1}\n\n${points[i]}`, { widthPercent: 50, bold: true, alignment: AlignmentType.CENTER }),
-              createStyledCell(
-                points[i + 1] ? `✂ TARJETA N° ${i + 2}\n\n${points[i + 1]}` : "",
-                { widthPercent: 50, bold: true, alignment: AlignmentType.CENTER }
-              ),
-            ],
-          })
-        );
-      }
-    }
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: cardsRows }));
+    children.push(createCalloutBlock(
+      "Cómo armar las tarjetas",
+      "1. Recorta cada tarjeta por la línea punteada (✂): primero los frentes de la Hoja A y luego los reversos de la Hoja B, que llevan el mismo número.\n"
+      + "2. Pega cada frente con su reverso espalda con espalda (o imprime la Hoja B al dorso de la Hoja A si tu impresora lo permite).\n"
+      + "3. Lee la pregunta o concepto, formula tu respuesta en voz alta o por escrito y voltea la tarjeta para comprobar con la pista formativa.",
+      { icon: "✂" },
+    ));
+    children.push(new Paragraph({ spacing: { after: 40 }, children: [] }));
+    children.push(createHeading("Hoja A · Frentes: pregunta o concepto", HeadingLevel.HEADING_2));
+    children.push(createFlashcardSheet(cardItems, "front"));
+    children.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
+    children.push(createHeading("Hoja B · Reversos: respuesta y pista", HeadingLevel.HEADING_2));
+    children.push(createFlashcardSheet(cardItems, "back"));
 
     // Solucionario de Tarjetas de Estudio en nueva página
     children.push(
@@ -1553,25 +1789,15 @@ export function buildActivityDocx(
       }),
     ];
 
-    const cardItems = (artifact.activity?.items && artifact.activity.items.length > 0)
-      ? artifact.activity.items
-      : artifact.sections.flatMap((s) => s.key_points).map((p, i) => ({
-          id: String(i + 1),
-          prompt: `Tarjeta #${i + 1}`,
-          answer: p,
-          hint: "Profundizar en clase",
-          options: [],
-        }));
-
     cardItems.forEach((card, idx) => {
       flashcardsSolutionRows.push(
         new TableRow({
           cantSplit: true,
           children: [
-            createStyledCell(String(idx + 1), { widthPercent: 8, alignment: AlignmentType.CENTER, bold: true }),
-            createStyledCell(cleanText(card.prompt), { widthPercent: 32, bold: true }),
-            createStyledCell(cleanText(card.answer), { widthPercent: 40 }),
-            createStyledCell(cleanText(card.hint) || "Verificar comprensión activa.", { widthPercent: 20, italics: true }),
+            createStyledCell(String(idx + 1), { widthPercent: 8, alignment: AlignmentType.CENTER, bold: true, fillColor: idx % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(cleanText(card.prompt), { widthPercent: 32, bold: true, fillColor: idx % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(cleanText(card.answer) || "Respuesta construida por el estudiante con sus propias palabras.", { widthPercent: 40, fillColor: idx % 2 ? COLOR_ZEBRA_BG : undefined }),
+            createStyledCell(cleanText(card.hint) || "Verificar comprensión activa.", { widthPercent: 20, italics: true, fillColor: idx % 2 ? COLOR_ZEBRA_BG : undefined }),
           ],
         })
       );
@@ -1580,26 +1806,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: flashcardsSolutionRows }));
   } else if (isHangman) {
     children.push(createHeading("RETOS DE VOCABULARIO Y ADIVINANZAS: JUEGO DEL AHORCADO", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee con atención la pista o adivinanza de cada reto. Descubre la palabra secreta completando una letra en cada casilla cuadrada. Puedes tachar en el abecedario las letras que vayas probando. Tienes 4 vidas [♥] por palabra antes de equivocarte.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 180 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee con atención la pista o adivinanza de cada reto. Descubre la palabra secreta completando una letra en cada casilla cuadrada. Puedes tachar en el abecedario las letras que vayas probando. Tienes 4 vidas [♥] por palabra antes de equivocarte.", { icon: "📝" }));
 
     const hangmanItems = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items
@@ -1752,26 +1959,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isCompletion) {
     children.push(createHeading("FICHA DE APLICACIÓN: COMPLETA LA FRASE", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee con atención cada enunciado. Selecciona la palabra adecuada del Banco de Palabras y escríbela sobre la línea punteada para completar correctamente cada oración.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 140 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee con atención cada enunciado. Selecciona la palabra adecuada del Banco de Palabras y escríbela sobre la línea punteada para completar correctamente cada oración.", { icon: "📝" }));
 
     // Obtener los ítems de completación
     const completionItems = (artifact.activity?.items && artifact.activity.items.length > 0)
@@ -1923,26 +2111,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isMatching) {
     children.push(createHeading("FICHA DE APLICACIÓN: EMPAREJAR CONCEPTOS Y RELACIONES", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee con atención los conceptos de la Columna A y sus definiciones en la Columna B. Relaciona cada concepto escribiendo la letra mayúscula correspondiente dentro de los paréntesis vacíos (   ).",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 160 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee con atención los conceptos de la Columna A y sus definiciones en la Columna B. Relaciona cada concepto escribiendo la letra mayúscula correspondiente dentro de los paréntesis vacíos (   ).", { icon: "📝" }));
 
     const matchingItems = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items
@@ -2076,26 +2245,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isCrossword) {
     children.push(createHeading("CUADRÍCULA Y RETOS DEL CRUCIGRAMA EDUCATIVO", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee atentamente las pistas horizontales y verticales. Escribe una letra en cada casilla blanca según el número correspondiente. Las casillas sombreadas indican separación entre palabras.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 160 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee atentamente las pistas horizontales y verticales. Escribe una letra en cada casilla blanca según el número correspondiente. Las casillas sombreadas indican separación entre palabras.", { icon: "📝" }));
 
     const crosswordItems = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items
@@ -2249,26 +2399,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isGrouping) {
     children.push(createHeading("FICHA DE APLICACIÓN: AGRUPAR Y CATEGORIZAR CONCEPTOS", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Observa con atención el Banco de Términos desordenados. Clasifica y escribe cada elemento en la columna correspondiente según el criterio pedagógico indicado.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 140 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Observa con atención el Banco de Términos desordenados. Clasifica y escribe cada elemento en la columna correspondiente según el criterio pedagógico indicado.", { icon: "📝" }));
 
     const rawBank = (artifact.activity?.word_bank && artifact.activity.word_bank.length > 0)
       ? artifact.activity.word_bank
@@ -2419,26 +2550,7 @@ export function buildActivityDocx(
     children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: solutionRows }));
   } else if (isSequence) {
     children.push(createHeading("FICHA DE APLICACIÓN: ORDENAR BLOQUES Y SECUENCIAS", HeadingLevel.HEADING_1, "I."));
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Instrucciones para el estudiante: ",
-            bold: true,
-            color: COLOR_PRIMARY,
-            size: 19,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: "Lee con atención los bloques desordenados. Analiza la cronología o el procedimiento lógico y escribe el número de orden correspondiente en cada casilla.",
-            size: 19,
-            color: COLOR_TEXT,
-            font: "Calibri",
-          }),
-        ],
-        spacing: { after: 140 },
-      })
-    );
+    children.push(createCalloutBlock("Instrucciones para el estudiante", "Lee con atención los bloques desordenados. Analiza la cronología o el procedimiento lógico y escribe el número de orden correspondiente en cada casilla.", { icon: "📝" }));
 
     const sequenceItems = (artifact.activity?.items && artifact.activity.items.length > 0)
       ? artifact.activity.items
@@ -2754,6 +2866,10 @@ export function buildActivityDocx(
     });
   }
 
+  // Anexo para el estudiante: autoevaluación y metacognición al cierre de la actividad.
+  children.push(new Paragraph({ children: [new PageBreak()] }));
+  children.push(...createSelfAssessmentBlocks());
+
   return new Document({
     numbering: AVENDIA_NUMBERING,
     styles: documentStyles,
@@ -2779,45 +2895,7 @@ export function buildAnalyticsDocx(
   const children: (Paragraph | Table)[] = [];
 
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 120 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(artifact.document_title).toUpperCase(),
-          bold: true,
-          color: COLOR_HEADING,
-          size: 28,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "INFORME TÉCNICO PEDAGÓGICO DE SEGUIMIENTO Y ALERTAS",
-          bold: true,
-          color: COLOR_HEADING,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 200 },
-    })
+    ...createTitleBlock(cleanText(artifact.document_title).toUpperCase(), "INFORME TÉCNICO PEDAGÓGICO DE SEGUIMIENTO Y ALERTAS")
   );
 
   // I. Datos del informe
@@ -2827,25 +2905,25 @@ export function buildAnalyticsDocx(
     rows: [
       new TableRow({
         children: [
-          createStyledCell("INSTITUCIÓN EDUCATIVA", { bold: true, widthPercent: 35 }),
+          createStyledCell("INSTITUCIÓN EDUCATIVA", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(v.ie, { widthPercent: 65 }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell("GRADO Y SECCIÓN EVALUADA", { bold: true, widthPercent: 35 }),
+          createStyledCell("GRADO Y SECCIÓN EVALUADA", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(`${fill(v.grade, 10)} "${fill(v.section, 4)}" · ${fill(v.area, 14)}`, { widthPercent: 65 }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell("DOCENTE RESPONSABLE", { bold: true, widthPercent: 35 }),
+          createStyledCell("DOCENTE RESPONSABLE", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(v.teacher, { widthPercent: 65 }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell("FECHA DE EMISIÓN", { bold: true, widthPercent: 35 }),
+          createStyledCell("FECHA DE EMISIÓN", { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(new Date().toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" }), {
             widthPercent: 65,
           }),
@@ -2918,6 +2996,7 @@ export function buildAnalyticsDocx(
     );
   });
 
+  children.push(...createFollowUpBlocks(artifact.teacher_recommendations));
   children.push(createSignaturesTable(displayValue(v.teacher, ""), "Docente Responsable del Análisis", displayValue(v.director, ""), "Dirección / Coordinación Pedagógica"));
 
   return new Document({
@@ -2945,45 +3024,7 @@ export function buildCommunicationDocx(
   const children: (Paragraph | Table)[] = [];
 
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 100 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(v.ie).toUpperCase(),
-          bold: true,
-          color: COLOR_PRIMARY,
-          size: 26,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 40 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: `COMUNICADO OFICIAL A LA FAMILIA · CICLO ESCOLAR ${fill(v.year, 6)}`,
-          bold: true,
-          color: COLOR_SECONDARY,
-          size: 19,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 200 },
-    })
+    ...createTitleBlock(cleanText(v.ie).toUpperCase(), `COMUNICADO OFICIAL A LA FAMILIA · CICLO ESCOLAR ${fill(v.year, 6)}`)
   );
 
   // Destinatario
@@ -2992,14 +3033,14 @@ export function buildCommunicationDocx(
     rows: [
       new TableRow({
         children: [
-          createStyledCell(`Para: ${fill(v.guardian, 22)} (Padre, madre o tutor legal)`, { widthPercent: 60 }),
-          createStyledCell(`Fecha: ${new Date().toLocaleDateString("es-PE")}`, { widthPercent: 40 }),
+          createStyledCell(`Para: ${fill(v.guardian, 22)} (Padre, madre o tutor legal)`, { widthPercent: 60, fillColor: COLOR_ZEBRA_BG }),
+          createStyledCell(`Fecha: ${new Date().toLocaleDateString("es-PE")}`, { widthPercent: 40, fillColor: COLOR_ZEBRA_BG }),
         ],
       }),
       new TableRow({
         children: [
-          createStyledCell(`Estudiante: ${fill(v.student, 22)} · ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 60 }),
-          createStyledCell(`Asunto: ${cleanText(artifact.document_title)}`, { bold: true, widthPercent: 40 }),
+          createStyledCell(`Estudiante: ${fill(v.student, 22)} · ${fill(v.grade, 10)} "${fill(v.section, 4)}"`, { widthPercent: 60, fillColor: COLOR_ZEBRA_BG }),
+          createStyledCell(`Asunto: ${cleanText(artifact.document_title)}`, { bold: true, widthPercent: 40, fillColor: COLOR_ZEBRA_BG, color: COLOR_PRIMARY }),
         ],
       }),
     ],
@@ -3036,6 +3077,7 @@ export function buildCommunicationDocx(
   children.push(createSignaturesTable(displayValue(v.teacher, ""), "Docente Tutor(a)", displayValue(v.director, ""), "Dirección General"));
 
   // Talón desglosable
+  children.push(...createFamilyAgreementBlocks());
   children.push(
     new Paragraph({
       children: [
@@ -3177,14 +3219,14 @@ export function buildHomeworkDocx(
       rows: [
         new TableRow({
           children: [
-            createStyledCell("Estudiante: __________________________________________", { widthPercent: 60 }),
-            createStyledCell(`Grado y sección: ${fill(v.grade, 10)} — ${fill(v.section, 4)}`, { widthPercent: 40 }),
+            createStyledCell("Estudiante: __________________________________________", { widthPercent: 60, fillColor: COLOR_ZEBRA_BG }),
+            createStyledCell(`Grado y sección: ${fill(v.grade, 10)} — ${fill(v.section, 4)}`, { widthPercent: 40, fillColor: COLOR_ZEBRA_BG }),
           ],
         }),
         new TableRow({
           children: [
-            createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 60 }),
-            createStyledCell("Fecha: ____ / ____ / ______", { widthPercent: 40 }),
+            createStyledCell(`I.E.: ${fill(v.ie, 20)}`, { widthPercent: 60, fillColor: COLOR_ZEBRA_BG }),
+            createStyledCell("Fecha: ____ / ____ / ______", { widthPercent: 40, fillColor: COLOR_ZEBRA_BG }),
           ],
         }),
       ],
@@ -3254,6 +3296,9 @@ export function buildHomeworkDocx(
         })),
       ],
     }),
+    new Paragraph({ spacing: { after: 120 }, children: [] }),
+    ...createSelfAssessmentBlocks(),
+    createLabeledParagraph("Firma del padre, madre o apoderado:", "______________________________    Fecha: ____ / ____ / ______", { size: 19 }),
     new Paragraph({ children: [new PageBreak()] }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -3343,20 +3388,37 @@ function createCoverBlocks(
     rows: rows.map(([label, value], index) => new TableRow({
       cantSplit: true,
       children: [
-        createStyledCell(label, { bold: true, widthPercent: 40, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
+        createStyledCell(label, { bold: true, widthPercent: 40, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
         createStyledCell(value, { widthPercent: 60, fillColor: index % 2 ? COLOR_ZEBRA_BG : undefined }),
       ],
     })),
   }) : null;
+  const band = (text: string, size: number, fill: string, color: string) => new Paragraph({
+    alignment: AlignmentType.CENTER,
+    shading: { type: ShadingType.CLEAR, fill },
+    children: [new TextRun({ text: cleanText(text), bold: true, color, size, font: "Calibri" })],
+    spacing: { before: 120, after: 140 },
+  });
   return [
-    new Paragraph({ spacing: { before: 2200 }, children: [] }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      shading: { type: ShadingType.CLEAR, fill: COLOR_BAND_BG },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: COLOR_PRIMARY, space: 4 } },
+      children: [new TextRun({ text: "PLANIFICACIÓN CURRICULAR · CURRÍCULO NACIONAL DE LA EDUCACIÓN BÁSICA", size: 15, color: COLOR_PRIMARY, bold: true, font: "Calibri", characterSpacing: 25 })],
+      spacing: { before: 60, after: 1900 },
+    }),
     line(isPlaceholder(v.ie) ? "Institución educativa" : v.ie, 24, true, COLOR_PRIMARY),
-    line(kindLabel.toLocaleUpperCase("es"), 40, true, COLOR_PRIMARY),
+    band(kindLabel.toLocaleUpperCase("es"), 40, COLOR_PRIMARY, "FFFFFF"),
     line(artifact.document_title, 26, true),
     new Paragraph({ spacing: { before: 500 }, children: [] }),
     ...(table ? [table] : []),
     new Paragraph({ spacing: { before: 700 }, children: [] }),
-    line(`Año lectivo ${isPlaceholder(v.year) ? "________" : v.year}`, 22, true, COLOR_SECONDARY),
+    band(`Año lectivo ${isPlaceholder(v.year) ? "________" : v.year}`, 22, COLOR_BAND_BG, COLOR_PRIMARY),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: "Documento editable elaborado con Avendia · Revisa, adapta y firma antes de su aplicación", size: 15, color: COLOR_MUTED, italics: true, font: "Calibri" })],
+      spacing: { before: 700 },
+    }),
     new Paragraph({ children: [new PageBreak()] }),
     createHeading("CONTENIDO", HeadingLevel.HEADING_1),
     new TableOfContents("Contenido", { hyperlink: true, headingStyleRange: "1-2", cachedEntries: entries }),
@@ -3399,49 +3461,11 @@ export function buildDocumentDocx(
   }
 
   children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: "DOCUMENTO PEDAGÓGICO EDITABLE",
-          italics: true,
-          color: COLOR_MUTED,
-          size: 18,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 120 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: cleanText(artifact.document_title).toUpperCase(),
-          bold: true,
-          color: COLOR_HEADING,
-          size: 28,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 50 },
-    }),
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: [
+    ...createTitleBlock(cleanText(artifact.document_title).toUpperCase(), [
             isPlaceholder(v.area) ? "" : `ÁREA: ${v.area.toUpperCase()}`,
             isPlaceholder(v.level) ? "" : `NIVEL: ${v.level.toUpperCase()}`,
             isPlaceholder(v.grade) ? "" : `GRADO: ${v.grade.toUpperCase()}${isPlaceholder(v.section) ? "" : ` "${v.section}"`}`,
-          ].filter(Boolean).join(" · ") || "DOCUMENTO DE PLANIFICACIÓN CURRICULAR",
-          bold: true,
-          color: COLOR_HEADING,
-          size: 20,
-          font: "Calibri",
-        }),
-      ],
-      spacing: { after: 200 },
-    })
+          ].filter(Boolean).join(" · ") || "DOCUMENTO DE PLANIFICACIÓN CURRICULAR")
   );
 
   // I. Información General
@@ -3471,7 +3495,7 @@ export function buildDocumentDocx(
       new TableRow({
         cantSplit: true,
         children: [
-          createStyledCell(label, { bold: true, widthPercent: 35, fillColor: idx % 2 === 0 ? undefined : COLOR_ZEBRA_BG }),
+          createStyledCell(label, { bold: true, widthPercent: 35, fillColor: COLOR_BAND_BG, color: COLOR_PRIMARY }),
           createStyledCell(val, { widthPercent: 65, fillColor: idx % 2 === 0 ? undefined : COLOR_ZEBRA_BG }),
         ],
       })
@@ -3579,6 +3603,27 @@ export function buildDocumentDocx(
   const shouldIncludeSignatures = institutionalDocuments.some((key) =>
     (context.workflowKey || "").includes(key)
   );
+  const workflowKey = context.workflowKey || "";
+  const isPlanOrReport = ["plan-", "informe-", "fichas-acompanamiento", "seguimiento", "alertas", "acompana"].some((key) => workflowKey.includes(key));
+  if (isSession) {
+    children.push(...createTeacherChecklistBlocks([
+      "Comuniqué el propósito de la sesión y los criterios de evaluación a los estudiantes.",
+      "Preparé los materiales y recursos previstos para cada momento didáctico.",
+      "Recogí evidencias de aprendizaje y las registré en el instrumento previsto.",
+      "Brindé retroalimentación oportuna y atendí a los estudiantes que requerían apoyo.",
+      "Anoté ajustes para la siguiente sesión a partir de lo observado.",
+    ]));
+  } else if (["unidad-aprendizaje", "proyectos-integrados", "carpeta-pedagogica"].some((key) => workflowKey.includes(key))) {
+    children.push(...createTeacherChecklistBlocks([
+      "Las competencias, capacidades y desempeños están alineados con el CNEB y la programación anual.",
+      "La situación significativa conecta con el contexto y los intereses de los estudiantes.",
+      "Las sesiones o actividades siguen una secuencia coherente y con tiempos realistas.",
+      "Los instrumentos de evaluación y las evidencias están definidos para cada producto.",
+      "El documento fue revisado y aprobado por la dirección o coordinación.",
+    ]));
+  } else if (isPlanOrReport) {
+    children.push(...createFollowUpBlocks(artifact.teacher_recommendations, "SEGUIMIENTO DE ACCIONES Y COMPROMISOS"));
+  }
   if (shouldIncludeSignatures) {
     children.push(
       createSignaturesTable(

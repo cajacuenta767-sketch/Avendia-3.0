@@ -5,11 +5,13 @@ import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 type Props = {
   file: Blob;
   documentTitle: string;
+  /** Se invoca cuando el PDF no puede abrirse; permite volver a la vista rápida. */
+  onUnavailable?: () => void;
 };
 
 type PdfPage = { width: number; height: number };
 
-export function PdfDocumentPreview({ file, documentTitle }: Props) {
+export function PdfDocumentPreview({ file, documentTitle, onUnavailable }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const documentRef = useRef<PDFDocumentProxy | null>(null);
@@ -43,7 +45,10 @@ export function PdfDocumentPreview({ file, documentTitle }: Props) {
         }));
         if (!cancelled) setPages(nextPages);
       } catch {
-        if (!cancelled) setError("No se pudo abrir la vista de páginas reales.");
+        if (!cancelled) {
+          setError("No se pudo abrir la vista de páginas reales.");
+          onUnavailable?.();
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -55,7 +60,7 @@ export function PdfDocumentPreview({ file, documentTitle }: Props) {
       void loadingTask?.destroy();
       documentRef.current = null;
     };
-  }, [file]);
+  }, [file, onUnavailable]);
 
   useEffect(() => {
     const pdf = documentRef.current;

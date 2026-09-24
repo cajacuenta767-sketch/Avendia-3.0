@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -99,9 +99,15 @@ export function WordDocumentPreview({
   const [exactPreview, setExactPreview] = useState<Blob | null>(null);
   const [exactPreviewStatus, setExactPreviewStatus] = useState<"idle" | "loading" | "unavailable">("idle");
   const [exactPreviewAttempt, setExactPreviewAttempt] = useState(0);
+  const [exactPreviewError, setExactPreviewError] = useState("");
+  const exactPreviewFailed = useCallback(() => {
+    setExactPreview(null);
+    setExactPreviewStatus("unavailable");
+  }, []);
   const previewWrapperRef = useRef<HTMLDivElement>(null);
   const previewViewportRef = useRef<HTMLDivElement>(null);
   const documentPaperRef = useRef<HTMLElement>(null);
+  const pageMarkerRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   useLayoutEffect(() => {
     if (viewMode !== "word" || documentMode === "reading") return undefined;
@@ -239,8 +245,12 @@ export function WordDocumentPreview({
       setExactPreviewStatus("loading");
     });
     void onPrepareExactPreview()
-      .then((file) => { if (!cancelled) setExactPreview(file); })
-      .catch(() => { if (!cancelled) setExactPreviewStatus("unavailable"); })
+      .then((file) => { if (!cancelled) { setExactPreview(file); setExactPreviewError(""); } })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setExactPreviewStatus("unavailable");
+        setExactPreviewError(error instanceof Error ? error.message : "");
+      })
       .finally(() => { if (!cancelled) setExactPreviewStatus((current) => current === "unavailable" ? current : "idle"); });
     return () => { cancelled = true; };
   }, [exactPreviewAttempt, onPrepareExactPreview, toolId, viewMode, workflowKey]);
@@ -280,7 +290,7 @@ export function WordDocumentPreview({
             </div>
           ) : null}
         </div>
-        <PdfDocumentPreview file={exactPreview} documentTitle={artifact.document_title || "Documento pedagógico"} />
+        <PdfDocumentPreview file={exactPreview} documentTitle={artifact.document_title || "Documento pedagógico"} onUnavailable={exactPreviewFailed} />
       </div>
     );
   }
@@ -353,12 +363,14 @@ export function WordDocumentPreview({
   const isResource = artifactType === "recurso";
   const isDocument = !isInstrument && !isActivity && !isAnalytics && !isCommunication && !isResource;
   const safeCurrentPage = Math.min(Math.max(0, currentPage), Math.max(0, pageBreaks.length - 1));
-  const activePage = pageBreaks[safeCurrentPage] ?? pageBreaks[0] ?? { from: 0, to: 1100 };
   const hasPageNavigation = documentMode === "fit-width" && pageBreaks.length > 1;
-  const stageHeight = documentMode === "fit-width"
-    ? Math.ceil((activePage.to - activePage.from) * documentLayout.scale)
-    : documentLayout.height;
-  const pageOffset = documentMode === "fit-width" ? activePage.from : 0;
+  // Todas las páginas se muestran apiladas y completas; el paginador solo desplaza hasta la hoja elegida.
+  const stageHeight = documentLayout.height;
+  const goToPage = (index: number) => {
+    const target = Math.max(0, Math.min(pageBreaks.length - 1, index));
+    setCurrentPage(target);
+    pageMarkerRefs.current[target]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div ref={previewWrapperRef} className={`word-preview-wrapper ${isFullscreen ? "is-fullscreen" : ""}`}>
@@ -465,18 +477,18 @@ export function WordDocumentPreview({
 
       {hasPageNavigation && !exactPreview && exactPreviewStatus !== "loading" ? (
         <nav className="word-preview-pager" aria-label="Páginas del documento">
-          <button type="button" disabled={safeCurrentPage === 0} onClick={() => setCurrentPage((page) => Math.max(0, Math.min(pageBreaks.length - 1, page - 1)))}>
+          <button type="button" disabled={safeCurrentPage === 0} onClick={() => goToPage(safeCurrentPage - 1)}>
             <ChevronLeft size={18} /> Anterior
           </button>
-          <span aria-live="polite">Página {safeCurrentPage + 1} de {pageBreaks.length}</span>
-          <button type="button" disabled={safeCurrentPage === pageBreaks.length - 1} onClick={() => setCurrentPage((page) => Math.min(pageBreaks.length - 1, Math.max(0, page + 1)))}>
+          <span aria-live="polite">Página {safeCurrentPage + 1} de {pageBreaks.length} · todas visibles</span>
+          <button type="button" disabled={safeCurrentPage === pageBreaks.length - 1} onClick={() => goToPage(safeCurrentPage + 1)}>
             Siguiente <ChevronRight size={18} />
           </button>
         </nav>
       ) : null}
 
       {/* Contenedor del documento */}
-      {viewMode === "word" ? (exactPreview ? <PdfDocumentPreview file={exactPreview} documentTitle={artifact.document_title || "Documento pedagógico"} /> : <>
+      {viewMode === "word" ? (exactPreview ? <PdfDocumentPreview file={exactPreview} documentTitle={artifact.document_title || "Documento pedagógico"} onUnavailable={exactPreviewFailed} /> : <>
         {exactPreviewStatus === "loading" ? (
           <div className="word-pdf-preview__loading" role="status">
             <LoaderCircle className="is-spinning" />
@@ -488,10 +500,21 @@ export function WordDocumentPreview({
             className={`word-document-stage word-document-stage--${documentMode}`}
             style={documentMode === "reading" ? undefined : { width: `${documentLayout.width}px`, height: `${stageHeight}px` }}
           >
+          {documentMode === "fit-width" && pageBreaks.length > 1 ? pageBreaks.map((page, index) => (
+            <div
+              key={`page-${index}`}
+              ref={(element) => { pageMarkerRefs.current[index] = element; }}
+              className={`word-page-marker ${index === 0 ? "word-page-marker--first" : ""}`}
+              style={{ top: `${Math.round(page.from * documentLayout.scale)}px` }}
+              aria-hidden="true"
+            >
+              <span>Página {index + 1} de {pageBreaks.length}</span>
+            </div>
+          )) : null}
           <article
             ref={documentPaperRef}
             className={`word-document-paper ${documentMode === "reading" ? "word-document-paper--reading" : "word-document-paper--canvas"}`}
-            style={documentMode === "reading" ? undefined : { transform: `translateY(-${pageOffset * documentLayout.scale}px) scale(${documentLayout.scale})` }}
+            style={documentMode === "reading" ? undefined : { transform: `scale(${documentLayout.scale})` }}
           >
             {/* ==================== 1. ARQUETIPO: INSTRUMENTOS ==================== */}
             {isInstrument ? (
@@ -852,44 +875,54 @@ export function WordDocumentPreview({
                   /* Si son Tarjetas de Estudio */
                   <section className="word-section">
                     <h2 className="word-section-h1">TARJETAS DIDÁCTICAS RECORTABLES (FRENTE Y REVERSO)</h2>
-                    <p className="word-paper-p" style={{ fontSize: "0.88rem", color: "#475569", marginBottom: "1rem" }}>
-                      <strong>Instrucciones de recorte y armado:</strong> Recorta cada tarjeta por la línea punteada (✂). Lee el concepto o pregunta del frente, formula tu respuesta y comprueba con el reverso.
-                    </p>
-                    <div className="word-flashcards-grid">
-                      {(artifact.activity?.items && artifact.activity.items.length > 0
-                        ? artifact.activity.items
-                        : artifact.sections.flatMap((s) => s.key_points).map((point, i) => ({
-                            id: String(i),
-                            prompt: `Concepto #${i + 1}`,
-                            answer: point,
-                            hint: "",
-                            options: [],
-                          }))
-                      ).map((card, idx) => (
-                        <div key={card.id || idx} className="word-flashcard-item">
-                          <span className="word-flashcard-cut-label">✂ Recortar</span>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
-                            <span style={{ fontWeight: 800, color: "#1f4d78", fontSize: "0.8rem", textTransform: "uppercase" }}>
-                              Tarjeta N° {idx + 1}
-                            </span>
-                            <span style={{ fontSize: "0.7rem", background: "#e2e8f0", padding: "1px 5px", borderRadius: "3px", color: "#475569" }}>
-                              Frente / Reverso
-                            </span>
-                          </div>
-                          <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "1rem", marginBottom: "0.4rem", borderBottom: "1px dashed #cbd5e1", paddingBottom: "0.25rem" }}>
-                            {card.prompt}
-                          </div>
-                          <div style={{ fontSize: "0.85rem", color: "#334155", lineHeight: 1.4 }}>
-                            <strong>¿Qué significa?</strong> {card.answer}
-                          </div>
-                          {card.hint ? (
-                            <div style={{ marginTop: "0.35rem", fontSize: "0.78rem", color: "#64748b", fontStyle: "italic" }}>
-                              💡 Pista: {card.hint}
-                            </div>
-                          ) : null}
-                        </div>
-                      ))}
+                    <div className="word-callout">
+                      <strong>✂ Cómo armar las tarjetas</strong>
+                      <p>1. Recorta cada tarjeta por la línea punteada (✂): primero los frentes de la Hoja A y luego los reversos de la Hoja B, que llevan el mismo número.</p>
+                      <p>2. Pega cada frente con su reverso espalda con espalda (o imprime la Hoja B al dorso de la Hoja A si tu impresora lo permite).</p>
+                      <p>3. Lee la pregunta o concepto, formula tu respuesta y voltea la tarjeta para comprobar con la pista formativa.</p>
                     </div>
+                    {(() => {
+                      const cards = artifact.activity?.items && artifact.activity.items.length > 0
+                        ? artifact.activity.items
+                        : artifact.sections.flatMap((s) => s.key_points).map((point, i) => ({ id: String(i), prompt: point, answer: "", hint: "", options: [] }));
+                      const rows: Array<Array<[typeof cards[number] | null, number]>> = [];
+                      for (let index = 0; index < cards.length; index += 2) {
+                        rows.push([[cards[index] ?? null, index], [cards[index + 1] ?? null, index + 1]]);
+                      }
+                      return (
+                        <>
+                          <h3 className="word-section-h2">Hoja A · Frentes: pregunta o concepto</h3>
+                          <div className="word-flashcards-sheet" aria-label="Hoja de frentes">
+                            {rows.flat().map(([card, index]) => card ? (
+                              <div key={`front-${card.id || index}`} className="word-flashcard-item word-flashcard-item--front">
+                                <span className="word-flashcard-cut-label">✂ Tarjeta N° {index + 1}</span>
+                                <p className="word-flashcard-prompt">{card.prompt}</p>
+                              </div>
+                            ) : <div key={`front-empty-${index}`} className="word-flashcard-item word-flashcard-item--empty" aria-hidden="true" />)}
+                          </div>
+                          <h3 className="word-section-h2">Hoja B · Reversos: respuesta y pista</h3>
+                          <div className="word-flashcards-sheet" aria-label="Hoja de reversos">
+                            {rows.flat().map(([card, index]) => card ? (
+                              <div key={`back-${card.id || index}`} className="word-flashcard-item word-flashcard-item--back">
+                                <span className="word-flashcard-cut-label">Tarjeta N° {index + 1} · Reverso ✂</span>
+                                {card.answer ? (
+                                  <>
+                                    <span className="word-flashcard-kicker">¿Qué significa?</span>
+                                    <p className="word-flashcard-answer">{card.answer}</p>
+                                    {card.hint ? <p className="word-flashcard-hint"><strong>💡 Pista:</strong> {card.hint}</p> : null}
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="word-flashcard-kicker">Escribe el significado con tus palabras:</span>
+                                    <p className="word-flashcard-lines">______________________<br />______________________<br />______________________</p>
+                                  </>
+                                )}
+                              </div>
+                            ) : <div key={`back-empty-${index}`} className="word-flashcard-item word-flashcard-item--empty" aria-hidden="true" />)}
+                          </div>
+                        </>
+                      );
+                    })()}
 
                     {/* Solucionario para Tarjetas de Estudio */}
                     <div style={{ marginTop: "2.5rem", borderTop: "2px dashed #bdd7ee", paddingTop: "1.5rem" }}>
@@ -2094,7 +2127,7 @@ export function WordDocumentPreview({
           </article>
           </div>
         </div>
-        {exactPreviewStatus === "unavailable" ? <div className="word-exact-preview-status"><span>La vista rápida está disponible, pero no se pudieron cargar las páginas reales.</span><button type="button" onClick={() => setExactPreviewAttempt((attempt) => attempt + 1)}>Reintentar páginas reales</button></div> : null}
+        {exactPreviewStatus === "unavailable" ? <div className="word-exact-preview-status"><span>La vista rápida está disponible, pero no se pudieron cargar las páginas reales.{exactPreviewError ? <small>{exactPreviewError}</small> : null}</span><button type="button" onClick={() => setExactPreviewAttempt((attempt) => attempt + 1)}>Reintentar páginas reales</button></div> : null}
         </>) : (
         <div className={`workflow-artifact__grid ${editingResult ? "is-editing" : ""}`}>
           {artifact.sections.map((sectionItem, index) => (
